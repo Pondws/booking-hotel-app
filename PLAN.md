@@ -9,6 +9,36 @@ data model อยู่ใน `apps/api/prisma/schema.prisma` และเอก
 schema → shared zod schema → service → controller → route (+ tests) → FE fetcher → TanStack Query
 hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 
+## การใช้ Skills
+
+**Skill ประจำทุก phase (ลำดับการทำงาน)**
+1. `superpowers:brainstorming`: ตกลง scope และ design ของ phase แล้วเขียน spec ลง `docs/superpowers/specs/`
+2. `superpowers:writing-plans`: เขียนแผนลง `docs/superpowers/plans/`
+3. `superpowers:subagent-driven-development` หรือ `superpowers:executing-plans`: ลงมือทำตามแผน
+4. `superpowers:test-driven-development`: เขียน test ก่อนโค้ดทุก service และ endpoint
+5. `superpowers:verification-before-completion`: ก่อนบอกว่าเสร็จ ต้องรัน lint, typecheck, `npm test` และ `npm run db:check` ให้เห็นผลจริง
+6. `superpowers:requesting-code-review`: review ทั้ง branch ก่อน merge
+7. `superpowers:finishing-a-development-branch`: เลือก merge / PR / keep
+
+ถ้าเจอ bug หรือ test ล้ม ให้ใช้ `superpowers:systematic-debugging` ก่อนลงมือแก้
+
+**Skill ของโปรเจกต์ (`.claude/skills/`)**
+
+| Skill | ใช้เมื่อ |
+| --- | --- |
+| `prisma-cli` | สร้างหรือ apply migration, `generate`, `migrate status/diff` (รวมกรณีที่ shell เป็นแบบ non-interactive) |
+| `prisma-client-api` | เขียน query ใน service: filter, relations, `$transaction`, `omit`/`select` และจัดการ Prisma error |
+| `prisma-orm-setup` | แก้ปัญหาการเชื่อมต่อ DB หรือตั้งค่า DB ของ environment ใหม่ |
+| `shadcn` | เพิ่มหรือประกอบ UI components ใน `packages/ui` (ใช้คู่กับ `npm run ui:add`) |
+| `tanstack-query-best-practices` | สร้าง query key factory, hooks, mutations, invalidation, prefetch และการจัดการ error/loading |
+| `impeccable` | ออกแบบหรือขัดเกลา UI: `DESIGN.md`, audit, polish, responsive, a11y, empty/error states |
+| `next-dev-loop` | ตรวจว่าหน้าเว็บทำงานจริงใน `next dev` ไม่ใช่แค่ compile ผ่าน |
+| `dataviz` | กราฟและ stat tiles บน dashboard |
+| `next-bundle-optimizer` | ลดขนาด client bundle และ initial load |
+| `next-cache-components-adoption` → `next-cache-components-optimizer` | เปิดใช้ Cache Components แล้วปรับให้ส่วนสำคัญของหน้าแสดงได้ทันที |
+| `next-partial-prefetching-adoption` → `next-partial-prefetching-optimizer` | เปิดใช้ Partial Prefetching เพื่อให้การเปลี่ยนหน้าเร็วขึ้น |
+| `security-review` | ตรวจความปลอดภัยของ branch ก่อน merge งาน auth และ payment |
+
 ## สถานะ
 
 | Phase | หัวข้อ | สถานะ |
@@ -45,6 +75,11 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 
 เป้าหมาย: ปรับ API ให้ตรงกับกฎ backend ใน CLAUDE.md ก่อนเริ่มสร้างฟีเจอร์
 
+**Skills:**
+- `prisma-client-api`: ย้าย query ไปไว้ใน service และ map error `P2002`/`P2025`
+- `tanstack-query-best-practices`: ปรับ `apiFetch` และ hooks ให้รับ error shape ใหม่
+- `next-dev-loop`: ตรวจว่าทั้ง web และ web-admin ยังโหลดรายการโรงแรมได้หลังเปลี่ยน response shape
+
 - [ ] สร้าง class `AppError(status, code, message)` ใน `apps/api/src/lib/`
 - [ ] Global error handler ตอบกลับเป็น `{ "error": { "code", "message" } }` ให้ทุกกรณีต่อไปนี้:
   - `AppError`
@@ -64,6 +99,15 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 ## Phase 2 — Auth และ roles
 
 เป้าหมาย: ลูกค้าสมัครและ login ได้, staff/admin login เข้า back-office ได้ และ API เป็นตัวบังคับ role
+
+**Skills:**
+- `prisma-cli`: migration ของตาราง session (ถ้าเลือกใช้)
+- `prisma-client-api`: ใช้ `omit: { passwordHash: false }` เฉพาะตอน login
+- `shadcn`: ฟอร์ม login/register
+- `tanstack-query-best-practices`: query `me` และ invalidate หลัง login/logout
+- `impeccable`: หน้า auth ของทั้งสองแอป
+- `next-dev-loop`: ตรวจ redirect และการป้องกัน route
+- `security-review`: ตรวจก่อน merge (บังคับ)
 
 - [ ] **ต้องตัดสินใจ (ถามก่อน):** จะใช้ session cookie (มีตาราง `Session` ใน DB) หรือ JWT (access + refresh)
       ไม่ว่าแบบไหนต้องเป็น httpOnly, `SameSite=Lax` และ `Secure` บน production ทั้งสองแบบต้องทำ schema migration เพิ่ม
@@ -92,6 +136,13 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 
 เป้าหมาย: ลูกค้าค้นหาโรงแรมและเห็นราคาจริงตามวันที่เลือก
 
+**Skills:**
+- `impeccable`: ก่อนเริ่มทำ UI ให้สร้าง `DESIGN.md` (design tokens และทิศทาง UI ที่ใช้ร่วมกันทั้ง web และ web-admin) จากนั้นใช้ออกแบบหน้าค้นหาและหน้ารายละเอียด และรัน audit + polish ก่อนปิด phase
+- `prisma-client-api`: query หาห้องว่างที่เช็คคืนทับกัน และ pagination
+- `shadcn`: date range picker, cards, gallery
+- `tanstack-query-best-practices`: key factory สำหรับการค้นหา, `placeholderData` ตอนเปลี่ยนหน้า, prefetch หน้ารายละเอียด
+- `next-dev-loop`: ตรวจหน้าค้นหาและหน้ารายละเอียดในเบราว์เซอร์จริง
+
 - [ ] `GET /api/hotels?city=&checkIn=&checkOut=&guests=&page=`
   - คืนโรงแรมที่ active พร้อมรูปปก, `ratingAvg`, `reviewCount` และราคาเริ่มต้น
   - ถ้าระบุวันที่ ให้คืนเฉพาะโรงแรมที่มี room type ว่าง
@@ -111,6 +162,15 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 ## Phase 4 — Booking flow
 
 เป้าหมาย: ลูกค้าที่ login แล้วจอง room type ได้ และจองซ้อนไม่ได้เด็ดขาด
+
+**Skills:**
+- `prisma-client-api`: `$transaction`, จับ error `23P01` แล้ว retry
+- `superpowers:test-driven-development`: เขียน concurrency test ก่อนเขียน service
+- `superpowers:systematic-debugging`: ถ้า concurrency test ล้มแบบไม่แน่นอน
+- `shadcn`: ฟอร์มจอง (react-hook-form + zod)
+- `tanstack-query-best-practices`: mutation, invalidate "การจองของฉัน" และ "ห้องว่าง" หลังจอง/ยกเลิก
+- `impeccable`: ขั้นตอนการจองทั้ง flow
+- `next-dev-loop`: ตรวจ flow จองตั้งแต่ต้นจนจบ
 
 - [ ] `POST /api/bookings` รับ `createBookingSchema` (`roomTypeId`, วันที่, `guests` และข้อมูลแขกที่ไม่บังคับ)
       ทำทุกขั้นใน `$transaction` เดียว:
@@ -139,6 +199,12 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 
 เป้าหมาย: booking เป็น CONFIRMED ได้ก็ต่อเมื่อชำระเงินแล้วเท่านั้น
 
+**Skills:**
+- `prisma-client-api`: transaction ที่อัปเดต payment + booking พร้อมกัน และ idempotency ด้วย `providerRef`
+- `tanstack-query-best-practices`: สถานะ mutation ระหว่างจ่ายเงิน และ refetch สถานะ booking
+- `impeccable`: หน้าชำระเงินและหน้าผลลัพธ์ (รวมกรณีจ่ายไม่สำเร็จ)
+- `security-review`: ตรวจก่อน merge (บังคับ โดยเฉพาะตอนต่อ gateway จริง)
+
 - [ ] Interface `PaymentProvider` (`createCharge`, `refund`) พร้อม `MockProvider` ที่สลับให้สำเร็จหรือล้มเหลวได้ตอน dev
 - [ ] `POST /api/bookings/:code/payments`
   - สร้าง `Payment` (PENDING) ตาม `totalAmount`
@@ -155,6 +221,14 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 
 เป้าหมาย: staff ดูแลโรงแรมของตัวเองได้ทุกวัน ส่วน admin จัดการได้ทุกอย่าง
 ทุก endpoint อยู่ใต้ `/api/admin/*` และผ่าน guard ทั้ง role และ `requireHotelAccess`
+
+**Skills:**
+- `shadcn`: data table, dialog, form, calendar สำหรับ rate periods
+- `tanstack-query-best-practices`: key factory ต่อ resource และ invalidate หลัง CRUD
+- `impeccable`: back-office เป็นหน้าแบบ Operate ที่เน้นความแม่นยำและอ่านง่าย
+- `dataviz`: กราฟ occupancy/รายได้ และ stat tiles บน dashboard
+- `prisma-client-api`: query สำหรับ dashboard (aggregate, groupBy)
+- `next-dev-loop`: ตรวจแต่ละหน้าจัดการ
 
 - [ ] Hotels:
   - ดูรายการ, สร้าง, แก้ไข
@@ -179,6 +253,13 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 
 ## Phase 7 — Reviews
 
+**Skills:**
+- `prisma-client-api`: transaction สร้างรีวิวและคำนวณคะแนนใหม่
+- `prisma-cli`: migration เพิ่ม `isHidden`
+- `shadcn`: ฟอร์มให้ดาว
+- `tanstack-query-best-practices`: infinite/paginated reviews
+- `impeccable`: ส่วนรีวิวในหน้าโรงแรม
+
 - [ ] `POST /api/bookings/:code/review`
   - เฉพาะเจ้าของ, booking ต้องเป็น `COMPLETED` และรีวิวได้ booking ละครั้ง
   - `userId` และ `hotelId` ดึงจาก booking (ห้ามรับจาก request body)
@@ -188,6 +269,16 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 - [ ] Admin: ซ่อนรีวิวที่ไม่เหมาะสม (ต้องเพิ่ม field `isHidden` + migration) แล้วคำนวณคะแนนใหม่
 
 ## Phase 8 — Hardening และ deployment
+
+**Skills:**
+- `prisma-cli`: `migrate deploy` ใน CI และ migration สำหรับ CHECK constraints
+- `prisma-orm-setup`: เชื่อมต่อ managed Postgres
+- `security-review`: ตรวจทั้งระบบ
+- `impeccable`: audit/harden ทุกหน้า (a11y, responsive, edge cases)
+- performance ของ `apps/web`:
+  - `next-bundle-optimizer`
+  - `next-cache-components-adoption` → `next-cache-components-optimizer`
+  - `next-partial-prefetching-adoption` → `next-partial-prefetching-optimizer`
 
 - [ ] CI: lint, typecheck, test, build และ `prisma migrate deploy` + `db:check` บน Postgres ชั่วคราว
 - [ ] DB CHECKs:
