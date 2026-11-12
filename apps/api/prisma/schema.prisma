@@ -46,8 +46,32 @@ model User {
   staffOf  HotelStaff[]
   bookings Booking[]
   reviews  Review[]
+  sessions Session[]
 
   @@map("users")
+}
+
+enum SessionAudience {
+  WEB
+  ADMIN
+}
+
+model Session {
+  id        String          @id @default(cuid())
+  tokenHash String          @unique @map("token_hash")
+  userId    String          @map("user_id")
+  audience  SessionAudience
+  expiresAt DateTime        @map("expires_at")
+  userAgent String?         @map("user_agent")
+  ip        String?
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 model HotelStaff {

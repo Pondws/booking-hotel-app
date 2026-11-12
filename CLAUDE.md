@@ -24,26 +24,33 @@ New features follow this layout; add new folders following the rules below.
 apps/
   web/                   # customer site
     src/
-      app/               # routes (App Router), layout.tsx, providers.tsx (QueryClient; no retry on 4xx ApiError)
-      features/<name>/   # one folder per feature (e.g. hotels/, health/):
-        api.ts           #   fetchers — call request() from lib/api.ts, never axios/fetch directly
-        hooks.ts         #   TanStack Query hooks + key factory (e.g. hotelKeys.list())
-        components/      #   feature UI (e.g. hotel-list.tsx)
-      lib/               # api.ts — axios client: request(schema, config) unwraps { data } and throws ApiError
+      app/               # routes (App Router): login/, register/, account/; layout.tsx (header + UserNav);
+                         # providers.tsx (QueryClient; no retry on 4xx; Query/MutationCache 401 → me = null)
+      features/<name>/   # one folder per feature (e.g. auth/, hotels/, health/):
+        api.ts           #   fetchers — call request()/requestNoContent() from lib/api.ts, never axios/fetch directly
+        hooks.ts         #   TanStack Query hooks + key factory (e.g. hotelKeys.list(), authKeys.me())
+        components/      #   feature UI (e.g. hotel-list.tsx, login-form.tsx, require-auth.tsx)
+      lib/               # api.ts — axios client: request(schema, config) unwraps { data } and throws ApiError;
+                         # form-errors.ts — applyServerFieldErrors (server fieldErrors → react-hook-form setError)
     components.json      # shadcn config — aliases point to @booking/ui
-  web-admin/             # back-office — same layout as web (src/app/ src/features/ src/lib/)
+  web-admin/             # back-office — same layout as web, except: app/login/ is public and every other page
+                         # lives in app/(protected)/ (layout = RequireAuth + AdminHeader); no register page
   api/
     src/
       index.ts           # starts server (env.PORT)
-      app.ts             # express app: cors, json, routers, then notFound + errorHandler
+      app.ts             # express app: trust proxy, corsPolicy, json, routers, then notFound + errorHandler
       env.ts             # zod-validated env
-      routes/            # express routers (public, e.g. hotels.ts, health.ts)
-        admin/           # index.ts = adminRouter, guarded once by requireRole('ADMIN','STAFF'); sub-routers per resource
+      types/express.d.ts # declaration merging: Request.auth?: { user: PublicUser; sessionId }
+      routes/            # express routers (public, e.g. hotels.ts, health.ts; auth.ts = /api/auth/* incl. /admin/*)
+        admin/           # index.ts = adminRouter, guarded once by loadSession('ADMIN') + requireRole('ADMIN','STAFF');
+                         # sub-routers per resource
       controllers/       # parse req, call service, respond with ok()/noContent() — never import prisma
-      services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts)
-      lib/               # prisma.ts (single client, PrismaPg adapter), app-error.ts (AppError), http.ts (ok, noContent),
-                         # prisma-errors.ts (isUniqueViolationOn), password.ts, slug.ts
-      middleware/        # validate.ts, error-handler.ts, not-found.ts, require-role.ts
+      services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts)
+      lib/               # prisma.ts (single client, PrismaPg adapter, global omit of passwordHash), app-error.ts,
+                         # http.ts (ok, noContent), prisma-errors.ts (isUniqueViolationOn), password.ts (scrypt),
+                         # session-token.ts, cookies.ts (sid / admin_sid), cors-policy.ts, slug.ts
+      middleware/        # validate.ts, error-handler.ts, not-found.ts, load-session.ts, require-auth.ts,
+                         # require-role.ts, require-hotel-access.ts, rate-limit.ts
       generated/prisma/  # Prisma client output (git-ignored, from `prisma generate`)
     prisma/
       schema.prisma  migrations/  seed.ts
@@ -60,7 +67,10 @@ docker-compose.yml
 ```
 
 ## Env
-- `apps/api/.env`: `DATABASE_URL`, `PORT` (8000), `CORS_ORIGINS` (comma-separated, default web + admin)
+- `apps/api/.env`: `DATABASE_URL`, `PORT` (8000), `WEB_ORIGINS` / `ADMIN_ORIGINS` (comma-separated browser
+  origins per app; defaults localhost:3000 / localhost:3001), `AUTH_RATE_LIMIT_MAX` (10) and
+  `AUTH_RATE_LIMIT_WINDOW_MS` (900000), `TRUST_PROXY` (reverse-proxy hop count, 0 locally — never `true`)
+- `apps/api/.env.test` (committed, no secrets): overrides loaded after `.env` by `npm test` (e.g. a high rate limit)
 - `apps/web/.env.local`, `apps/web-admin/.env.local`: `NEXT_PUBLIC_API_URL` (http://localhost:8000)
 - Each has a committed `.env.example`.
 
@@ -103,9 +113,14 @@ migration that touches constraints. There is no FE test runner — verify UI in 
 - Response shape:
   - success: `{ "data": ... }`
   - error: `{ "error": { "code": "NOT_FOUND", "message": "..." } }`
-- Admin endpoints live under `/api/admin/*` and are always guarded by `requireRole('ADMIN','STAFF')`.
+- Admin endpoints live under `/api/admin/*` and are always guarded by `loadSession('ADMIN')` +
+  `requireRole('ADMIN','STAFF')` (mounted once on `adminRouter`). Narrow further per route (e.g.
+  `requireRole('ADMIN')`) and use `requireHotelAccess()` for hotel-scoped staff routes.
   Never rely on the frontend to hide admin features — the API enforces access.
-- CORS allows only the origins in `CORS_ORIGINS` from env (web + web-admin).
+- Auth: session cookies only (`sid` = web, `admin_sid` = admin; sessions are audience-bound). Never return
+  `passwordHash` — it is globally omitted; only `auth.service` login opts in with `omit: { passwordHash: false }`.
+- CORS is per path (`lib/cors-policy.ts`): `/api/admin/*` + `/api/auth/admin/*` → `ADMIN_ORIGINS`,
+  other `/api/auth/*` → `WEB_ORIGINS`, everything else → both. New admin routes must stay under those prefixes.
 - REST naming: plural nouns (`/api/users/:id`), proper status codes (201 create, 204 delete).
 - Use a single Prisma client instance from `src/lib/prisma.ts`.
 - Use `select`/`include` deliberately — never return password hashes or secrets.

@@ -7,6 +7,7 @@ export const errorCodeSchema = z.enum([
   "FORBIDDEN",
   "NOT_FOUND",
   "CONFLICT",
+  "RATE_LIMITED",
   "INTERNAL",
 ]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
@@ -22,6 +23,58 @@ export const apiErrorSchema = z.object({
 export type ApiErrorBody = z.infer<typeof apiErrorSchema>;
 
 export const dataEnvelope = <S extends z.ZodType>(schema: S) => z.object({ data: schema });
+
+// ---------- Auth ----------
+export const roleSchema = z.enum(["CUSTOMER", "STAFF", "ADMIN"]);
+export type Role = z.infer<typeof roleSchema>;
+
+export const publicUserSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string(),
+  phone: z.string().nullable(),
+  role: roleSchema,
+});
+export type PublicUser = z.infer<typeof publicUserSchema>;
+
+const emailField = z.string().trim().toLowerCase().pipe(z.email());
+
+export const registerSchema = z.object({
+  email: emailField,
+  password: z.string().min(8, "Password must be at least 8 characters").max(128),
+  name: z.string().trim().min(1, "Name is required").max(120),
+});
+export type RegisterInput = z.input<typeof registerSchema>;
+
+export const loginSchema = z.object({
+  email: emailField,
+  password: z.string().min(1, "Password is required").max(128),
+});
+export type LoginInput = z.input<typeof loginSchema>;
+
+const UNSAFE_NEXT_CHARS = /[\u0000-\u001F\u007F\\\s]/;
+const NEXT_BASE_ORIGIN = "http://x";
+
+/**
+ * Returns `next` as a same-origin path (pathname + search + hash) only when it is a plain
+ * absolute path; otherwise "/". Rejects control chars, whitespace and backslashes, which
+ * URL parsing strips or rewrites (e.g. "/\t/evil.com" would become "//evil.com").
+ */
+export function safeNextPath(next: string | null | undefined): string {
+  if (!next || !next.startsWith("/") || next.startsWith("//") || UNSAFE_NEXT_CHARS.test(next)) {
+    return "/";
+  }
+  let url: URL;
+  try {
+    url = new URL(next, NEXT_BASE_ORIGIN);
+  } catch {
+    return "/";
+  }
+  if (url.origin !== NEXT_BASE_ORIGIN) return "/";
+  const path = url.pathname + url.search + url.hash;
+  // Dot segments can normalize into a protocol-relative path ("/.//evil.com" → "//evil.com")
+  return path.startsWith("//") ? "/" : path;
+}
 
 // ---------- Hotel ----------
 export const hotelSchema = z.object({

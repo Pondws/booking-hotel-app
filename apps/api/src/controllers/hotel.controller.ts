@@ -7,7 +7,10 @@ export async function listHotels(_req: Request, res: Response) {
   ok(res, await hotelService.listActiveHotels());
 }
 
-export async function createHotel(req: Request, res: Response) {
-  const input = req.body as CreateHotelData; // parsed by validate()
-  ok(res, await hotelService.createHotel(input), 201);
+// Body is already parsed by validate().
+export async function createHotel(
+  req: Request<Record<string, string>, unknown, CreateHotelData>,
+  res: Response,
+) {
+  ok(res, await hotelService.createHotel(req.body), 201);
 }

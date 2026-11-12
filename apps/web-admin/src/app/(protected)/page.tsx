@@ -1,8 +1,12 @@
+"use client";
+
+import { useMe } from "@/features/auth/hooks";
 import { CreateHotelForm } from "@/features/hotels/components/create-hotel-form";
 import { ApiStatus } from "@/features/health/components/api-status";
 import { HotelList } from "@/features/hotels/components/hotel-list";
 
 export default function AdminHome() {
+  const { data: me } = useMe();
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-10">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -12,7 +16,7 @@ export default function AdminHome() {
         </div>
         <ApiStatus />
       </header>
-      <CreateHotelForm />
+      {me?.role === "ADMIN" && <CreateHotelForm />}
       <HotelList />
     </main>
   );
