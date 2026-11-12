@@ -45,6 +45,7 @@ apps/
       generated/prisma/  # Prisma client output (git-ignored, from `prisma generate`)
     prisma/
       schema.prisma  migrations/  seed.ts
+      checks/            # constraints.sql — raw-SQL constraint checks (run by `npm run db:check`)
     prisma.config.ts     # Prisma 7 config: schema, migrations, seed, DATABASE_URL
     tsup.config.ts       # production bundle
 packages/
@@ -75,10 +76,13 @@ npm run db:seed                   # seed (prisma/seed.ts)
 npm run db:studio                 # browse DB
 npm run ui:add -- <component...>  # add shadcn component into packages/ui (don't use `npx shadcn add` directly)
 npm run lint && npm run typecheck # must pass before finishing a task
+npm test                          # api unit tests (node:test via tsx, files: apps/api/src/**/*.test.ts)
+npm run db:check                  # verify DB constraints (prisma/checks/constraints.sql; needs db:up, runs in a rolled-back transaction)
 npm run build                     # build all workspaces
 ```
 `npm run dev -w apps/web` style also works. Prisma CLI can be run directly inside `apps/api` (`npx prisma ...`).
-No test runner is set up yet — there is no `npm test`.
+Tests use Node's built-in `node:test` + `node:assert/strict` — no test framework dependency. Put test files
+next to the code as `*.test.ts`. Run `npm run db:check` after any migration that touches constraints.
 
 ## General Rules
 - TypeScript `strict`. No `any` — use `unknown` + narrowing or proper types.
