@@ -64,6 +64,7 @@ packages/
   shared/                # zod schemas + types used by web, web-admin and api
     src/index.ts
 docker-compose.yml
+DESIGN.md                # FE design rules: tokens, component usage, loading/error/empty states — follow for all UI
 ```
 
 ## Env

@@ -156,10 +156,10 @@
 **Interfaces:**
 - Produces: `@booking/ui/components/calendar` (`Calendar`), `@booking/ui/components/popover` (`Popover`, `PopoverTrigger`, `PopoverContent`), `@booking/ui/components/skeleton` (`Skeleton`).
 
-- [ ] **Step 1:** Run the `impeccable` skill to write `DESIGN.md` from the existing theme.
-- [ ] **Step 2:** `npm run ui:add -- calendar popover skeleton`; confirm only react-day-picker / date-fns (and their transitive deps) were added: `git diff --stat package-lock.json packages/ui/package.json`.
-- [ ] **Step 3:** `npm run lint && npm run typecheck && npm run build -w apps/web` → green.
-- [ ] **Step 4: Commit + push** — `feat(ui): DESIGN.md, calendar, popover and skeleton`.
+- [x] **Step 1:** Run the `impeccable` skill to write `DESIGN.md` from the existing theme.
+- [x] **Step 2:** `npm run ui:add -- calendar popover skeleton`; confirm only react-day-picker / date-fns (and their transitive deps) were added: `git diff --stat package-lock.json packages/ui/package.json`.
+- [x] **Step 3:** `npm run lint && npm run typecheck && npm run build -w apps/web` → green.
+- [x] **Step 4: Commit + push** — `feat(ui): DESIGN.md, calendar, popover and skeleton`.
 
 ### Task 6: Web search bar, home and results page
 
