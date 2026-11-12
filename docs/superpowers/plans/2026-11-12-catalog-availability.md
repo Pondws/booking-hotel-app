@@ -196,12 +196,12 @@
 - Consumes: Task 6 hooks, `DateRangeField`, `parseSearchParams`/`toSearchParams`.
 - Produces: `amenityIcon(code: string): LucideIcon` in `amenity-list.tsx` (map `wifi, pool, parking, breakfast, aircon, bathtub`; fallback `Check`).
 
-- [ ] **Step 1:** `HotelDetail` uses `useHotel(slug)`; 404 (`ApiError` status 404) → "Hotel not found" with link to `/hotels`; other errors → retry state; loading → skeleton.
-- [ ] **Step 2:** `HotelGallery` (main image + thumbnails, keyboard-accessible buttons, `next/image`; add `https://picsum.photos/**` to `images.remotePatterns` in `apps/web/next.config.ts`).
-- [ ] **Step 3:** `StayPicker` (date range + guests) writes to the URL with `router.replace`; `useAvailability(slug, range)` only when the URL has a valid range.
-- [ ] **Step 4:** `RoomTypeCard`: without range → "from ฿base / night"; with range → total + nights + collapsible per-night breakdown, or "Sold out" badge; room types filtered out by guests show nothing; disabled "Book" button with "Booking opens soon" hint.
-- [ ] **Step 5:** `npm run lint && npm run typecheck`; verify with `next-dev-loop`: Riverside Bangkok with `2027-04-08 → 2027-04-12` shows Deluxe King total `15400` (2×3200 + 2×4500); guests 3 hides Deluxe King; unknown slug shows not-found.
-- [ ] **Step 6: Commit + push** — `feat(web): hotel detail with gallery, amenities and live prices`.
+- [x] **Step 1:** `HotelDetail` uses `useHotel(slug)`; 404 (`ApiError` status 404) → "Hotel not found" with link to `/hotels`; other errors → retry state; loading → skeleton.
+- [x] **Step 2:** `HotelGallery` (main image + thumbnails, keyboard-accessible buttons, `next/image`; add `https://picsum.photos/**` to `images.remotePatterns` in `apps/web/next.config.ts`).
+- [x] **Step 3:** `StayPicker` (date range + guests) writes to the URL with `router.replace`; `useAvailability(slug, range)` only when the URL has a valid range.
+- [x] **Step 4:** `RoomTypeCard`: without range → "from ฿base / night"; with range → total + nights + collapsible per-night breakdown, or "Sold out" badge; room types filtered out by guests show nothing; disabled "Book" button with "Booking opens soon" hint.
+- [x] **Step 5:** `npm run lint && npm run typecheck`; verify with `next-dev-loop`: Riverside Bangkok with `2027-04-08 → 2027-04-12` shows Deluxe King total `15400` (2×3200 + 2×4500); guests 3 hides Deluxe King; unknown slug shows not-found.
+- [x] **Step 6: Commit + push** — `feat(web): hotel detail with gallery, amenities and live prices`.
 
 ### Task 8: Phase close — audit, verification, docs
 
