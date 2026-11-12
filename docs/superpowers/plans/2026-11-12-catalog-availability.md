@@ -179,12 +179,12 @@
   - `parseSearchParams(sp: URLSearchParams): HotelSearchQuery` (uses `hotelSearchQuerySchema.safeParse`; on failure drops the offending keys and re-parses, never throws) and `toSearchParams(q: Partial<HotelSearchQuery>): URLSearchParams` (omits defaults/undefined)
   - `<DateRangeField value onChange />` reused by Task 7.
 
-- [ ] **Step 1:** Implement fetchers + hooks + `search-params.ts`.
-- [ ] **Step 2:** Build `SearchBar` (react-hook-form + zodResolver on `hotelSearchQuerySchema.pick` of city/dates/guests; calendar disables days before `todayIn(BOOKING_TZ)` and beyond `checkIn + 30`); submit → `router.push("/hotels?" + toSearchParams(...))`.
-- [ ] **Step 3:** Build `HotelCard` (cover image, name, city, rating/review count, "from ฿X / night" via `Intl.NumberFormat("th-TH", { style: "currency", currency })`; links to `/hotels/<slug>?<dates & guests>`, prefetch on hover/focus), `HotelResults` (skeleton grid, error with retry, empty state "No hotels match …" with a clear-filters link), `Pagination`.
-- [ ] **Step 4:** Pages: `/` = hero + `SearchBar` + `HotelResults` for `{}`; `/hotels` = prefilled `SearchBar` + `HotelResults` from URL. Client parts inside `<Suspense>`.
-- [ ] **Step 5:** `npm run lint && npm run typecheck`; then verify with `next-dev-loop` (`npm run dev`): search "bangkok" → 1 result; dates with all rooms free → price shown; page through with `pageSize` small; invalid URL `?checkIn=garbage` renders defaults.
-- [ ] **Step 6: Commit + push** — `feat(web): hotel search bar and results`.
+- [x] **Step 1:** Implement fetchers + hooks + `search-params.ts`.
+- [x] **Step 2:** Build `SearchBar` (react-hook-form + zodResolver on `hotelSearchQuerySchema.pick` of city/dates/guests; calendar disables days before `todayIn(BOOKING_TZ)` and beyond `checkIn + 30`); submit → `router.push("/hotels?" + toSearchParams(...))`.
+- [x] **Step 3:** Build `HotelCard` (cover image, name, city, rating/review count, "from ฿X / night" via `Intl.NumberFormat("th-TH", { style: "currency", currency })`; links to `/hotels/<slug>?<dates & guests>`, prefetch on hover/focus), `HotelResults` (skeleton grid, error with retry, empty state "No hotels match …" with a clear-filters link), `Pagination`.
+- [x] **Step 4:** Pages: `/` = hero + `SearchBar` + `HotelResults` for `{}`; `/hotels` = prefilled `SearchBar` + `HotelResults` from URL. Client parts inside `<Suspense>`.
+- [x] **Step 5:** `npm run lint && npm run typecheck`; then verify with `next-dev-loop` (`npm run dev`): search "bangkok" → 1 result; dates with all rooms free → price shown; page through with `pageSize` small; invalid URL `?checkIn=garbage` renders defaults.
+- [x] **Step 6: Commit + push** — `feat(web): hotel search bar and results`.
 
 ### Task 7: Web hotel detail page
 

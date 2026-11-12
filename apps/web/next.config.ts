@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@booking/ui", "@booking/shared"],
   cacheComponents: true,
   partialPrefetching: true,
+  images: {
+    // Seeded hotel and room photos
+    remotePatterns: [new URL("https://picsum.photos/**")],
+  },
   turbopack: {
     rules: {
       "*.css": {

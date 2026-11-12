@@ -1,8 +1,31 @@
-import { hotelSearchResultSchema } from "@booking/shared";
+import {
+  availabilitySchema,
+  hotelDetailSchema,
+  hotelSearchResultSchema,
+  type Availability,
+  type HotelDetail,
+  type HotelSearchQuery,
+  type HotelSummary,
+  type Paginated,
+  type StayRange,
+} from "@booking/shared";
 import { request } from "@/lib/api";
 
-// Stopgap until the search fetchers land (phase 3, task 6).
-export async function fetchHotels() {
-  const result = await request(hotelSearchResultSchema, { method: "GET", url: "/api/hotels" });
-  return result.items;
+export function searchHotels(q: HotelSearchQuery): Promise<Paginated<HotelSummary>> {
+  return request(hotelSearchResultSchema, { method: "GET", url: "/api/hotels", params: q });
+}
+
+export function fetchHotel(slug: string): Promise<HotelDetail> {
+  return request(hotelDetailSchema, {
+    method: "GET",
+    url: `/api/hotels/${encodeURIComponent(slug)}`,
+  });
+}
+
+export function fetchAvailability(slug: string, range: StayRange): Promise<Availability> {
+  return request(availabilitySchema, {
+    method: "GET",
+    url: `/api/hotels/${encodeURIComponent(slug)}/availability`,
+    params: range,
+  });
 }
