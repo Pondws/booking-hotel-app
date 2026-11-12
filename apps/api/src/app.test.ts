@@ -61,11 +61,11 @@ test("GET /api/does-not-exist → 404 NOT_FOUND envelope", async () => {
   assert.equal(res.body.error.code, "NOT_FOUND");
 });
 
-test("GET /api/hotels → 200 { data: [...] }, seeded hotels present", async () => {
-  const res = await request(app).get("/api/hotels");
+test("GET /api/hotels → 200 { data: { items: [...] } }, seeded hotels present", async () => {
+  const res = await request(app).get("/api/hotels").query({ city: "Bangkok" });
   assert.equal(res.status, 200);
-  assert.ok(Array.isArray(res.body.data));
-  assert.ok(res.body.data.some((h: { slug: string }) => h.slug === "riverside-bangkok"));
+  assert.ok(Array.isArray(res.body.data.items));
+  assert.ok(res.body.data.items.some((h: { slug: string }) => h.slug === "riverside-bangkok"));
 });
 
 test("POST /api/admin/hotels with a valid body → 401 UNAUTHORIZED, nothing created", async () => {

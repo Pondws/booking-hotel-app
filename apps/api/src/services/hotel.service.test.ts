@@ -3,7 +3,7 @@ import { after, test } from "node:test";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../lib/prisma";
 import { toSlug } from "../lib/slug";
-import { createHotel, listActiveHotels } from "./hotel.service";
+import { createHotel, searchHotels } from "./hotel.service";
 
 const PREFIX = "Svc Test ";
 const input = (name: string) => ({
@@ -33,12 +33,16 @@ test("concurrent creates with the same new name both succeed with distinct slugs
   assert.equal(await prisma.hotel.count({ where: { name } }), 2);
 });
 
-test("listActiveHotels omits inactive hotels", async () => {
-  const name = `${PREFIX}${Date.now()} inactive`;
-  const h = await createHotel(input(name));
-  await prisma.hotel.update({ where: { id: h.id }, data: { isActive: false } });
-  const list = await listActiveHotels();
-  assert.ok(!list.some((x) => x.id === h.id));
+test("searchHotels omits inactive hotels", async () => {
+  const city = `${PREFIX}${Date.now()} city`;
+  const active = await createHotel({ ...input(`${PREFIX}${Date.now()} active`), city });
+  const inactive = await createHotel({ ...input(`${PREFIX}${Date.now()} inactive`), city });
+  await prisma.hotel.update({ where: { id: inactive.id }, data: { isActive: false } });
+  const result = await searchHotels({ city, page: 1, pageSize: 50 });
+  assert.deepEqual(
+    result.items.map((x) => x.id),
+    [active.id],
+  );
 });
 
 test("a non-slug P2002 is not retried and propagates", async (t) => {

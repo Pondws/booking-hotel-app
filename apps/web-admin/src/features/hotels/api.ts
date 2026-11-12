@@ -1,8 +1,14 @@
-import { hotelListSchema, hotelSchema, type CreateHotelInput } from "@booking/shared";
+import { hotelSchema, hotelSearchResultSchema, type CreateHotelInput } from "@booking/shared";
 import { request } from "@/lib/api";
 
-export function fetchHotels() {
-  return request(hotelListSchema, { method: "GET", url: "/api/hotels" });
+// Reuses the public search endpoint until Phase 6 adds an admin list.
+export async function fetchHotels() {
+  const result = await request(hotelSearchResultSchema, {
+    method: "GET",
+    url: "/api/hotels",
+    params: { pageSize: 50 },
+  });
+  return result.items;
 }
 
 export function createHotel(input: CreateHotelInput) {

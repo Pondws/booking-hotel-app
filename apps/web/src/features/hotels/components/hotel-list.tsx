@@ -26,7 +26,7 @@ export function HotelList() {
             <CardDescription>{hotel.city}</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-between gap-2 text-sm">
-            <span className="text-muted-foreground line-clamp-2">{hotel.description}</span>
+            <span className="text-muted-foreground">{hotel.reviewCount} reviews</span>
             <Badge variant="outline">★ {hotel.ratingAvg.toFixed(1)}</Badge>
           </CardContent>
         </Card>
