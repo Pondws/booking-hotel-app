@@ -12,7 +12,7 @@
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
     "seed": "prisma db seed",
-    "test": "tsx --test src/**/*.test.ts",
+    "test": "tsx --env-file=.env --test src/**/*.test.ts",
     "db:check": "docker exec -i booking-hotel-postgres psql -U postgres -d booking_hotel -v ON_ERROR_STOP=1 -f - < prisma/checks/constraints.sql",
     "postinstall": "prisma generate"
   },
@@ -28,8 +28,10 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",
+    "@types/supertest": "^7.2.1",
     "dotenv": "^18.0.10",
     "prisma": "^7.10.1",
+    "supertest": "^7.3.2",
     "tsup": "^8.5.1",
     "tsx": "^4.23.15"
   }

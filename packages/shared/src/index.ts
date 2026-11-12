@@ -1,5 +1,28 @@
 import { z } from "zod";
 
+// ---------- API envelope ----------
+export const errorCodeSchema = z.enum([
+  "VALIDATION_FAILED",
+  "UNAUTHORIZED",
+  "FORBIDDEN",
+  "NOT_FOUND",
+  "CONFLICT",
+  "INTERNAL",
+]);
+export type ErrorCode = z.infer<typeof errorCodeSchema>;
+
+// `code` is a plain string so older clients survive new server codes.
+export const apiErrorSchema = z.object({
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    details: z.unknown().optional(),
+  }),
+});
+export type ApiErrorBody = z.infer<typeof apiErrorSchema>;
+
+export const dataEnvelope = <S extends z.ZodType>(schema: S) => z.object({ data: schema });
+
 // ---------- Hotel ----------
 export const hotelSchema = z.object({
   id: z.string(),
