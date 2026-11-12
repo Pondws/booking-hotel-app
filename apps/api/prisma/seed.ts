@@ -213,6 +213,28 @@ async function main() {
     },
   });
 
+  const gardenTwinId = roomTypeIds.get("Old Town Chiang Mai/Garden Twin");
+  const poolVillaId = roomTypeIds.get("Andaman Beach Resort/Pool Villa");
+  if (!gardenTwinId || !poolVillaId) throw new Error("Seed lookup failed");
+  await prisma.ratePeriod.create({
+    data: {
+      roomTypeId: gardenTwinId,
+      name: "Yi Peng",
+      startDate: new Date("2027-11-20"),
+      endDate: new Date("2027-11-24"),
+      price: 2600,
+    },
+  });
+  await prisma.ratePeriod.create({
+    data: {
+      roomTypeId: poolVillaId,
+      name: "New Year",
+      startDate: new Date("2027-12-28"),
+      endDate: new Date("2028-01-02"),
+      price: 14000,
+    },
+  });
+
   await prisma.$transaction(async (tx) => {
     const booking = await tx.booking.create({
       data: {

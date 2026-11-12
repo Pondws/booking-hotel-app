@@ -19,6 +19,8 @@
     "db:generate": "npm run prisma:generate -w @booking/api",
     "db:seed": "npm run seed -w @booking/api",
     "db:studio": "npm run prisma:studio -w @booking/api",
+    "test": "npm run test -w @booking/api",
+    "db:check": "npm run db:check -w @booking/api",
     "ui:add": "node packages/ui/scripts/add.mjs"
   },
   "devDependencies": {

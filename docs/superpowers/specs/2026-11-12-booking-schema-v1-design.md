@@ -1,7 +1,7 @@
 # Booking Schema v1 — Design
 
 Date: 2026-11-12
-Status: Approved in chat, awaiting written-spec review
+Status: Implemented (branch feat/booking-schema-v1)
 
 ## Goal
 
