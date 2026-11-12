@@ -6,7 +6,7 @@ Monorepo (npm workspaces)
 | --- | --- | --- | --- |
 | `apps/web` | `@booking/web` | 3000 | Next.js 16 (App Router) + TS + Tailwind v4 + shadcn/ui + TanStack Query |
 | `apps/web-admin` | `@booking/web-admin` | 3001 | เหมือน web |
-| `apps/api` | `@booking/api` | 4000 | Express 5 + TS + Prisma 7 + zod |
+| `apps/api` | `@booking/api` | 8000 | Express 5 + TS + Prisma 7 + zod |
 | `packages/ui` | `@booking/ui` | – | shadcn/ui components + `globals.css` + `cn()` ใช้ร่วม web/admin |
 | `packages/shared` | `@booking/shared` | – | zod schemas + types ใช้ร่วมทุกแอป |
 
@@ -33,7 +33,7 @@ npm run dev
 
 - Web: http://localhost:3000
 - Admin: http://localhost:3001
-- API: http://localhost:4000/api/health, http://localhost:4000/api/hotels
+- API: http://localhost:8000/api/health, http://localhost:8000/api/hotels
 
 > Postgres ใน Docker ใช้ host port **5433** เพื่อไม่ชนกับ Postgres ที่ติดตั้งในเครื่อง (5432)
 > เปลี่ยนได้ด้วย env `POSTGRES_PORT` ตอน `docker compose up` (อย่าลืมแก้ `DATABASE_URL` ใน `apps/api/.env`)
