@@ -1,13 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Badge } from "@booking/ui/components/badge";
 import { Button } from "@booking/ui/components/button";
 import { useLogout, useMe } from "../hooks";
 import { markExplicitLogout, resetExplicitLogout } from "../logout-intent";
 
 export function AdminHeader() {
-  const router = useRouter();
   const { data: user } = useMe();
   const logout = useLogout();
 
@@ -25,10 +23,8 @@ export function AdminHeader() {
               disabled={logout.isPending}
               onClick={() => {
                 markExplicitLogout();
-                logout.mutate(undefined, {
-                  onSuccess: () => router.replace("/login"),
-                  onError: resetExplicitLogout,
-                });
+                // Navigation is handled by RequireAuth: this component unmounts once `me` is cleared
+                logout.mutate(undefined, { onError: resetExplicitLogout });
               }}
             >
               Log out

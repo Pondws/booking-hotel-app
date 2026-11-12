@@ -17,7 +17,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (user === null && !isExplicitLogout()) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+    if (user !== null) return;
+    // Explicit logout always lands on a bare /login; any other session loss keeps the path in ?next
+    router.replace(isExplicitLogout() ? "/login" : `/login?next=${encodeURIComponent(pathname)}`);
   }, [user, pathname, router]);
 
   if (isError) {

@@ -18,7 +18,6 @@ type FormOutput = z.output<typeof loginSchema>;
 
 function loginErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.status === 403) return "Staff access only";
-  if (error instanceof ApiError && error.status === 401) return "Invalid email or password";
   return formErrorMessage(error);
 }
 
