@@ -16,7 +16,7 @@ export class ApiError extends Error {
   }
 }
 
-const instance =axios.create({
+const instance = axios.create({
   baseURL: API_URL,
   withCredentials: true,
   timeout: 10_000,
@@ -51,4 +51,9 @@ export async function request<S extends z.ZodType>(
   const payload = schema.safeParse(envelope.data.data);
   if (!payload.success) throw unexpectedResponse(res.status, payload.error);
   return payload.data;
+}
+
+/** For endpoints that reply 204 with no body (e.g. logout). */
+export async function requestNoContent(config: AxiosRequestConfig): Promise<void> {
+  await instance.request(config);
 }
