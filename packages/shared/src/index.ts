@@ -52,10 +52,28 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.input<typeof loginSchema>;
 
-/** Returns `next` only when it is a same-site absolute path; otherwise "/". */
+const UNSAFE_NEXT_CHARS = /[\u0000-\u001F\u007F\\\s]/;
+const NEXT_BASE_ORIGIN = "http://x";
+
+/**
+ * Returns `next` as a same-origin path (pathname + search + hash) only when it is a plain
+ * absolute path; otherwise "/". Rejects control chars, whitespace and backslashes, which
+ * URL parsing strips or rewrites (e.g. "/\t/evil.com" would become "//evil.com").
+ */
 export function safeNextPath(next: string | null | undefined): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) return "/";
-  return next;
+  if (!next || !next.startsWith("/") || next.startsWith("//") || UNSAFE_NEXT_CHARS.test(next)) {
+    return "/";
+  }
+  let url: URL;
+  try {
+    url = new URL(next, NEXT_BASE_ORIGIN);
+  } catch {
+    return "/";
+  }
+  if (url.origin !== NEXT_BASE_ORIGIN) return "/";
+  const path = url.pathname + url.search + url.hash;
+  // Dot segments can normalize into a protocol-relative path ("/.//evil.com" → "//evil.com")
+  return path.startsWith("//") ? "/" : path;
 }
 
 // ---------- Hotel ----------

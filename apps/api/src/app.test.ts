@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
+import express from "express";
 import request from "supertest";
 import { hashToken } from "./lib/session-token";
 import { app } from "./app";
+import { env } from "./env";
 import { prisma } from "./lib/prisma";
 
 const sessionTokens: string[] = [];
@@ -120,6 +122,20 @@ test("POST /api/admin/hotels as ADMIN → 201 with slug", async () => {
     });
   assert.equal(res.status, 201);
   assert.equal(typeof res.body.data.slug, "string");
+});
+
+test("trust proxy defaults to 0 and X-Forwarded-For does not change req.ip", async () => {
+  assert.equal(env.TRUST_PROXY, 0);
+  assert.equal(app.get("trust proxy"), 0);
+  const probe = express();
+  probe.set("trust proxy", app.get("trust proxy"));
+  probe.get("/ip", (req, res) => {
+    res.json({ ip: req.ip });
+  });
+  const spoofed = "203.0.113.7";
+  const res = await request(probe).get("/ip").set("X-Forwarded-For", spoofed);
+  assert.equal(res.status, 200);
+  assert.notEqual(res.body.ip, spoofed);
 });
 
 test("POST /api/hotels is no longer a route → 404", async () => {

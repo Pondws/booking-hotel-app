@@ -57,3 +57,21 @@ test("safeNextPath", () => {
   assert.equal(safeNextPath(undefined), "/");
   assert.equal(safeNextPath(null), "/");
 });
+test("safeNextPath rejects control chars and whitespace that URL parsing strips", () => {
+  for (const next of ["/\t/evil.com", "/\n/evil.com", "/\r/evil.com", "/ /evil.com"]) {
+    assert.equal(safeNextPath(next), "/", JSON.stringify(next));
+  }
+});
+test("safeNextPath keeps encoded slashes as a same-origin path", () => {
+  const r = safeNextPath("/%2F%2Fevil.com");
+  assert.ok(r.startsWith("/"), r);
+  assert.ok(!r.startsWith("//"), r);
+});
+test("safeNextPath rejects dot segments that normalize into a protocol-relative path", () => {
+  for (const next of ["/.//evil.com", "/..//evil.com", "/a/..//evil.com"]) {
+    assert.equal(safeNextPath(next), "/", next);
+  }
+});
+test("safeNextPath keeps query and hash", () => {
+  assert.equal(safeNextPath("/account?tab=1#x"), "/account?tab=1#x");
+});

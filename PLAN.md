@@ -45,8 +45,8 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | --- | --- | --- |
 | 0 | Monorepo + booking schema v1 | ✅ เสร็จแล้ว |
 | 1 | API foundation | ✅ เสร็จแล้ว |
-| 2 | Auth และ roles | ⬜ ถัดไป |
-| 3 | Catalog สาธารณะ + ห้องว่าง | ⬜ |
+| 2 | Auth และ roles | ✅ เสร็จแล้ว |
+| 3 | Catalog สาธารณะ + ห้องว่าง | ⬜ ถัดไป |
 | 4 | Booking flow | ⬜ |
 | 5 | Payments (เริ่มจาก mock provider) | ⬜ |
 | 6 | Back-office (web-admin) | ⬜ |
@@ -109,23 +109,23 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 - `next-dev-loop`: ตรวจ redirect และการป้องกัน route
 - `security-review`: ตรวจก่อน merge (บังคับ)
 
-- [ ] **ต้องตัดสินใจ (ถามก่อน):** จะใช้ session cookie (มีตาราง `Session` ใน DB) หรือ JWT (access + refresh)
+- [x] **ต้องตัดสินใจ (ถามก่อน):** จะใช้ session cookie (มีตาราง `Session` ใน DB) หรือ JWT (access + refresh)
       ไม่ว่าแบบไหนต้องเป็น httpOnly, `SameSite=Lax` และ `Secure` บน production ทั้งสองแบบต้องทำ schema migration เพิ่ม
-- [ ] Shared schemas: `registerSchema`, `loginSchema`, `meSchema` (ห้ามมี `passwordHash`)
-- [ ] Endpoints:
+- [x] Shared schemas: `registerSchema`, `loginSchema`, `meSchema` (ห้ามมี `passwordHash`) — ใช้ชื่อ `publicUserSchema` แทน `meSchema`
+- [x] Endpoints:
   - `POST /api/auth/register` (ได้ role CUSTOMER เสมอ)
   - `POST /api/auth/login`
   - `POST /api/auth/logout`
   - `GET /api/auth/me`
-- [ ] ตอน login ให้อ่าน hash ด้วย `omit: { passwordHash: false }` แล้วตรวจด้วย `verifyPassword`
+- [x] ตอน login ให้อ่าน hash ด้วย `omit: { passwordHash: false }` แล้วตรวจด้วย `verifyPassword`
       ถ้าไม่พบอีเมล หรือรหัสผ่านผิด ให้ตอบ error แบบเดียวกัน
-- [ ] Middleware:
+- [x] Middleware:
   - `requireAuth`
   - `requireRole('ADMIN','STAFF')` ครอบทุก route ใต้ `/api/admin/*`
   - `requireHotelAccess(hotelId)`: ADMIN เข้าได้ทุกโรงแรม ส่วน STAFF เข้าได้เฉพาะโรงแรมที่อยู่ใน `HotelStaff`
-- [ ] จำกัดจำนวนครั้ง (rate limit) การลอง login
-- [ ] web: หน้า register, login, logout, เมนูบัญชี และป้องกัน route `/account/*`
-- [ ] web-admin: หน้า login, ปฏิเสธ CUSTOMER และทุกหน้าต้องเป็น STAFF/ADMIN
+- [x] จำกัดจำนวนครั้ง (rate limit) การลอง login — ทำแบบต่อ IP แล้ว (ต่อบัญชียังไม่ทำ)
+- [x] web: หน้า register, login, logout, เมนูบัญชี และป้องกัน route `/account/*`
+- [x] web-admin: หน้า login, ปฏิเสธ CUSTOMER และทุกหน้าต้องเป็น STAFF/ADMIN
 
 **เสร็จเมื่อ:**
 - ลูกค้าเรียก `/api/admin/*` ไม่ได้เลย
@@ -303,7 +303,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | --- | --- | --- |
 | 1 | เปลี่ยน response shape เป็น `{ data }` / `{ error }` (กระทบ FE ทั้งสองแอป) | Phase 1 — ✅ ตัดสินแล้ว: ใช้ { data }/{ error } ทุก endpoint + axios |
 | 2 | เพิ่ม dependency สำหรับ HTTP tests (เช่น supertest) | Phase 1 — ✅ ตัดสินแล้ว: supertest |
-| 3 | Session cookie หรือ JWT | Phase 2 |
+| 3 | Session cookie หรือ JWT | Phase 2 — ✅ ตัดสินแล้ว: session cookie + ตาราง Session (แยก sid / admin_sid) |
 | 4 | เวลา hold รอจ่ายเงิน (ค่าเริ่มต้น 15 นาที) และจำนวนคืนสูงสุด (ค่าเริ่มต้น 30 คืน) | Phase 4 |
 | 5 | นโยบายยกเลิก (ยกเลิกฟรีก่อนเข้าพัก X วัน? คืนเงินบางส่วน?) | Phase 4–5 |
 | 6 | Payment gateway จริง | Phase 5 |
@@ -314,3 +314,5 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 
 - `Review.userId` / `hotelId` ซ้ำกับข้อมูลใน booking ดังนั้น service ต้องดึงค่าจาก booking เอง → Phase 7
 - DB ไม่ได้ตรวจ scope ของ amenity (HOTEL/ROOM) ดังนั้น service ต้องตรวจเอง → Phase 6
+- CORS origin เดียวกันทุก route — ควรแยก WEB_ORIGINS / ADMIN_ORIGINS → ก่อน Phase 6
+- Expired sessions ถูกลบเมื่อมีคนใช้เท่านั้น — ต้องมี job ลบ → Phase 8

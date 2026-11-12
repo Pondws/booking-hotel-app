@@ -24,6 +24,9 @@ const USER_AGENT_MAX = 255;
  * scrypt verify and take about the same time. Computed once at module load.
  */
 const DUMMY_HASH: Promise<string> = hashPassword("dummy-password-that-never-matches");
+// Handled branch so a boot-time scrypt failure is not an unhandled rejection that crashes
+// the process; `await DUMMY_HASH` below still rejects normally.
+DUMMY_HASH.catch(() => {});
 
 function newSession(audience: SessionAudience, meta: SessionMeta) {
   const token = generateToken();

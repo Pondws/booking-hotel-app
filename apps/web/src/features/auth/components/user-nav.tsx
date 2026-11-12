@@ -38,6 +38,8 @@ export function UserNav() {
         disabled={logout.isPending}
         onClick={() => {
           markExplicitLogout();
+          // On a protected page RequireAuth already redirects to "/"; this covers public pages
+          // (same target, so the two never race to different places).
           logout.mutate(undefined, {
             onSuccess: () => router.replace("/"),
             onError: resetExplicitLogout,

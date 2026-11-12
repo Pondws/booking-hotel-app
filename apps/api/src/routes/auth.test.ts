@@ -304,6 +304,31 @@ test("expired session → 401 and the row is deleted", async () => {
   assert.equal(await prisma.session.count({ where: { id: row.id } }), 0);
 });
 
+// ---------- Role re-check on /admin/me ----------
+
+test("ADMIN session for a CUSTOMER (demoted user) → GET /admin/me 403 Insufficient permissions", async () => {
+  const { email } = await registerUser();
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { email },
+    select: { id: true, role: true },
+  });
+  assert.equal(user.role, "CUSTOMER");
+  const token = generateToken();
+  await prisma.session.create({
+    data: {
+      tokenHash: hashToken(token),
+      userId: user.id,
+      audience: "ADMIN",
+      expiresAt: new Date(Date.now() + 60_000),
+    },
+  });
+  const res = await request(app).get("/api/auth/admin/me").set("Cookie", `admin_sid=${token}`);
+  assert.equal(res.status, 403);
+  assert.deepEqual(res.body, {
+    error: { code: "FORBIDDEN", message: "Insufficient permissions" },
+  });
+});
+
 // ---------- Body parser ----------
 
 test("JSON body over 100kb to POST /api/auth/login → 413 VALIDATION_FAILED envelope", async () => {

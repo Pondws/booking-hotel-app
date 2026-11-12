@@ -10,6 +10,10 @@ import { hotelsRouter } from "./routes/hotels";
 
 export const app = express();
 
+// Hop count only, so X-Forwarded-For cannot be spoofed past the known proxies (req.ip
+// feeds the auth rate limiter and session rows).
+app.set("trust proxy", env.TRUST_PROXY);
+
 app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
 app.use(express.json());
 

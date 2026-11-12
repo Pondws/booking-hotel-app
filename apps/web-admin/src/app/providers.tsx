@@ -1,6 +1,6 @@
 "use client";
 
-import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState, type ReactNode } from "react";
 import { ApiError } from "@/lib/api";
@@ -15,6 +15,19 @@ function makeQueryClient(): QueryClient {
           error instanceof ApiError &&
           error.status === 401 &&
           query.queryKey[0] !== authKeys.all[0]
+        ) {
+          client.setQueryData(authKeys.me(), null);
+        }
+      },
+    }),
+    mutationCache: new MutationCache({
+      // A 401 from any non-auth mutation means the session is gone. Auth mutations
+      // (keyed under authKeys.all) handle their own 401s, e.g. a wrong password on login.
+      onError: (error, _variables, _context, mutation) => {
+        if (
+          error instanceof ApiError &&
+          error.status === 401 &&
+          mutation.options.mutationKey?.[0] !== authKeys.all[0]
         ) {
           client.setQueryData(authKeys.me(), null);
         }

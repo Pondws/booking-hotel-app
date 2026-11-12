@@ -15,6 +15,8 @@ const envSchema = z.object({
     ),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),
+  // Number of reverse-proxy hops in front of the API (Express "trust proxy"). Never `true`.
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 });
 
 const parsed = envSchema.safeParse(process.env);
