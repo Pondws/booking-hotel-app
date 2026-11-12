@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  BOOKING_CODE_PATTERN,
+  HOLD_MINUTES,
+  MAX_ACTIVE_HOLDS,
+  bookingCodeParamsSchema,
+  bookingListQuerySchema,
+  bookingSchema,
   createBookingSchema,
   createHotelSchema,
   errorCodeSchema,
@@ -17,24 +23,6 @@ import {
   todayIn,
 } from "@booking/shared";
 
-const base = { roomTypeId: "rt1", checkIn: "2027-01-10", checkOut: "2027-01-13", guests: 2 };
-
-test("booking dates stay as the same calendar day strings", () => {
-  const r = createBookingSchema.parse(base);
-  assert.equal(r.checkIn, "2027-01-10");
-  assert.equal(r.checkOut, "2027-01-13");
-});
-test("booking rejects zero nights and reversed dates on checkOut", () => {
-  for (const checkOut of ["2027-01-10", "2027-01-09"]) {
-    const r = createBookingSchema.safeParse({ ...base, checkOut });
-    assert.equal(r.success, false);
-    assert.deepEqual(r.error?.issues[0]?.path, ["checkOut"]);
-  }
-});
-test("booking rejects non-date strings and guests < 1", () => {
-  assert.equal(createBookingSchema.safeParse({ ...base, checkIn: "2027-13-01" }).success, false);
-  assert.equal(createBookingSchema.safeParse({ ...base, guests: 0 }).success, false);
-});
 test("createHotel requires address and no longer accepts rating", () => {
   assert.equal(createHotelSchema.safeParse({ name: "A", city: "B" }).success, false);
   const r = createHotelSchema.parse({ name: "A", city: "B", address: "1 Road", rating: 5 });
@@ -202,4 +190,88 @@ test("hotelSearchResultSchema parses a minimal page", () => {
     totalPages: 1,
   });
   assert.equal(r.items[0]?.fromPrice, null);
+});
+
+// ---------- Booking ----------
+const base = { roomTypeId: "rt1", checkIn: addDays(today, 10), checkOut: addDays(today, 13), guests: 2 };
+
+test("booking constants", () => {
+  assert.equal(HOLD_MINUTES, 15);
+  assert.equal(MAX_ACTIVE_HOLDS, 3);
+  assert.equal(BOOKING_CODE_PATTERN.test("BK7QX2MA"), true);
+});
+test("booking dates stay as the same calendar day strings", () => {
+  const r = createBookingSchema.parse(base);
+  assert.equal(r.checkIn, base.checkIn);
+  assert.equal(r.checkOut, base.checkOut);
+});
+test("booking rejects zero nights and reversed dates on checkOut", () => {
+  for (const checkOut of [base.checkIn, addDays(today, 9)]) {
+    const r = createBookingSchema.safeParse({ ...base, checkOut });
+    assert.equal(r.success, false);
+    assert.deepEqual(r.error?.issues[0]?.path, ["checkOut"]);
+    assert.equal(r.error?.issues[0]?.message, "Check-out must be after check-in");
+  }
+});
+test("booking rejects non-date strings and guests < 1", () => {
+  assert.equal(createBookingSchema.safeParse({ ...base, checkIn: "2027-13-01" }).success, false);
+  const r = createBookingSchema.safeParse({ ...base, guests: 0 });
+  assert.equal(r.success, false);
+  assert.equal(r.error?.issues[0]?.message, "Enter 1 to 20 guests");
+});
+test("booking rejects a past check-in", () => {
+  const r = createBookingSchema.safeParse({ ...base, checkIn: addDays(today, -1) });
+  assert.equal(r.success, false);
+  assert.deepEqual(r.error?.issues[0]?.path, ["checkIn"]);
+  assert.equal(r.error?.issues[0]?.message, "Check-in can't be in the past");
+});
+test("booking rejects 31 nights", () => {
+  const r = createBookingSchema.safeParse({ ...base, checkIn: today, checkOut: addDays(today, 31) });
+  assert.equal(r.success, false);
+  assert.deepEqual(r.error?.issues[0]?.path, ["checkOut"]);
+  assert.equal(r.error?.issues[0]?.message, "Stays are limited to 30 nights");
+});
+test("booking trims and lowercases guestEmail", () => {
+  assert.equal(createBookingSchema.parse({ ...base, guestEmail: " A@B.COM " }).guestEmail, "a@b.com");
+});
+test("booking rejects a blank guestName", () => {
+  assert.equal(createBookingSchema.safeParse({ ...base, guestName: "  " }).success, false);
+});
+test("booking rejects an empty guestPhone (the form must omit it)", () => {
+  assert.equal(createBookingSchema.safeParse({ ...base, guestPhone: "" }).success, false);
+});
+test("bookingSchema parses a sample", () => {
+  const r = bookingSchema.parse({
+    code: "BK7QX2MA",
+    status: "PENDING",
+    checkIn: "2027-01-10",
+    checkOut: "2027-01-13",
+    nights: 3,
+    guests: 2,
+    guestName: "Ann",
+    guestEmail: "ann@test.local",
+    guestPhone: null,
+    totalAmount: 9600,
+    currency: "THB",
+    expiresAt: "2027-01-01T10:15:00.000Z",
+    cancelledAt: null,
+    createdAt: "2027-01-01T10:00:00.000Z",
+    cancellable: true,
+    hotel: { name: "A", slug: "a", city: "Bangkok", coverImage: null },
+    roomType: { id: "rt1", name: "Deluxe" },
+  });
+  assert.equal(r.status, "PENDING");
+});
+test("bookingCodeParamsSchema accepts BK codes and rejects lookalikes", () => {
+  assert.equal(bookingCodeParamsSchema.safeParse({ code: "BK7QX2MA" }).success, true);
+  for (const code of ["BK0OOOOO", "bk7qx2ma", "me"]) {
+    assert.equal(bookingCodeParamsSchema.safeParse({ code }).success, false, code);
+  }
+});
+test("bookingListQuerySchema defaults and caps pageSize at 50", () => {
+  assert.deepEqual(bookingListQuerySchema.parse({}), { page: 1, pageSize: 10 });
+  assert.equal(bookingListQuerySchema.safeParse({ pageSize: "51" }).success, false);
+});
+test("errorCodeSchema includes ROOM_UNAVAILABLE", () => {
+  assert.ok(errorCodeSchema.options.includes("ROOM_UNAVAILABLE"));
 });
