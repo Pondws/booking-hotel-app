@@ -150,6 +150,14 @@ test("hotelSearchQuerySchema applies stay rules when dates are given", () => {
   assert.equal(r.success, false);
   assert.deepEqual(r.error?.issues[0]?.path, ["checkIn"]);
 });
+test("guests outside 1–20 or not a whole number get one readable message", () => {
+  for (const guests of ["0", "21", "1.5", "abc"]) {
+    const r = hotelSearchQuerySchema.safeParse({ guests });
+    assert.equal(r.success, false, guests);
+    assert.equal(r.error?.issues[0]?.message, "Enter 1 to 20 guests", guests);
+  }
+  assert.equal(stayRangeSchema.safeParse({ checkIn: today, checkOut: addDays(today, 1), guests: 0 }).error?.issues[0]?.message, "Enter 1 to 20 guests");
+});
 test("hotelSearchQuerySchema coerces page and caps pageSize at 50", () => {
   assert.equal(hotelSearchQuerySchema.parse({ page: "2" }).page, 2);
   assert.equal(hotelSearchQuerySchema.safeParse({ pageSize: "51" }).success, false);

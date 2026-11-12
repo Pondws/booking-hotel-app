@@ -107,7 +107,7 @@ function Price({ roomType, currency, pricing }: Props) {
 
   if (pricing.kind === "loading") {
     return (
-      <div className="space-y-1.5" aria-busy="true" aria-label="Loading price">
+      <div className="space-y-1.5" role="status" aria-busy="true" aria-label="Loading price">
         <Skeleton className="h-5 w-28" />
         <Skeleton className="h-4 w-20" />
       </div>
@@ -139,7 +139,7 @@ function Price({ roomType, currency, pricing }: Props) {
         </p>
       )}
       <details className="group">
-        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 rounded-sm text-muted-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-6 w-fit cursor-pointer list-none items-center gap-1 rounded-sm text-muted-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
           Price per night
           <ChevronDown aria-hidden className="size-4 transition-transform group-open:rotate-180" />
         </summary>

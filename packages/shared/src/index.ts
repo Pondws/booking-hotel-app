@@ -127,7 +127,12 @@ export function nightsBetween(checkIn: string, checkOut: string): number {
 }
 
 const isoDate = z.iso.date();
-const guestsField = z.coerce.number().int().min(1).max(20);
+const GUESTS_MESSAGE = "Enter 1 to 20 guests";
+const guestsField = z.coerce
+  .number({ error: GUESTS_MESSAGE })
+  .int({ error: GUESTS_MESSAGE })
+  .min(1, { error: GUESTS_MESSAGE })
+  .max(20, { error: GUESTS_MESSAGE });
 
 function refineStay(ctx: z.RefinementCtx, checkIn: string, checkOut: string): void {
   if (checkIn < todayIn(BOOKING_TZ)) {

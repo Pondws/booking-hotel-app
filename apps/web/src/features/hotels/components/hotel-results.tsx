@@ -13,7 +13,7 @@ const GRID = "grid gap-4 sm:grid-cols-2 lg:grid-cols-3";
 
 export function HotelResultsSkeleton() {
   return (
-    <div className={GRID} aria-busy="true" aria-label="Loading hotels">
+    <div className={GRID} role="status" aria-busy="true" aria-label="Loading hotels">
       {Array.from({ length: 6 }, (_, i) => (
         <HotelCardSkeleton key={i} />
       ))}
@@ -50,7 +50,7 @@ export function HotelResults({ query }: { query: HotelSearchQuery }) {
       return (
         <div className="space-y-2 rounded-lg border p-6 text-center">
           <p className="font-medium">There are no more results on this page.</p>
-          <Link href={hrefFor(1)} className="text-sm underline underline-offset-4">
+          <Link href={hrefFor(1)} className="inline-flex min-h-6 items-center text-sm underline underline-offset-4">
             Back to the first page
           </Link>
         </div>
@@ -64,7 +64,7 @@ export function HotelResults({ query }: { query: HotelSearchQuery }) {
             <p className="text-sm text-muted-foreground">
               Try another city, fewer guests or different dates.
             </p>
-            <Link href="/hotels" className="text-sm underline underline-offset-4">
+            <Link href="/hotels" className="inline-flex min-h-6 items-center text-sm underline underline-offset-4">
               Clear filters
             </Link>
           </>

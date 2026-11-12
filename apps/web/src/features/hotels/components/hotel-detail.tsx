@@ -38,7 +38,7 @@ export function HotelDetail({ slug }: { slug: string }) {
           <p className="text-sm text-muted-foreground">
             This hotel doesn&apos;t exist or is no longer listed.
           </p>
-          <Link href="/hotels" className="text-sm underline underline-offset-4">
+          <Link href="/hotels" className="inline-flex min-h-6 items-center text-sm underline underline-offset-4">
             Search hotels
           </Link>
         </div>
@@ -59,7 +59,7 @@ export function HotelDetail({ slug }: { slug: string }) {
       <header className="space-y-3">
         <Link
           href={searchHref({ city: hotel.city, ...stay })}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:underline"
+          className="inline-flex min-h-6 items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           <ArrowLeft aria-hidden className="size-4" />
           Hotels in {hotel.city}
@@ -175,7 +175,7 @@ function RoomList({ hotel, slug, range, guests }: RoomListProps) {
 
 export function HotelDetailSkeleton() {
   return (
-    <div className="space-y-8" aria-busy="true" aria-label="Loading hotel">
+    <div className="space-y-8" role="status" aria-busy="true" aria-label="Loading hotel">
       <div className="space-y-3">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-8 w-2/3" />
