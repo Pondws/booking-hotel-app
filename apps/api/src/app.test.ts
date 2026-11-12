@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { after, test } from "node:test";
 import request from "supertest";
 import { app } from "./app";
 import { prisma } from "./lib/prisma";
+
+after(() => prisma.$disconnect());
 
 test("GET /api/health → 200 { data: { ok: true, db: true, timestamp } }", async () => {
   const res = await request(app).get("/api/health");
@@ -10,6 +12,16 @@ test("GET /api/health → 200 { data: { ok: true, db: true, timestamp } }", asyn
   assert.equal(res.body.data.ok, true);
   assert.equal(res.body.data.db, true);
   assert.equal(typeof res.body.data.timestamp, "string");
+});
+
+test("GET /api/health with DB down → 503 { data: { ok: true, db: false } }", async (t) => {
+  t.mock.property(prisma, "$queryRaw", () => {
+    throw new Error("db down");
+  });
+  const res = await request(app).get("/api/health");
+  assert.equal(res.status, 503);
+  assert.equal(res.body.data.ok, true);
+  assert.equal(res.body.data.db, false);
 });
 
 test("GET /api/does-not-exist → 404 NOT_FOUND envelope", async () => {

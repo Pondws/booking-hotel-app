@@ -26,7 +26,7 @@ function serverFieldErrors(error: unknown): FieldErrors | null {
     const messages = parsed.data.fieldErrors[key];
     if (messages) result[key] = messages;
   }
-  return result;
+  return Object.keys(result).length > 0 ? result : null;
 }
 
 export function CreateHotelForm() {
@@ -35,6 +35,7 @@ export function CreateHotelForm() {
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    mutation.reset();
     const form = e.currentTarget;
     const raw = Object.fromEntries(new FormData(form));
     // Validate on the client with the same schema the API uses

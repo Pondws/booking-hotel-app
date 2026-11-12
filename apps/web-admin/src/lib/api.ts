@@ -16,7 +16,7 @@ export class ApiError extends Error {
   }
 }
 
-export const instance = axios.create({
+const instance =axios.create({
   baseURL: API_URL,
   withCredentials: true,
   timeout: 10_000,
@@ -35,6 +35,10 @@ instance.interceptors.response.use(undefined, (error: unknown) => {
   throw new ApiError(res.status, "INTERNAL", `Request failed with status ${res.status}`);
 });
 
+function unexpectedResponse(status: number, error: z.ZodError): ApiError {
+  return new ApiError(status, "INTERNAL", "Unexpected response from server", z.flattenError(error));
+}
+
 /** Sends the request and validates the `{ data }` envelope with a zod schema. */
 export async function request<S extends z.ZodType>(
   schema: S,
@@ -42,6 +46,9 @@ export async function request<S extends z.ZodType>(
 ): Promise<z.output<S>> {
   const res = await instance.request(config);
   // Unwrap the shared envelope first, then validate the payload (keeps z.output<S> inference intact).
-  const envelope = dataEnvelope(z.unknown()).parse(res.data);
-  return schema.parse(envelope.data);
+  const envelope = dataEnvelope(z.unknown()).safeParse(res.data);
+  if (!envelope.success) throw unexpectedResponse(res.status, envelope.error);
+  const payload = schema.safeParse(envelope.data.data);
+  if (!payload.success) throw unexpectedResponse(res.status, payload.error);
+  return payload.data;
 }
