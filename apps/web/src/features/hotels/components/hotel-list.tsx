@@ -8,14 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@booking/ui/components/card";
-import { useHealth, useHotels } from "@/hooks/use-hotels";
-
-export function ApiStatus() {
-  const { data, isPending, isError } = useHealth();
-  if (isPending) return <Badge variant="secondary">Checking API…</Badge>;
-  if (isError) return <Badge variant="destructive">API offline</Badge>;
-  return <Badge variant={data.db ? "default" : "destructive"}>{data.db ? "API + DB online" : "DB offline"}</Badge>;
-}
+import { useHotels } from "../hooks";
 
 export function HotelList() {
   const { data, isPending, isError, error } = useHotels();
