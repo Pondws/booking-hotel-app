@@ -1,6 +1,6 @@
-import cors from "cors";
 import express from "express";
 import { env } from "./env";
+import { corsPolicy } from "./lib/cors-policy";
 import { errorHandler } from "./middleware/error-handler";
 import { notFound } from "./middleware/not-found";
 import { adminRouter } from "./routes/admin";
@@ -14,7 +14,7 @@ export const app = express();
 // feeds the auth rate limiter and session rows).
 app.set("trust proxy", env.TRUST_PROXY);
 
-app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
+app.use(corsPolicy({ web: env.WEB_ORIGINS, admin: env.ADMIN_ORIGINS }));
 app.use(express.json());
 
 app.use("/api/health", healthRouter);

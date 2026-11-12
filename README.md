@@ -67,8 +67,8 @@ import { Button } from "@booking/ui/components/button";
 
 ## โครงสร้าง API
 
-- `src/env.ts` ตรวจ env ด้วย zod (`DATABASE_URL`, `PORT`, `CORS_ORIGINS`)
-- `src/app.ts` CORS (อนุญาต origin ใน `CORS_ORIGINS`), JSON, routes, error handler (ZodError → 400)
+- `src/env.ts` ตรวจ env ด้วย zod (`DATABASE_URL`, `PORT`, `WEB_ORIGINS`, `ADMIN_ORIGINS`, ...)
+- `src/app.ts` CORS แยกตาม path (`src/lib/cors-policy.ts`: admin → `ADMIN_ORIGINS`, auth ลูกค้า → `WEB_ORIGINS`), JSON, routes, error handler
 - `src/middleware/validate.ts` `validate({ body, query, params })`
 - `prisma/schema.prisma` models `Hotel`, `Room`, `Booking`; client generate ไปที่ `src/generated/prisma`
 - schema สำหรับ request ใช้จาก `@booking/shared` ร่วมกับฝั่ง frontend

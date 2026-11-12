@@ -314,5 +314,4 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 
 - `Review.userId` / `hotelId` ซ้ำกับข้อมูลใน booking ดังนั้น service ต้องดึงค่าจาก booking เอง → Phase 7
 - DB ไม่ได้ตรวจ scope ของ amenity (HOTEL/ROOM) ดังนั้น service ต้องตรวจเอง → Phase 6
-- CORS origin เดียวกันทุก route — ควรแยก WEB_ORIGINS / ADMIN_ORIGINS → ก่อน Phase 6
 - Expired sessions ถูกลบเมื่อมีคนใช้เท่านั้น — ต้องมี job ลบ → Phase 8
