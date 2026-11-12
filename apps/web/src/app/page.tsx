@@ -1,4 +1,5 @@
-import { ApiStatus, HotelList } from "@/components/hotel-list";
+import { ApiStatus } from "@/features/health/components/api-status";
+import { HotelList } from "@/features/hotels/components/hotel-list";
 
 export default function Home() {
   return (

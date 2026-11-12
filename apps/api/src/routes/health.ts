@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { Health } from "@booking/shared";
+import { ok } from "../lib/http";
 import { prisma } from "../lib/prisma";
 
 export const healthRouter = Router();
@@ -13,5 +14,5 @@ healthRouter.get("/", async (_req, res) => {
     db = false;
   }
   const body: Health = { ok: true, db, timestamp: new Date().toISOString() };
-  res.status(db ? 200 : 503).json(body);
+  ok(res, body, db ? 200 : 503);
 });

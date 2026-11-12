@@ -13,6 +13,7 @@
     "@booking/shared": "*",
     "@booking/ui": "*",
     "@tanstack/react-query": "^5.107.1",
+    "axios": "^1.21.1",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",

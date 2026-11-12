@@ -44,8 +44,8 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | Phase | หัวข้อ | สถานะ |
 | --- | --- | --- |
 | 0 | Monorepo + booking schema v1 | ✅ เสร็จแล้ว |
-| 1 | API foundation | ⬜ ถัดไป |
-| 2 | Auth และ roles | ⬜ |
+| 1 | API foundation | ✅ เสร็จแล้ว |
+| 2 | Auth และ roles | ⬜ ถัดไป |
 | 3 | Catalog สาธารณะ + ห้องว่าง | ⬜ |
 | 4 | Booking flow | ⬜ |
 | 5 | Payments (เริ่มจาก mock provider) | ⬜ |
@@ -80,19 +80,19 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 - `tanstack-query-best-practices`: ปรับ `apiFetch` และ hooks ให้รับ error shape ใหม่
 - `next-dev-loop`: ตรวจว่าทั้ง web และ web-admin ยังโหลดรายการโรงแรมได้หลังเปลี่ยน response shape
 
-- [ ] สร้าง class `AppError(status, code, message)` ใน `apps/api/src/lib/`
-- [ ] Global error handler ตอบกลับเป็น `{ "error": { "code", "message" } }` ให้ทุกกรณีต่อไปนี้:
+- [x] สร้าง class `AppError(status, code, message)` ใน `apps/api/src/lib/`
+- [x] Global error handler ตอบกลับเป็น `{ "error": { "code", "message" } }` ให้ทุกกรณีต่อไปนี้:
   - `AppError`
   - zod (`VALIDATION_FAILED` พร้อมรายละเอียดราย field)
   - Prisma `P2002` (`CONFLICT`) และ `P2025` (`NOT_FOUND`)
   - 404 handler ใช้รูปแบบเดียวกัน
-- [ ] Response ที่สำเร็จห่อเป็น `{ "data": ... }` และ `apiFetch` ของ FE ทั้งสองแอปต้องแกะ `data` ออก
+- [x] Response ที่สำเร็จห่อเป็น `{ "data": ... }` และ `request()` ใน `lib/api.ts` (axios) ของ FE ทั้งสองแอปต้องแกะ `data` ออก
       แล้ว throw error แบบมี type ตามรูปแบบ error ⚠️ เป็นการเปลี่ยน response shape ต้องถามก่อน
-- [ ] สร้าง `controllers/` และ `services/` แล้วย้าย `routes/hotels.ts` ให้เป็น route → controller → service
-- [ ] ย้ายการสร้างโรงแรมไปที่ `POST /api/admin/hotels` (ใส่ guard ใน Phase 2) ส่วน `GET /api/hotels`
+- [x] สร้าง `controllers/` และ `services/` แล้วย้าย `routes/hotels.ts` ให้เป็น route → controller → service
+- [x] ย้ายการสร้างโรงแรมไปที่ `POST /api/admin/hotels` (ใส่ guard ใน Phase 2) ส่วน `GET /api/hotels`
       ยังเปิดสาธารณะ แต่คืนเฉพาะโรงแรมที่ `isActive`
-- [ ] ถ้าสร้างโรงแรมแล้วชน `P2002` จาก slug race ให้ retry 1 ครั้ง
-- [ ] Test ระดับ HTTP ของ routes (เช่น supertest) ⚠️ ต้องเพิ่ม dependency ต้องถามก่อน
+- [x] ถ้าสร้างโรงแรมแล้วชน `P2002` จาก slug race ให้ retry 1 ครั้ง
+- [x] Test ระดับ HTTP ของ routes (เช่น supertest) ⚠️ ต้องเพิ่ม dependency ต้องถามก่อน
 
 **เสร็จเมื่อ:** ทุก route ตอบตามรูปแบบมาตรฐาน, route และ controller ไม่เรียก Prisma ตรง, และ lint/typecheck/test ผ่าน
 
@@ -301,8 +301,8 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 
 | # | เรื่อง | ต้องรู้ก่อน |
 | --- | --- | --- |
-| 1 | เปลี่ยน response shape เป็น `{ data }` / `{ error }` (กระทบ FE ทั้งสองแอป) | Phase 1 |
-| 2 | เพิ่ม dependency สำหรับ HTTP tests (เช่น supertest) | Phase 1 |
+| 1 | เปลี่ยน response shape เป็น `{ data }` / `{ error }` (กระทบ FE ทั้งสองแอป) | Phase 1 — ✅ ตัดสินแล้ว: ใช้ { data }/{ error } ทุก endpoint + axios |
+| 2 | เพิ่ม dependency สำหรับ HTTP tests (เช่น supertest) | Phase 1 — ✅ ตัดสินแล้ว: supertest |
 | 3 | Session cookie หรือ JWT | Phase 2 |
 | 4 | เวลา hold รอจ่ายเงิน (ค่าเริ่มต้น 15 นาที) และจำนวนคืนสูงสุด (ค่าเริ่มต้น 30 คืน) | Phase 4 |
 | 5 | นโยบายยกเลิก (ยกเลิกฟรีก่อนเข้าพัก X วัน? คืนเงินบางส่วน?) | Phase 4–5 |
@@ -312,8 +312,5 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 
 ## ช่องโหว่ที่ค้างมาจาก schema v1
 
-- `POST /api/hotels` ยังไม่เช็คสิทธิ์ และไม่ได้อยู่ใต้ `/api/admin` → Phase 1–2
-- routes เรียก Prisma ตรงและคืน JSON แบบไม่ห่อ → Phase 1
-- ถ้าสร้างโรงแรมชื่อซ้ำพร้อมกัน slug race จะตอบ 500 → Phase 1
 - `Review.userId` / `hotelId` ซ้ำกับข้อมูลใน booking ดังนั้น service ต้องดึงค่าจาก booking เอง → Phase 7
 - DB ไม่ได้ตรวจ scope ของ amenity (HOTEL/ROOM) ดังนั้น service ต้องตรวจเอง → Phase 6

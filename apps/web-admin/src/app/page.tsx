@@ -1,5 +1,6 @@
-import { CreateHotelForm } from "@/components/create-hotel-form";
-import { ApiStatus, HotelList } from "@/components/hotel-list";
+import { CreateHotelForm } from "@/features/hotels/components/create-hotel-form";
+import { ApiStatus } from "@/features/health/components/api-status";
+import { HotelList } from "@/features/hotels/components/hotel-list";
 
 export default function AdminHome() {
   return (

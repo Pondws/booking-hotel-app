@@ -19,29 +19,31 @@ npm workspaces monorepo (`apps/*`, `packages/*`), single root `package-lock.json
   `@booking/ui/lib/utils`, `@booking/ui/globals.css`, `@booking/shared`.
 
 ## Structure
-Folders marked *(planned)* don't exist yet — create them following the rules below.
+New features follow this layout; add new folders following the rules below.
 ```
 apps/
   web/                   # customer site
     src/
-      app/               # routes (App Router), layout.tsx, providers.tsx (QueryClientProvider)
-      components/        # app-specific components
-      hooks/             # TanStack Query hooks (e.g. use-hotels.ts)
-      features/<name>/   # (planned) api.ts (fetchers), hooks.ts (TanStack Query), components/
-      lib/               # api.ts (apiFetch client)
+      app/               # routes (App Router), layout.tsx, providers.tsx (QueryClient; no retry on 4xx ApiError)
+      features/<name>/   # one folder per feature (e.g. hotels/, health/):
+        api.ts           #   fetchers — call request() from lib/api.ts, never axios/fetch directly
+        hooks.ts         #   TanStack Query hooks + key factory (e.g. hotelKeys.list())
+        components/      #   feature UI (e.g. hotel-list.tsx)
+      lib/               # api.ts — axios client: request(schema, config) unwraps { data } and throws ApiError
     components.json      # shadcn config — aliases point to @booking/ui
-  web-admin/             # back-office — same layout as web
-    src/app/ src/components/ src/hooks/ src/lib/
+  web-admin/             # back-office — same layout as web (src/app/ src/features/ src/lib/)
   api/
     src/
       index.ts           # starts server (env.PORT)
-      app.ts             # express app: cors, json, routes, 404 + error handler
+      app.ts             # express app: cors, json, routers, then notFound + errorHandler
       env.ts             # zod-validated env
-      routes/            # express routers
-      controllers/       # (planned) parse req, call service, send res
-      services/          # (planned) business logic
-      lib/               # prisma.ts (single client, PrismaPg adapter)
-      middleware/        # validate.ts
+      routes/            # express routers (public, e.g. hotels.ts, health.ts)
+        admin/           # index.ts = adminRouter, guarded once by requireRole('ADMIN','STAFF'); sub-routers per resource
+      controllers/       # parse req, call service, respond with ok()/noContent() — never import prisma
+      services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts)
+      lib/               # prisma.ts (single client, PrismaPg adapter), app-error.ts (AppError), http.ts (ok, noContent),
+                         # prisma-errors.ts (isUniqueViolationOn), password.ts, slug.ts
+      middleware/        # validate.ts, error-handler.ts, not-found.ts, require-role.ts
       generated/prisma/  # Prisma client output (git-ignored, from `prisma generate`)
     prisma/
       schema.prisma  migrations/  seed.ts
@@ -76,13 +78,16 @@ npm run db:seed                   # seed (prisma/seed.ts)
 npm run db:studio                 # browse DB
 npm run ui:add -- <component...>  # add shadcn component into packages/ui (don't use `npx shadcn add` directly)
 npm run lint && npm run typecheck # must pass before finishing a task
-npm test                          # api unit tests (node:test via tsx, files: apps/api/src/**/*.test.ts)
+npm test                          # api unit + integration tests (node:test + supertest, apps/api/src/**/*.test.ts)
+                                  # needs db:up + db:seed and apps/api/.env (loaded via --env-file)
 npm run db:check                  # verify DB constraints (prisma/checks/constraints.sql; needs db:up, runs in a rolled-back transaction)
 npm run build                     # build all workspaces
 ```
 `npm run dev -w apps/web` style also works. Prisma CLI can be run directly inside `apps/api` (`npx prisma ...`).
-Tests use Node's built-in `node:test` + `node:assert/strict` — no test framework dependency. Put test files
-next to the code as `*.test.ts`. Run `npm run db:check` after any migration that touches constraints.
+Tests use Node's built-in `node:test` + `node:assert/strict` (+ `supertest` for HTTP) — no test framework.
+Put test files next to the code as `*.test.ts`. Tests run against the dev DB: use a unique name prefix for
+rows you create, clean them up in `after()`, and never modify seeded rows. Run `npm run db:check` after any
+migration that touches constraints. There is no FE test runner — verify UI in the browser.
 
 ## General Rules
 - TypeScript `strict`. No `any` — use `unknown` + narrowing or proper types.

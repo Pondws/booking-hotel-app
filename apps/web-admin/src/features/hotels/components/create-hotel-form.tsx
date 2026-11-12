@@ -1,30 +1,41 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createHotelSchema, hotelSchema, type CreateHotelInput } from "@booking/shared";
+import { createHotelSchema, type CreateHotelInput } from "@booking/shared";
 import { Button } from "@booking/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@booking/ui/components/card";
 import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
-import { apiFetch } from "@/lib/api";
-import { queryKeys } from "@/hooks/use-hotels";
+import { ApiError } from "@/lib/api";
+import { useCreateHotel } from "../hooks";
 
 type FieldErrors = Partial<Record<keyof CreateHotelInput, string[]>>;
 
-export function CreateHotelForm() {
-  const queryClient = useQueryClient();
-  const [errors, setErrors] = useState<FieldErrors>({});
+const fieldErrorsDetailsSchema = z.object({
+  fieldErrors: z.record(z.string(), z.array(z.string())),
+});
 
-  const mutation = useMutation({
-    mutationFn: (input: CreateHotelInput) =>
-      apiFetch("/api/hotels", hotelSchema, { method: "POST", body: JSON.stringify(input) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.hotels }),
-  });
+/** Maps API VALIDATION_FAILED details onto the form's field errors, or null if not applicable. */
+function serverFieldErrors(error: unknown): FieldErrors | null {
+  if (!(error instanceof ApiError) || error.code !== "VALIDATION_FAILED") return null;
+  const parsed = fieldErrorsDetailsSchema.safeParse(error.details);
+  if (!parsed.success) return null;
+  const result: FieldErrors = {};
+  for (const key of createHotelSchema.keyof().options) {
+    const messages = parsed.data.fieldErrors[key];
+    if (messages) result[key] = messages;
+  }
+  return Object.keys(result).length > 0 ? result : null;
+}
+
+export function CreateHotelForm() {
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const mutation = useCreateHotel();
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    mutation.reset();
     const form = e.currentTarget;
     const raw = Object.fromEntries(new FormData(form));
     // Validate on the client with the same schema the API uses
@@ -34,7 +45,13 @@ export function CreateHotelForm() {
       return;
     }
     setErrors({});
-    mutation.mutate(parsed.data, { onSuccess: () => form.reset() });
+    mutation.mutate(parsed.data, {
+      onSuccess: () => form.reset(),
+      onError: (error) => {
+        const fieldErrors = serverFieldErrors(error);
+        if (fieldErrors) setErrors(fieldErrors);
+      },
+    });
   }
 
   return (
@@ -52,7 +69,9 @@ export function CreateHotelForm() {
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? "Saving…" : "Create hotel"}
             </Button>
-            {mutation.isError && <p className="text-destructive text-sm">{mutation.error.message}</p>}
+            {mutation.isError && !serverFieldErrors(mutation.error) && (
+              <p className="text-destructive text-sm">{mutation.error.message}</p>
+            )}
             {mutation.isSuccess && <p className="text-muted-foreground text-sm">Saved.</p>}
           </div>
         </form>
