@@ -89,12 +89,18 @@ function RangeCalendar({ value, onChange }: Pick<Props, "value" | "onChange">) {
       min={1}
       max={MAX_NIGHTS}
       disabled={picking ? [{ before: today }, { after: addDays(from, MAX_NIGHTS) }] : { before: today }}
-      onSelect={(range: { from?: Date; to?: Date } | undefined) =>
+      onSelect={(range: { from?: Date; to?: Date } | undefined, clicked: Date) => {
+        // A complete range + another click starts a new stay on that day. (react-day-picker would
+        // stretch the old range to it and close the picker on a stay nobody chose.)
+        if (from && to) {
+          onChange({ checkIn: toIso(clicked), checkOut: undefined });
+          return;
+        }
         onChange({
           checkIn: range?.from ? toIso(range.from) : undefined,
           checkOut: range?.to ? toIso(range.to) : undefined,
-        })
-      }
+        });
+      }}
     />
   );
 }
