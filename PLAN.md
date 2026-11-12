@@ -46,8 +46,8 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 0 | Monorepo + booking schema v1 | ✅ เสร็จแล้ว |
 | 1 | API foundation | ✅ เสร็จแล้ว |
 | 2 | Auth และ roles | ✅ เสร็จแล้ว |
-| 3 | Catalog สาธารณะ + ห้องว่าง | ⬜ ถัดไป |
-| 4 | Booking flow | ⬜ |
+| 3 | Catalog สาธารณะ + ห้องว่าง | ✅ เสร็จแล้ว |
+| 4 | Booking flow | ⬜ ถัดไป |
 | 5 | Payments (เริ่มจาก mock provider) | ⬜ |
 | 6 | Back-office (web-admin) | ⬜ |
 | 7 | Reviews | ⬜ |
@@ -132,7 +132,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 - staff ของโรงแรม A แตะข้อมูลโรงแรม B ไม่ได้
 - password hash ไม่โผล่ใน response ใดเลย
 
-## Phase 3 — Catalog สาธารณะ + ห้องว่าง (web)
+## Phase 3 — Catalog สาธารณะ + ห้องว่าง (web) ✅
 
 เป้าหมาย: ลูกค้าค้นหาโรงแรมและเห็นราคาจริงตามวันที่เลือก
 
@@ -143,21 +143,21 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 - `tanstack-query-best-practices`: key factory สำหรับการค้นหา, `placeholderData` ตอนเปลี่ยนหน้า, prefetch หน้ารายละเอียด
 - `next-dev-loop`: ตรวจหน้าค้นหาและหน้ารายละเอียดในเบราว์เซอร์จริง
 
-- [ ] `GET /api/hotels?city=&checkIn=&checkOut=&guests=&page=`
+- [x] `GET /api/hotels?city=&checkIn=&checkOut=&guests=&page=`
   - คืนโรงแรมที่ active พร้อมรูปปก, `ratingAvg`, `reviewCount` และราคาเริ่มต้น
   - ถ้าระบุวันที่ ให้คืนเฉพาะโรงแรมที่มี room type ว่าง
   - แบ่งหน้า (pagination)
-- [ ] `GET /api/hotels/:slug`: รายละเอียดโรงแรม พร้อมรูป, amenities และ room types ที่ active (พร้อมรูปและ amenities ของแต่ละแบบ)
-- [ ] Pricing service `quoteStay(roomTypeId, checkIn, checkOut)`
+- [x] `GET /api/hotels/:slug`: รายละเอียดโรงแรม พร้อมรูป, amenities และ room types ที่ active (พร้อมรูปและ amenities ของแต่ละแบบ)
+- [x] Pricing service `quoteStay(roomTypeId, checkIn, checkOut)`
   - รวมราคาทีละคืน: ใช้ `RatePeriod.price` ถ้ามีช่วงราคาครอบคืนนั้น ไม่มีก็ใช้ `basePrice`
   - คืนค่าเป็น `{ nights, nightly[], total, currency }`
   - มี unit test รวมกรณีที่ช่วงเข้าพักคร่อมขอบของช่วงราคา
-- [ ] Availability service: room type ถือว่าว่าง เมื่อมี `Room` ที่ active อย่างน้อย 1 ห้องที่ไม่มี booking PENDING/CONFIRMED คืนทับกัน
+- [x] Availability service: room type ถือว่าว่าง เมื่อมี `Room` ที่ active อย่างน้อย 1 ห้องที่ไม่มี booking PENDING/CONFIRMED คืนทับกัน
       booking ที่ PENDING แต่เลย `expiresAt` แล้วไม่นับ
-- [ ] `GET /api/hotels/:slug/availability?checkIn=&checkOut=&guests=`: คืนสถานะว่าง/ไม่ว่าง พร้อมราคาของแต่ละ room type
+- [x] `GET /api/hotels/:slug/availability?checkIn=&checkOut=&guests=`: คืนสถานะว่าง/ไม่ว่าง พร้อมราคาของแต่ละ room type
       และตัด room type ที่ `capacity < guests` ออก
-- [ ] web: แถบค้นหา (เมือง, วันที่, จำนวนแขก), หน้าผลค้นหา, หน้ารายละเอียดโรงแรมที่มีการ์ด room type พร้อมราคาจริง, ไอคอน amenities และแกลเลอรีรูป
-- [ ] กฎวันที่: `checkIn` ต้องเป็นวันนี้หรือหลังจากนี้ และพักได้ไม่เกิน 30 คืน (ตัวเลขนี้ต้องยืนยัน)
+- [x] web: แถบค้นหา (เมือง, วันที่, จำนวนแขก), หน้าผลค้นหา, หน้ารายละเอียดโรงแรมที่มีการ์ด room type พร้อมราคาจริง, ไอคอน amenities และแกลเลอรีรูป
+- [x] กฎวันที่: `checkIn` ต้องเป็นวันนี้หรือหลังจากนี้ และพักได้ไม่เกิน 30 คืน (ยืนยันแล้ว: `MAX_NIGHTS = 30`, "วันนี้" นับตามเวลา Asia/Bangkok)
 
 ## Phase 4 — Booking flow
 
@@ -304,7 +304,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 1 | เปลี่ยน response shape เป็น `{ data }` / `{ error }` (กระทบ FE ทั้งสองแอป) | Phase 1 — ✅ ตัดสินแล้ว: ใช้ { data }/{ error } ทุก endpoint + axios |
 | 2 | เพิ่ม dependency สำหรับ HTTP tests (เช่น supertest) | Phase 1 — ✅ ตัดสินแล้ว: supertest |
 | 3 | Session cookie หรือ JWT | Phase 2 — ✅ ตัดสินแล้ว: session cookie + ตาราง Session (แยก sid / admin_sid) |
-| 4 | เวลา hold รอจ่ายเงิน (ค่าเริ่มต้น 15 นาที) และจำนวนคืนสูงสุด (ค่าเริ่มต้น 30 คืน) | Phase 4 |
+| 4 | เวลา hold รอจ่ายเงิน (ค่าเริ่มต้น 15 นาที) และจำนวนคืนสูงสุด (ค่าเริ่มต้น 30 คืน) | Phase 4 — จำนวนคืนสูงสุด ✅ ยืนยันแล้วใน Phase 3: 30 คืน (`MAX_NIGHTS` ใน `@booking/shared`); เวลา hold ยังรอตัดสินใน Phase 4 |
 | 5 | นโยบายยกเลิก (ยกเลิกฟรีก่อนเข้าพัก X วัน? คืนเงินบางส่วน?) | Phase 4–5 |
 | 6 | Payment gateway จริง | Phase 5 |
 | 7 | เวลา check-in/check-out ของโรงแรม (ต้องเพิ่ม field ใน `Hotel`) | Phase 6 |

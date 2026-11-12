@@ -33,7 +33,7 @@ npm run db:seed             # ข้อมูลตัวอย่าง (โร
 npm run dev
 ```
 
-- Web: http://localhost:3000 (`/login`, `/register`, `/account`)
+- Web: http://localhost:3000 (`/` ค้นหา, `/hotels` ผลค้นหา, `/hotels/<slug>` รายละเอียด + ราคาตามวันที่, `/login`, `/register`, `/account`)
 - Admin: http://localhost:3001 (`/login`; หน้าอื่นต้อง login เป็น ADMIN หรือ STAFF)
 - API: http://localhost:8000/api/health, http://localhost:8000/api/hotels
 
@@ -94,13 +94,19 @@ Response สำเร็จ: `{ "data": ... }` · Error: `{ "error": { "code": "
 | Method | Path | สิทธิ์ |
 | --- | --- | --- |
 | GET | `/api/health` | public |
-| GET | `/api/hotels` | public |
+| GET | `/api/hotels?city=&checkIn=&checkOut=&guests=&page=&pageSize=` | public — ค้นหาโรงแรม active แบบแบ่งหน้า (`{ items, page, pageSize, total, totalPages }`) |
+| GET | `/api/hotels/:slug` | public — รูป, amenities, room types ที่ active |
+| GET | `/api/hotels/:slug/availability?checkIn=&checkOut=&guests=` | public — ห้องว่าง + ราคาทีละคืนของแต่ละ room type |
 | POST | `/api/auth/register` | public (rate limited) |
 | POST | `/api/auth/login` / `logout` | public / `sid` |
 | GET | `/api/auth/me` | `sid` |
 | POST | `/api/auth/admin/login` / `admin/logout` | public / `admin_sid` |
 | GET | `/api/auth/admin/me` | `admin_sid` + ADMIN/STAFF |
 | POST | `/api/admin/hotels` | `admin_sid` + ADMIN |
+
+กฎวันที่ (ใช้ร่วม FE/BE จาก `@booking/shared`): วันที่ส่งเป็น `YYYY-MM-DD`, คืนที่พักคือ `[checkIn, checkOut)`,
+`checkIn` ต้องไม่ก่อน "วันนี้" ตามเวลา Asia/Bangkok และพักได้ไม่เกิน 30 คืน (`MAX_NIGHTS`)
+· booking ที่กันห้อง = `CONFIRMED` หรือ `PENDING` ที่ยังไม่หมด `expiresAt`
 
 ## เพิ่ม shadcn component
 
@@ -127,7 +133,10 @@ import { Button } from "@booking/ui/components/button";
 - `src/routes/admin/index.ts` `adminRouter` — guard ด้วย `loadSession('ADMIN')` + `requireRole('ADMIN','STAFF')` ครั้งเดียว
 - `src/middleware/` `validate({ body, query, params })`, `load-session`, `require-auth`, `require-role`,
   `require-hotel-access`, `rate-limit`, error handler
-- `src/lib/` Prisma client เดียว (`passwordHash` ถูก omit ทั่วระบบ), `AppError`, `ok()`/`noContent()`, scrypt password, session token, cookies
+- `src/services/` `hotel.service` (search/detail/availability), `pricing.service` (`quoteStay`), `availability.service`
+  (นับห้องว่างแบบ bulk), `auth.service`, `hotel-access.service`
+- `src/lib/` Prisma client เดียว (`passwordHash` ถูก omit ทั่วระบบ), `AppError`, `ok()`/`noContent()`, scrypt password, session token, cookies,
+  `dates.ts` (แปลง `@db.Date` ↔ `YYYY-MM-DD`), `stay-pricing.ts` (`priceNights` คำนวณราคาทีละคืนด้วย `Prisma.Decimal`)
 - `prisma/schema.prisma` models หลัก: `User`, `Session`, `HotelStaff`, `Hotel`, `RoomType`, `Room`, `RatePeriod`,
   `Booking`, `Payment`, `Review` (+ images/amenities); client generate ไปที่ `src/generated/prisma`
 - schema ของ request ใช้จาก `@booking/shared` ร่วมกับฝั่ง frontend
@@ -138,7 +147,9 @@ import { Button } from "@booking/ui/components/button";
 - `src/features/<name>/` แยกตาม feature: `api.ts` (fetcher), `hooks.ts` (TanStack Query + key factory), `components/`
 - `src/lib/api.ts` axios client — `request(schema, config)` แกะ `{ data }` และ throw `ApiError`
 - web-admin: `app/login/` เป็น public, หน้าอื่นอยู่ใน `app/(protected)/` (layout = `RequireAuth` + `AdminHeader`)
+- web: `features/hotels/search-params.ts` — URL search params คือ state ของการค้นหา/วันที่ (ค่าที่ไม่ถูกต้องถูกตัดทิ้ง ไม่ throw)
 - web กับ web-admin ห้าม import กันเอง — ของที่ใช้ร่วมไปไว้ใน `packages/ui` หรือ `packages/shared`
+- UI ทำตาม `DESIGN.md` (tokens, การใช้ component, สถานะ loading/error/empty)
 
 ## Testing
 
@@ -154,4 +165,6 @@ npm test
 ## เอกสารเพิ่มเติม
 
 - `CLAUDE.md` — กฎและโครงสร้างโปรเจกต์ฉบับเต็ม
+- `DESIGN.md` — กฎการออกแบบ FE (tokens, components, states)
+- `PLAN.md` — roadmap และสถานะแต่ละ phase
 - `docs/superpowers/specs/` และ `docs/superpowers/plans/` — design spec และแผนของแต่ละ phase

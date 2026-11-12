@@ -208,7 +208,7 @@
 **Files:**
 - Modify: UI files touched by fixes from the audit; `PLAN.md` (Phase 3 boxes ✅, status table, decision #4 notes 30 nights confirmed); `README.md` and `CLAUDE.md` (new routes/endpoints, `DESIGN.md`)
 
-- [ ] **Step 1:** Run `impeccable` audit + polish on `/`, `/hotels`, `/hotels/[slug]` (responsive, a11y, empty/error states); apply fixes.
-- [ ] **Step 2:** `npm run lint && npm run typecheck && npm test && npm run db:check && npm run build` — all green, output captured.
-- [ ] **Step 3:** Update docs.
-- [ ] **Step 4: Commit + push** — `docs: phase 3 catalog status, README and CLAUDE.md`; then request a whole-branch review (`superpowers:requesting-code-review`).
+- [x] **Step 1:** Run `impeccable` audit + polish on `/`, `/hotels`, `/hotels/[slug]` (responsive, a11y, empty/error states); apply fixes.
+- [x] **Step 2:** `npm run lint && npm run typecheck && npm test && npm run db:check && npm run build` — all green, output captured.
+- [x] **Step 3:** Update docs.
+- [x] **Step 4: Commit + push** — `docs: phase 3 catalog status, README and CLAUDE.md`; then request a whole-branch review (`superpowers:requesting-code-review`).
