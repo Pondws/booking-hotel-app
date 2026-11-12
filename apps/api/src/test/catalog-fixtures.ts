@@ -4,6 +4,7 @@
  * so `cleanupCatalogFixtures(label)` removes exactly what one test file created — test files run in
  * parallel, so cleanup must never touch another file's label.
  */
+import type { PublicUser } from "@booking/shared";
 import { BookingStatus, Prisma } from "../generated/prisma/client";
 import { toDbDate } from "../lib/dates";
 import { prisma } from "../lib/prisma";
@@ -131,9 +132,23 @@ export function addBooking(
   });
 }
 
-/** Deletes the bookings of one fixture (to reset between tests). */
+/** A standalone customer under `label` (removed by `cleanupCatalogFixtures(label)`). */
+export function createFixtureUser(label: string): Promise<PublicUser> {
+  return prisma.user.create({
+    data: {
+      email: `${userPrefix(label)}${unique()}@test.local`,
+      passwordHash: "x",
+      name: `${CATALOG_PREFIX}Customer`,
+    },
+    select: { id: true, email: true, name: true, phone: true, role: true },
+  });
+}
+
+/** Deletes the bookings of one fixture — its user's and any on its rooms (to reset between tests). */
 export function clearBookings(fx: CatalogFixture) {
-  return prisma.booking.deleteMany({ where: { userId: fx.userId } });
+  return prisma.booking.deleteMany({
+    where: { OR: [{ userId: fx.userId }, { room: { roomType: { hotelId: fx.hotelId } } }] },
+  });
 }
 
 /** Deletes every row created under `label`, in reverse FK order. */

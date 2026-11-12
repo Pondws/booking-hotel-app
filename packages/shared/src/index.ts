@@ -8,6 +8,7 @@ export const errorCodeSchema = z.enum([
   "NOT_FOUND",
   "CONFLICT",
   "RATE_LIMITED",
+  "ROOM_UNAVAILABLE",
   "INTERNAL",
 ]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
@@ -279,21 +280,64 @@ export const availabilitySchema = z.object({
 export type Availability = z.infer<typeof availabilitySchema>;
 
 // ---------- Booking ----------
+export const HOLD_MINUTES = 15;
+export const MAX_ACTIVE_HOLDS = 3;
+/** `BK` + 6 chars from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (no 0/O/1/I). */
+export const BOOKING_CODE_PATTERN = /^BK[A-HJ-NP-Z2-9]{6}$/;
+
 export const createBookingSchema = z
   .object({
     roomTypeId: z.string().min(1),
-    checkIn: z.iso.date(),
-    checkOut: z.iso.date(),
-    guests: z.coerce.number().int().min(1).max(20),
+    checkIn: isoDate,
+    checkOut: isoDate,
+    guests: guestsField,
     guestName: z.string().trim().min(1).max(120).optional(),
-    guestEmail: z.email().optional(),
+    guestEmail: emailField.optional(),
     guestPhone: z.string().trim().min(1).max(30).optional(),
   })
-  .refine((b) => b.checkOut > b.checkIn, {
-    message: "checkOut must be after checkIn",
-    path: ["checkOut"],
-  });
+  .superRefine((v, ctx) => refineStay(ctx, v.checkIn, v.checkOut));
 export type CreateBookingInput = z.input<typeof createBookingSchema>;
+export type CreateBookingData = z.output<typeof createBookingSchema>;
+
+export const bookingStatusSchema = z.enum(["PENDING", "CONFIRMED", "CANCELLED", "EXPIRED", "COMPLETED"]);
+export type BookingStatus = z.infer<typeof bookingStatusSchema>;
+
+export const bookingSchema = z.object({
+  code: z.string(),
+  status: bookingStatusSchema,
+  checkIn: isoDate,
+  checkOut: isoDate,
+  nights: z.number().int().min(1),
+  guests: z.number().int().min(1),
+  guestName: z.string(),
+  guestEmail: z.string(),
+  guestPhone: z.string().nullable(),
+  totalAmount: z.number(),
+  currency: z.string(),
+  expiresAt: z.iso.datetime().nullable(),
+  cancelledAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+  cancellable: z.boolean(),
+  hotel: z.object({
+    name: z.string(),
+    slug: z.string(),
+    city: z.string(),
+    coverImage: imageSchema.nullable(),
+  }),
+  roomType: z.object({ id: z.string(), name: z.string() }),
+});
+export type Booking = z.infer<typeof bookingSchema>;
+
+export const bookingListSchema = paginated(bookingSchema);
+
+export const bookingListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(10),
+});
+export type BookingListQuery = z.output<typeof bookingListQuerySchema>;
+
+export const bookingCodeParamsSchema = z.object({ code: z.string().regex(BOOKING_CODE_PATTERN) });
+export type BookingCodeParams = z.output<typeof bookingCodeParamsSchema>;
 
 // ---------- Health ----------
 export const healthSchema = z.object({
