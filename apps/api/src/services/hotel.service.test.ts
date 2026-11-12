@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
+import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../lib/prisma";
 import { toSlug } from "../lib/slug";
 import { createHotel, listActiveHotels } from "./hotel.service";
@@ -38,4 +39,23 @@ test("listActiveHotels omits inactive hotels", async () => {
   await prisma.hotel.update({ where: { id: h.id }, data: { isActive: false } });
   const list = await listActiveHotels();
   assert.ok(!list.some((x) => x.id === h.id));
+});
+
+test("a non-slug P2002 is not retried and propagates", async (t) => {
+  const err = new Prisma.PrismaClientKnownRequestError("dup", {
+    code: "P2002",
+    clientVersion: "test",
+    meta: {
+      modelName: "Hotel",
+      driverAdapterError: {
+        cause: { kind: "UniqueConstraintViolation", constraint: { index: "hotels_other_key" } },
+      },
+    },
+  });
+  // The delegate exposes methods lazily, so mock.method cannot wrap it; swap the whole delegate.
+  const create = t.mock.fn(() => Promise.reject(err));
+  const real = prisma.hotel;
+  t.mock.property(prisma, "hotel", { ...real, create } as unknown as typeof real);
+  await assert.rejects(createHotel(input(`${PREFIX}${Date.now()} other`)), (e) => e === err);
+  assert.equal(create.mock.callCount(), 1);
 });
