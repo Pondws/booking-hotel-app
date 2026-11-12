@@ -1,6 +1,5 @@
 import type { LoginInput, RegisterInput } from "@booking/shared";
 import type { Request, RequestHandler, Response } from "express";
-import type { ParamsDictionary } from "express-serve-static-core";
 import type { SessionAudience } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
 import { clearSessionCookie, SESSION_TTL_MS, setSessionCookie } from "../lib/cookies";
@@ -17,7 +16,7 @@ function sessionMeta(req: Request): authService.SessionMeta {
 
 // Bodies below are already parsed by validate().
 export async function register(
-  req: Request<ParamsDictionary, unknown, RegisterInput>,
+  req: Request<Record<string, string>, unknown, RegisterInput>,
   res: Response,
 ) {
   const { user, token } = await authService.register(req.body, sessionMeta(req));
@@ -26,7 +25,7 @@ export async function register(
 }
 
 export const login =
-  (audience: SessionAudience): RequestHandler<ParamsDictionary, unknown, LoginInput> =>
+  (audience: SessionAudience): RequestHandler<Record<string, string>, unknown, LoginInput> =>
   async (req, res) => {
     const { user, token } = await authService.login(req.body, audience, sessionMeta(req));
     setSessionCookie(res, audience, token, SESSION_TTL_MS[audience]);

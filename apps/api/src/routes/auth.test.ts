@@ -19,7 +19,9 @@ after(async () => {
     where: { tokenHash: { in: hashes } },
     select: { id: true },
   });
-  await prisma.session.deleteMany({ where: { id: { in: seedSessions.map((s) => s.id) } } });
+  await prisma.session.deleteMany({
+    where: { id: { in: seedSessions.map((s) => s.id) } },
+  });
   await prisma.user.deleteMany({ where: { email: { in: createdEmails } } });
   await prisma.$disconnect();
 });
@@ -139,7 +141,9 @@ test("login creates a WEB session for any role (admin on the web site)", async (
   const { res, token } = await loginSeed("/api/auth/login", "admin@booking.local");
   assert.equal(res.status, 200);
   assert.ok(token);
-  const row = await prisma.session.findUnique({ where: { tokenHash: hashToken(token) } });
+  const row = await prisma.session.findUnique({
+    where: { tokenHash: hashToken(token) },
+  });
   assert.equal(row?.audience, "WEB");
 });
 
@@ -200,7 +204,9 @@ test("admin login as customer → 403 'Staff access only', no session created", 
   const before = await prisma.session.count({ where: { userId: customer.id } });
   const { res, token } = await loginSeed("/api/auth/admin/login", "customer@booking.local");
   assert.equal(res.status, 403);
-  assert.deepEqual(res.body, { error: { code: "FORBIDDEN", message: "Staff access only" } });
+  assert.deepEqual(res.body, {
+    error: { code: "FORBIDDEN", message: "Staff access only" },
+  });
   assert.equal(token, undefined);
   assert.equal(await prisma.session.count({ where: { userId: customer.id } }), before);
 });
@@ -226,7 +232,9 @@ for (const email of ["staff@booking.local", "admin@booking.local"]) {
     assert.match(header, /SameSite=Lax/i);
     assert.equal(cookieHeader(res, "sid"), undefined);
     assert.ok(token);
-    const row = await prisma.session.findUnique({ where: { tokenHash: hashToken(token) } });
+    const row = await prisma.session.findUnique({
+      where: { tokenHash: hashToken(token) },
+    });
     assert.equal(row?.audience, "ADMIN");
     const me = await request(app).get("/api/auth/admin/me").set("Cookie", `admin_sid=${token}`);
     assert.equal(me.status, 200);
@@ -252,10 +260,7 @@ test("admin logout → 204, clears admin_sid, session row gone", async () => {
 test("sid cookie sent to POST /api/admin/hotels → 401", async () => {
   const { token } = await loginSeed("/api/auth/login", "admin@booking.local");
   assert.ok(token);
-  const res = await request(app)
-    .post("/api/admin/hotels")
-    .set("Cookie", `sid=${token}`)
-    .send({ name: `App Test ${RUN} iso`, city: "Testville", address: "1 Test Street" });
+  const res = await request(app).post("/api/admin/hotels").set("Cookie", `sid=${token}`).send({});
   assert.equal(res.status, 401);
   assert.equal(res.body.error.code, "UNAUTHORIZED");
 });
@@ -281,7 +286,10 @@ test("a WEB token sent as admin_sid to GET /api/auth/admin/me → 401", async ()
 
 test("expired session → 401 and the row is deleted", async () => {
   const { email } = await registerUser();
-  const user = await prisma.user.findUniqueOrThrow({ where: { email }, select: { id: true } });
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { email },
+    select: { id: true },
+  });
   const token = generateToken();
   const row = await prisma.session.create({
     data: {
