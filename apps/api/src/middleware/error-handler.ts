@@ -12,6 +12,22 @@ function isMalformedJson(err: unknown): boolean {
   return err instanceof SyntaxError && "type" in err && err.type === "entity.parse.failed";
 }
 
+const BODY_PARSER_ERROR_TYPES: ReadonlySet<string> = new Set([
+  "entity.too.large",
+  "encoding.unsupported",
+  "charset.unsupported",
+  "entity.verify.failed",
+]);
+
+/** The 4xx status of a body-parser error (e.g. 413, 415), or null for anything else. */
+function bodyParserErrorStatus(err: unknown): number | null {
+  if (!(err instanceof Error)) return null;
+  if (!("type" in err) || typeof err.type !== "string") return null;
+  if (!BODY_PARSER_ERROR_TYPES.has(err.type)) return null;
+  if (!("status" in err) || typeof err.status !== "number") return null;
+  return err.status >= 400 && err.status <= 499 ? err.status : null;
+}
+
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof AppError) {
     send(res, err.status, err.code, err.message, err.details);
@@ -23,6 +39,11 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   }
   if (isMalformedJson(err)) {
     send(res, 400, "VALIDATION_FAILED", "Malformed JSON body");
+    return;
+  }
+  const bodyStatus = bodyParserErrorStatus(err);
+  if (bodyStatus !== null) {
+    send(res, bodyStatus, "VALIDATION_FAILED", "Invalid request body");
     return;
   }
   if (err instanceof Prisma.PrismaClientKnownRequestError) {

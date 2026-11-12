@@ -70,6 +70,35 @@ test("unknown error → 500 INTERNAL without leaking the message", async (t) => 
   assert.ok(!JSON.stringify(res.body).includes("secret-db-password"));
 });
 
+const smallBodyApp = express();
+smallBodyApp.use(express.json({ limit: "1kb" }));
+smallBodyApp.post("/echo", (req, res) => {
+  res.json({ data: req.body });
+});
+smallBodyApp.use(errorHandler);
+
+test("body over the json limit → 413 VALIDATION_FAILED envelope", async () => {
+  const res = await request(smallBodyApp)
+    .post("/echo")
+    .set("Content-Type", "application/json")
+    .send(JSON.stringify({ pad: "x".repeat(2048) }));
+  assert.equal(res.status, 413);
+  assert.deepEqual(res.body, {
+    error: { code: "VALIDATION_FAILED", message: "Invalid request body" },
+  });
+});
+
+test("unsupported charset → 415 VALIDATION_FAILED envelope", async () => {
+  const res = await request(smallBodyApp)
+    .post("/echo")
+    .set("Content-Type", "application/json; charset=koi8-r")
+    .send(JSON.stringify({ a: 1 }));
+  assert.equal(res.status, 415);
+  assert.deepEqual(res.body, {
+    error: { code: "VALIDATION_FAILED", message: "Invalid request body" },
+  });
+});
+
 test("unknown route → 404 NOT_FOUND", async () => {
   const res = await request(testApp).get("/nope");
   assert.equal(res.status, 404);

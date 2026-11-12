@@ -4,6 +4,7 @@ import { env } from "./env";
 import { errorHandler } from "./middleware/error-handler";
 import { notFound } from "./middleware/not-found";
 import { adminRouter } from "./routes/admin";
+import { authRouter } from "./routes/auth";
 import { healthRouter } from "./routes/health";
 import { hotelsRouter } from "./routes/hotels";
 
@@ -13,6 +14,7 @@ app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
 app.use(express.json());
 
 app.use("/api/health", healthRouter);
+app.use("/api/auth", authRouter);
 app.use("/api/hotels", hotelsRouter);
 app.use("/api/admin", adminRouter);
 
