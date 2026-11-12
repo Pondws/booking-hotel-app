@@ -7,6 +7,7 @@ export const errorCodeSchema = z.enum([
   "FORBIDDEN",
   "NOT_FOUND",
   "CONFLICT",
+  "RATE_LIMITED",
   "INTERNAL",
 ]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
@@ -22,6 +23,40 @@ export const apiErrorSchema = z.object({
 export type ApiErrorBody = z.infer<typeof apiErrorSchema>;
 
 export const dataEnvelope = <S extends z.ZodType>(schema: S) => z.object({ data: schema });
+
+// ---------- Auth ----------
+export const roleSchema = z.enum(["CUSTOMER", "STAFF", "ADMIN"]);
+export type Role = z.infer<typeof roleSchema>;
+
+export const publicUserSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string(),
+  phone: z.string().nullable(),
+  role: roleSchema,
+});
+export type PublicUser = z.infer<typeof publicUserSchema>;
+
+const emailField = z.string().trim().toLowerCase().pipe(z.email());
+
+export const registerSchema = z.object({
+  email: emailField,
+  password: z.string().min(8, "Password must be at least 8 characters").max(128),
+  name: z.string().trim().min(1, "Name is required").max(120),
+});
+export type RegisterInput = z.input<typeof registerSchema>;
+
+export const loginSchema = z.object({
+  email: emailField,
+  password: z.string().min(1, "Password is required").max(128),
+});
+export type LoginInput = z.input<typeof loginSchema>;
+
+/** Returns `next` only when it is a same-site absolute path; otherwise "/". */
+export function safeNextPath(next: string | null | undefined): string {
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) return "/";
+  return next;
+}
 
 // ---------- Hotel ----------
 export const hotelSchema = z.object({
