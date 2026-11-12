@@ -7,50 +7,283 @@ datasource db {
   provider = "postgresql"
 }
 
-model Hotel {
-  id          String   @id @default(cuid())
-  name        String
-  city        String
-  description String?
-  rating      Float    @default(0)
-  rooms       Room[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([city])
-}
-
-model Room {
-  id            String    @id @default(cuid())
-  hotelId       String
-  hotel         Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  name          String
-  capacity      Int       @default(2)
-  pricePerNight Decimal   @db.Decimal(10, 2)
-  bookings      Booking[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  @@index([hotelId])
+enum Role {
+  CUSTOMER
+  STAFF
+  ADMIN
 }
 
 enum BookingStatus {
   PENDING
   CONFIRMED
   CANCELLED
+  EXPIRED
+  COMPLETED
 }
 
-model Booking {
-  id         String        @id @default(cuid())
-  roomId     String
-  room       Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  guestName  String
-  guestEmail String
-  checkIn    DateTime
-  checkOut   DateTime
-  status     BookingStatus @default(PENDING)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
 
-  @@index([roomId, checkIn, checkOut])
+enum AmenityScope {
+  HOTEL
+  ROOM
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  phone        String?
+  role         Role     @default(CUSTOMER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  staffOf  HotelStaff[]
+  bookings Booking[]
+  reviews  Review[]
+
+  @@map("users")
+}
+
+model HotelStaff {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  hotelId   String   @map("hotel_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hotelId])
+  @@index([hotelId])
+  @@map("hotel_staff")
+}
+
+model Hotel {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  city        String
+  address     String
+  description String?
+  currency    String   @default("THB")
+  ratingAvg   Float    @default(0) @map("rating_avg")
+  reviewCount Int      @default(0) @map("review_count")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  staff     HotelStaff[]
+  images    HotelImage[]
+  amenities HotelAmenity[]
+  roomTypes RoomType[]
+  reviews   Review[]
+
+  @@index([city])
+  @@map("hotels")
+}
+
+model HotelImage {
+  id        String   @id @default(cuid())
+  hotelId   String   @map("hotel_id")
+  url       String
+  alt       String?
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId])
+  @@map("hotel_images")
+}
+
+model Amenity {
+  id        String       @id @default(cuid())
+  code      String       @unique
+  name      String
+  scope     AmenityScope
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  hotels    HotelAmenity[]
+  roomTypes RoomTypeAmenity[]
+
+  @@map("amenities")
+}
+
+model HotelAmenity {
+  id        String   @id @default(cuid())
+  hotelId   String   @map("hotel_id")
+  amenityId String   @map("amenity_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  hotel   Hotel   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  amenity Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, amenityId])
+  @@index([amenityId])
+  @@map("hotel_amenities")
+}
+
+model RoomType {
+  id          String   @id @default(cuid())
+  hotelId     String   @map("hotel_id")
+  name        String
+  description String?
+  capacity    Int
+  basePrice   Decimal  @map("base_price") @db.Decimal(10, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  hotel       Hotel             @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  images      RoomTypeImage[]
+  amenities   RoomTypeAmenity[]
+  rooms       Room[]
+  ratePeriods RatePeriod[]
+
+  @@index([hotelId])
+  @@map("room_types")
+}
+
+model RoomTypeImage {
+  id         String   @id @default(cuid())
+  roomTypeId String   @map("room_type_id")
+  url        String
+  alt        String?
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@index([roomTypeId])
+  @@map("room_type_images")
+}
+
+model RoomTypeAmenity {
+  id         String   @id @default(cuid())
+  roomTypeId String   @map("room_type_id")
+  amenityId  String   @map("amenity_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  amenity  Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@unique([roomTypeId, amenityId])
+  @@index([amenityId])
+  @@map("room_type_amenities")
+}
+
+model Room {
+  id         String   @id @default(cuid())
+  roomTypeId String   @map("room_type_id")
+  number     String
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  roomType RoomType  @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+  bookings Booking[]
+
+  @@unique([roomTypeId, number])
+  @@map("rooms")
+}
+
+/// Raw-SQL constraints (not expressed in Prisma): rate_periods_no_overlap (EXCLUDE gist on
+/// room_type_id + daterange(start_date, end_date, [)) ) and rate_periods_dates_check (end_date > start_date).
+model RatePeriod {
+  id         String   @id @default(cuid())
+  roomTypeId String   @map("room_type_id")
+  name       String?
+  startDate  DateTime @map("start_date") @db.Date
+  endDate    DateTime @map("end_date") @db.Date
+  price      Decimal  @db.Decimal(10, 2)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+
+  @@index([roomTypeId, startDate])
+  @@map("rate_periods")
+}
+
+/// Raw-SQL constraints (not expressed in Prisma): bookings_no_overlap (EXCLUDE gist on room_id +
+/// daterange(check_in, check_out, [)) for PENDING/CONFIRMED only), bookings_dates_check
+/// (check_out > check_in) and bookings_guests_check (guests >= 1).
+model Booking {
+  id          String        @id @default(cuid())
+  code        String        @unique
+  userId      String        @map("user_id")
+  roomId      String        @map("room_id")
+  guestName   String        @map("guest_name")
+  guestEmail  String        @map("guest_email")
+  guestPhone  String?       @map("guest_phone")
+  guests      Int
+  checkIn     DateTime      @map("check_in") @db.Date
+  checkOut    DateTime      @map("check_out") @db.Date
+  status      BookingStatus @default(PENDING)
+  totalAmount Decimal       @map("total_amount") @db.Decimal(10, 2)
+  currency    String
+  expiresAt   DateTime?     @map("expires_at")
+  cancelledAt DateTime?     @map("cancelled_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  room     Room      @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  payments Payment[]
+  review   Review?
+
+  @@index([userId])
+  @@index([roomId, checkIn])
+  @@index([status])
+  @@map("bookings")
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  bookingId   String        @map("booking_id")
+  amount      Decimal       @db.Decimal(10, 2)
+  currency    String
+  status      PaymentStatus @default(PENDING)
+  provider    String
+  providerRef String?       @unique @map("provider_ref")
+  paidAt      DateTime?     @map("paid_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@index([bookingId])
+  @@map("payments")
+}
+
+/// Raw-SQL constraint (not expressed in Prisma): reviews_rating_check (rating BETWEEN 1 AND 5).
+model Review {
+  id        String   @id @default(cuid())
+  bookingId String   @unique @map("booking_id")
+  userId    String   @map("user_id")
+  hotelId   String   @map("hotel_id")
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  hotel   Hotel   @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+
+  @@index([hotelId])
+  @@index([userId])
+  @@map("reviews")
 }
