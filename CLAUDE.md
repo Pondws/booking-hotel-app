@@ -24,7 +24,8 @@ New features follow this layout; add new folders following the rules below.
 apps/
   web/                   # customer site
     src/
-      app/               # routes (App Router): login/, register/, account/; layout.tsx (header + UserNav);
+      app/               # routes (App Router): / (search), hotels/ (results), hotels/[slug]/ (detail), login/,
+                         # register/, account/; layout.tsx (header + UserNav);
                          # providers.tsx (QueryClient; no retry on 4xx; Query/MutationCache 401 → me = null)
       features/<name>/   # one folder per feature (e.g. auth/, hotels/, health/):
         api.ts           #   fetchers — call request()/requestNoContent() from lib/api.ts, never axios/fetch directly
@@ -45,10 +46,12 @@ apps/
         admin/           # index.ts = adminRouter, guarded once by loadSession('ADMIN') + requireRole('ADMIN','STAFF');
                          # sub-routers per resource
       controllers/       # parse req, call service, respond with ok()/noContent() — never import prisma
-      services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts)
+      services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts,
+                         # pricing.service.ts quoteStay(s), availability.service.ts availableRoomCounts)
       lib/               # prisma.ts (single client, PrismaPg adapter, global omit of passwordHash), app-error.ts,
                          # http.ts (ok, noContent), prisma-errors.ts (isUniqueViolationOn), password.ts (scrypt),
-                         # session-token.ts, cookies.ts (sid / admin_sid), cors-policy.ts, slug.ts
+                         # session-token.ts, cookies.ts (sid / admin_sid), cors-policy.ts, slug.ts,
+                         # dates.ts (@db.Date ↔ YYYY-MM-DD — only way to convert), stay-pricing.ts (priceNights, Decimal)
       middleware/        # validate.ts, error-handler.ts, not-found.ts, load-session.ts, require-auth.ts,
                          # require-role.ts, require-hotel-access.ts, rate-limit.ts
       generated/prisma/  # Prisma client output (git-ignored, from `prisma generate`)
@@ -64,6 +67,7 @@ packages/
   shared/                # zod schemas + types used by web, web-admin and api
     src/index.ts
 docker-compose.yml
+DESIGN.md                # FE design rules: tokens, component usage, loading/error/empty states — follow for all UI
 ```
 
 ## Env
@@ -146,6 +150,9 @@ migration that touches constraints. There is no FE test runner — verify UI in 
   (not into an app), then compose. Use theme tokens — no hardcoded colors or sizes.
 - Forms: react-hook-form + zod resolver, reuse schemas from `packages/shared`.
 - Handle loading, error, and empty states for every data view.
+- Search/stay state (city, dates, guests, page) lives in the URL — parse/serialize via
+  `features/hotels/search-params.ts`. Date rules come from `@booking/shared` (`BOOKING_TZ`, `MAX_NIGHTS`,
+  `todayIn`, `stayRangeSchema`); never re-implement them in a component.
 - Styling: Tailwind utility classes + `cn()`; no inline styles.
 
 ## Adding a Feature (order)

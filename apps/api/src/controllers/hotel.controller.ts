@@ -1,10 +1,27 @@
-import type { CreateHotelData } from "@booking/shared";
+import type { CreateHotelData, HotelSearchQuery, StayRange } from "@booking/shared";
 import type { Request, Response } from "express";
 import { ok } from "../lib/http";
 import * as hotelService from "../services/hotel.service";
 
-export async function listHotels(_req: Request, res: Response) {
-  ok(res, await hotelService.listActiveHotels());
+// Query and params are parsed by validate() into res.locals.
+type SlugParams = { slug: string };
+
+export async function searchHotels(
+  _req: Request,
+  res: Response<unknown, { query: HotelSearchQuery }>,
+) {
+  ok(res, await hotelService.searchHotels(res.locals.query));
+}
+
+export async function getHotel(_req: Request, res: Response<unknown, { params: SlugParams }>) {
+  ok(res, await hotelService.getHotelBySlug(res.locals.params.slug));
+}
+
+export async function getAvailability(
+  _req: Request,
+  res: Response<unknown, { params: SlugParams; query: StayRange }>,
+) {
+  ok(res, await hotelService.getAvailability(res.locals.params.slug, res.locals.query));
 }
 
 // Body is already parsed by validate().

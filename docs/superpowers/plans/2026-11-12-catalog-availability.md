@@ -156,10 +156,10 @@
 **Interfaces:**
 - Produces: `@booking/ui/components/calendar` (`Calendar`), `@booking/ui/components/popover` (`Popover`, `PopoverTrigger`, `PopoverContent`), `@booking/ui/components/skeleton` (`Skeleton`).
 
-- [ ] **Step 1:** Run the `impeccable` skill to write `DESIGN.md` from the existing theme.
-- [ ] **Step 2:** `npm run ui:add -- calendar popover skeleton`; confirm only react-day-picker / date-fns (and their transitive deps) were added: `git diff --stat package-lock.json packages/ui/package.json`.
-- [ ] **Step 3:** `npm run lint && npm run typecheck && npm run build -w apps/web` → green.
-- [ ] **Step 4: Commit + push** — `feat(ui): DESIGN.md, calendar, popover and skeleton`.
+- [x] **Step 1:** Run the `impeccable` skill to write `DESIGN.md` from the existing theme.
+- [x] **Step 2:** `npm run ui:add -- calendar popover skeleton`; confirm only react-day-picker / date-fns (and their transitive deps) were added: `git diff --stat package-lock.json packages/ui/package.json`.
+- [x] **Step 3:** `npm run lint && npm run typecheck && npm run build -w apps/web` → green.
+- [x] **Step 4: Commit + push** — `feat(ui): DESIGN.md, calendar, popover and skeleton`.
 
 ### Task 6: Web search bar, home and results page
 
@@ -179,12 +179,12 @@
   - `parseSearchParams(sp: URLSearchParams): HotelSearchQuery` (uses `hotelSearchQuerySchema.safeParse`; on failure drops the offending keys and re-parses, never throws) and `toSearchParams(q: Partial<HotelSearchQuery>): URLSearchParams` (omits defaults/undefined)
   - `<DateRangeField value onChange />` reused by Task 7.
 
-- [ ] **Step 1:** Implement fetchers + hooks + `search-params.ts`.
-- [ ] **Step 2:** Build `SearchBar` (react-hook-form + zodResolver on `hotelSearchQuerySchema.pick` of city/dates/guests; calendar disables days before `todayIn(BOOKING_TZ)` and beyond `checkIn + 30`); submit → `router.push("/hotels?" + toSearchParams(...))`.
-- [ ] **Step 3:** Build `HotelCard` (cover image, name, city, rating/review count, "from ฿X / night" via `Intl.NumberFormat("th-TH", { style: "currency", currency })`; links to `/hotels/<slug>?<dates & guests>`, prefetch on hover/focus), `HotelResults` (skeleton grid, error with retry, empty state "No hotels match …" with a clear-filters link), `Pagination`.
-- [ ] **Step 4:** Pages: `/` = hero + `SearchBar` + `HotelResults` for `{}`; `/hotels` = prefilled `SearchBar` + `HotelResults` from URL. Client parts inside `<Suspense>`.
-- [ ] **Step 5:** `npm run lint && npm run typecheck`; then verify with `next-dev-loop` (`npm run dev`): search "bangkok" → 1 result; dates with all rooms free → price shown; page through with `pageSize` small; invalid URL `?checkIn=garbage` renders defaults.
-- [ ] **Step 6: Commit + push** — `feat(web): hotel search bar and results`.
+- [x] **Step 1:** Implement fetchers + hooks + `search-params.ts`.
+- [x] **Step 2:** Build `SearchBar` (react-hook-form + zodResolver on `hotelSearchQuerySchema.pick` of city/dates/guests; calendar disables days before `todayIn(BOOKING_TZ)` and beyond `checkIn + 30`); submit → `router.push("/hotels?" + toSearchParams(...))`.
+- [x] **Step 3:** Build `HotelCard` (cover image, name, city, rating/review count, "from ฿X / night" via `Intl.NumberFormat("th-TH", { style: "currency", currency })`; links to `/hotels/<slug>?<dates & guests>`, prefetch on hover/focus), `HotelResults` (skeleton grid, error with retry, empty state "No hotels match …" with a clear-filters link), `Pagination`.
+- [x] **Step 4:** Pages: `/` = hero + `SearchBar` + `HotelResults` for `{}`; `/hotels` = prefilled `SearchBar` + `HotelResults` from URL. Client parts inside `<Suspense>`.
+- [x] **Step 5:** `npm run lint && npm run typecheck`; then verify with `next-dev-loop` (`npm run dev`): search "bangkok" → 1 result; dates with all rooms free → price shown; page through with `pageSize` small; invalid URL `?checkIn=garbage` renders defaults.
+- [x] **Step 6: Commit + push** — `feat(web): hotel search bar and results`.
 
 ### Task 7: Web hotel detail page
 
@@ -196,19 +196,19 @@
 - Consumes: Task 6 hooks, `DateRangeField`, `parseSearchParams`/`toSearchParams`.
 - Produces: `amenityIcon(code: string): LucideIcon` in `amenity-list.tsx` (map `wifi, pool, parking, breakfast, aircon, bathtub`; fallback `Check`).
 
-- [ ] **Step 1:** `HotelDetail` uses `useHotel(slug)`; 404 (`ApiError` status 404) → "Hotel not found" with link to `/hotels`; other errors → retry state; loading → skeleton.
-- [ ] **Step 2:** `HotelGallery` (main image + thumbnails, keyboard-accessible buttons, `next/image`; add `https://picsum.photos/**` to `images.remotePatterns` in `apps/web/next.config.ts`).
-- [ ] **Step 3:** `StayPicker` (date range + guests) writes to the URL with `router.replace`; `useAvailability(slug, range)` only when the URL has a valid range.
-- [ ] **Step 4:** `RoomTypeCard`: without range → "from ฿base / night"; with range → total + nights + collapsible per-night breakdown, or "Sold out" badge; room types filtered out by guests show nothing; disabled "Book" button with "Booking opens soon" hint.
-- [ ] **Step 5:** `npm run lint && npm run typecheck`; verify with `next-dev-loop`: Riverside Bangkok with `2027-04-08 → 2027-04-12` shows Deluxe King total `15400` (2×3200 + 2×4500); guests 3 hides Deluxe King; unknown slug shows not-found.
-- [ ] **Step 6: Commit + push** — `feat(web): hotel detail with gallery, amenities and live prices`.
+- [x] **Step 1:** `HotelDetail` uses `useHotel(slug)`; 404 (`ApiError` status 404) → "Hotel not found" with link to `/hotels`; other errors → retry state; loading → skeleton.
+- [x] **Step 2:** `HotelGallery` (main image + thumbnails, keyboard-accessible buttons, `next/image`; add `https://picsum.photos/**` to `images.remotePatterns` in `apps/web/next.config.ts`).
+- [x] **Step 3:** `StayPicker` (date range + guests) writes to the URL with `router.replace`; `useAvailability(slug, range)` only when the URL has a valid range.
+- [x] **Step 4:** `RoomTypeCard`: without range → "from ฿base / night"; with range → total + nights + collapsible per-night breakdown, or "Sold out" badge; room types filtered out by guests show nothing; disabled "Book" button with "Booking opens soon" hint.
+- [x] **Step 5:** `npm run lint && npm run typecheck`; verify with `next-dev-loop`: Riverside Bangkok with `2027-04-08 → 2027-04-12` shows Deluxe King total `15400` (2×3200 + 2×4500); guests 3 hides Deluxe King; unknown slug shows not-found.
+- [x] **Step 6: Commit + push** — `feat(web): hotel detail with gallery, amenities and live prices`.
 
 ### Task 8: Phase close — audit, verification, docs
 
 **Files:**
 - Modify: UI files touched by fixes from the audit; `PLAN.md` (Phase 3 boxes ✅, status table, decision #4 notes 30 nights confirmed); `README.md` and `CLAUDE.md` (new routes/endpoints, `DESIGN.md`)
 
-- [ ] **Step 1:** Run `impeccable` audit + polish on `/`, `/hotels`, `/hotels/[slug]` (responsive, a11y, empty/error states); apply fixes.
-- [ ] **Step 2:** `npm run lint && npm run typecheck && npm test && npm run db:check && npm run build` — all green, output captured.
-- [ ] **Step 3:** Update docs.
-- [ ] **Step 4: Commit + push** — `docs: phase 3 catalog status, README and CLAUDE.md`; then request a whole-branch review (`superpowers:requesting-code-review`).
+- [x] **Step 1:** Run `impeccable` audit + polish on `/`, `/hotels`, `/hotels/[slug]` (responsive, a11y, empty/error states); apply fixes.
+- [x] **Step 2:** `npm run lint && npm run typecheck && npm test && npm run db:check && npm run build` — all green, output captured.
+- [x] **Step 3:** Update docs.
+- [x] **Step 4: Commit + push** — `docs: phase 3 catalog status, README and CLAUDE.md`; then request a whole-branch review (`superpowers:requesting-code-review`).
