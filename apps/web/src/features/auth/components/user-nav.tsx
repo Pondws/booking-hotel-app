@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, buttonVariants } from "@booking/ui/components/button";
 import { useLogout, useMe } from "../hooks";
+import { markExplicitLogout, resetExplicitLogout } from "../logout-intent";
 
 export function UserNav() {
   const router = useRouter();
@@ -35,7 +36,13 @@ export function UserNav() {
         variant="outline"
         size="sm"
         disabled={logout.isPending}
-        onClick={() => logout.mutate(undefined, { onSuccess: () => router.replace("/") })}
+        onClick={() => {
+          markExplicitLogout();
+          logout.mutate(undefined, {
+            onSuccess: () => router.replace("/"),
+            onError: resetExplicitLogout,
+          });
+        }}
       >
         Log out
       </Button>

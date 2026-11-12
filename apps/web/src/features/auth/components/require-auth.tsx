@@ -4,14 +4,20 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { Button } from "@booking/ui/components/button";
 import { useMe } from "../hooks";
+import { isExplicitLogout, resetExplicitLogout } from "../logout-intent";
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: user, isPending, isError, refetch } = useMe();
 
+  // A fresh mount starts clean (a stale flag from a logout elsewhere must not skip the redirect)
   useEffect(() => {
-    if (user === null) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+    resetExplicitLogout();
+  }, []);
+
+  useEffect(() => {
+    if (user === null && !isExplicitLogout()) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
   }, [user, pathname, router]);
 
   if (isError) {

@@ -1,5 +1,8 @@
 import type { FieldPath, FieldValues, UseFormSetError } from "react-hook-form";
+import { z } from "zod";
 import { ApiError } from "@/lib/api";
+
+const detailsSchema = z.object({ fieldErrors: z.record(z.string(), z.array(z.string())) });
 
 /** Maps a server VALIDATION_FAILED `details.fieldErrors` onto form fields. Returns true if any were mapped. */
 export function applyServerFieldErrors<T extends FieldValues>(
@@ -8,16 +11,13 @@ export function applyServerFieldErrors<T extends FieldValues>(
   fields: readonly FieldPath<T>[],
 ): boolean {
   if (!(error instanceof ApiError) || error.code !== "VALIDATION_FAILED") return false;
-  const details = error.details;
-  if (typeof details !== "object" || details === null || !("fieldErrors" in details)) return false;
-  const fieldErrors = details.fieldErrors;
-  if (typeof fieldErrors !== "object" || fieldErrors === null) return false;
+  const parsed = detailsSchema.safeParse(error.details);
+  if (!parsed.success) return false;
   let mapped = false;
   for (const field of fields) {
-    if (!(field in fieldErrors)) continue;
-    const messages = (fieldErrors as Record<string, unknown>)[field];
-    if (Array.isArray(messages) && typeof messages[0] === "string") {
-      setError(field, { type: "server", message: messages[0] });
+    const message = parsed.data.fieldErrors[field]?.[0];
+    if (message !== undefined) {
+      setError(field, { type: "server", message });
       mapped = true;
     }
   }
