@@ -1,0 +1,28 @@
+{
+  "name": "booking-hotel-app",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web,admin -c blue,green,magenta \"npm run dev -w @booking/api\" \"npm run dev -w @booking/web\" \"npm run dev -w @booking/web-admin\"",
+    "dev:api": "npm run dev -w @booking/api",
+    "dev:web": "npm run dev -w @booking/web",
+    "dev:admin": "npm run dev -w @booking/web-admin",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run prisma:migrate -w @booking/api --",
+    "db:generate": "npm run prisma:generate -w @booking/api",
+    "db:seed": "npm run seed -w @booking/api",
+    "db:studio": "npm run prisma:studio -w @booking/api",
+    "ui:add": "node packages/ui/scripts/add.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.9.3"
+  }
+}
