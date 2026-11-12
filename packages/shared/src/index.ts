@@ -102,6 +102,177 @@ export const createHotelSchema = z.object({
 export type CreateHotelInput = z.input<typeof createHotelSchema>;
 export type CreateHotelData = z.output<typeof createHotelSchema>;
 
+// ---------- Catalog ----------
+export const BOOKING_TZ = "Asia/Bangkok";
+export const MAX_NIGHTS = 30;
+
+const DAY_MS = 86_400_000;
+
+/** Calendar date (`YYYY-MM-DD`) in `tz` at `now`. */
+export function todayIn(tz: string, now: Date = new Date()): string {
+  // en-CA formats as YYYY-MM-DD
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+/** Nights in the half-open range `[checkIn, checkOut)`; both `YYYY-MM-DD`. */
+export function nightsBetween(checkIn: string, checkOut: string): number {
+  const start = Date.parse(`${checkIn}T00:00:00.000Z`);
+  const end = Date.parse(`${checkOut}T00:00:00.000Z`);
+  return Math.round((end - start) / DAY_MS);
+}
+
+const isoDate = z.iso.date();
+const guestsField = z.coerce.number().int().min(1).max(20);
+
+function refineStay(ctx: z.RefinementCtx, checkIn: string, checkOut: string): void {
+  if (checkIn < todayIn(BOOKING_TZ)) {
+    ctx.addIssue({ code: "custom", path: ["checkIn"], message: "Check-in can't be in the past" });
+  }
+  if (checkOut <= checkIn) {
+    ctx.addIssue({ code: "custom", path: ["checkOut"], message: "Check-out must be after check-in" });
+  } else if (nightsBetween(checkIn, checkOut) > MAX_NIGHTS) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["checkOut"],
+      message: `Stays are limited to ${MAX_NIGHTS} nights`,
+    });
+  }
+}
+
+export const stayRangeSchema = z
+  .object({
+    checkIn: isoDate,
+    checkOut: isoDate,
+    guests: guestsField.default(1),
+  })
+  .superRefine((v, ctx) => refineStay(ctx, v.checkIn, v.checkOut));
+export type StayRange = z.output<typeof stayRangeSchema>;
+export type StayRangeInput = z.input<typeof stayRangeSchema>;
+
+export const hotelSearchQuerySchema = z
+  .object({
+    city: z.preprocess(
+      (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+      z.string().trim().min(1).max(80).optional(),
+    ),
+    checkIn: isoDate.optional(),
+    checkOut: isoDate.optional(),
+    guests: guestsField.optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(50).default(12),
+  })
+  .superRefine((v, ctx) => {
+    if (v.checkIn === undefined && v.checkOut === undefined) return;
+    if (v.checkIn === undefined || v.checkOut === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["checkOut"],
+        message: "Choose both check-in and check-out",
+      });
+      return;
+    }
+    refineStay(ctx, v.checkIn, v.checkOut);
+  });
+export type HotelSearchQuery = z.output<typeof hotelSearchQuerySchema>;
+
+export type Paginated<T> = {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export const paginated = <S extends z.ZodType>(item: S) =>
+  z.object({
+    items: z.array(item),
+    page: z.number().int().min(1),
+    pageSize: z.number().int().min(1),
+    total: z.number().int().min(0),
+    totalPages: z.number().int().min(0),
+  });
+
+export const imageSchema = z.object({
+  url: z.string(),
+  alt: z.string().nullable(),
+});
+
+export const amenitySchema = z.object({
+  code: z.string(),
+  name: z.string(),
+});
+
+export const hotelSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  city: z.string(),
+  currency: z.string(),
+  ratingAvg: z.number().min(0).max(5),
+  reviewCount: z.number().int().min(0),
+  coverImage: imageSchema.nullable(),
+  fromPrice: z.number().nullable(),
+});
+export type HotelSummary = z.infer<typeof hotelSummarySchema>;
+
+export const hotelSearchResultSchema = paginated(hotelSummarySchema);
+
+export const roomTypeSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  capacity: z.number().int().min(1),
+  basePrice: z.number(),
+  images: z.array(imageSchema),
+  amenities: z.array(amenitySchema),
+});
+export type RoomType = z.infer<typeof roomTypeSchema>;
+
+export const hotelDetailSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  city: z.string(),
+  address: z.string(),
+  description: z.string().nullable(),
+  currency: z.string(),
+  ratingAvg: z.number().min(0).max(5),
+  reviewCount: z.number().int().min(0),
+  images: z.array(imageSchema),
+  amenities: z.array(amenitySchema),
+  roomTypes: z.array(roomTypeSchema),
+});
+export type HotelDetail = z.infer<typeof hotelDetailSchema>;
+
+export const stayQuoteSchema = z.object({
+  nights: z.number().int().min(1),
+  nightly: z.array(z.object({ date: isoDate, price: z.number() })),
+  total: z.number(),
+  currency: z.string(),
+});
+export type StayQuote = z.infer<typeof stayQuoteSchema>;
+
+export const availabilitySchema = z.object({
+  checkIn: isoDate,
+  checkOut: isoDate,
+  guests: z.number().int().min(1),
+  nights: z.number().int().min(1),
+  roomTypes: z.array(
+    z.object({
+      roomTypeId: z.string(),
+      available: z.boolean(),
+      availableRooms: z.number().int().min(0),
+      quote: stayQuoteSchema,
+    }),
+  ),
+});
+export type Availability = z.infer<typeof availabilitySchema>;
+
 // ---------- Booking ----------
 export const createBookingSchema = z
   .object({
