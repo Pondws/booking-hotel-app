@@ -4,9 +4,13 @@ import { z } from "zod";
 export const hotelSchema = z.object({
   id: z.string(),
   name: z.string(),
+  slug: z.string(),
   city: z.string(),
+  address: z.string(),
   description: z.string().nullable(),
-  rating: z.number().min(0).max(5),
+  currency: z.string(),
+  ratingAvg: z.number().min(0).max(5),
+  reviewCount: z.number().int().min(0),
   createdAt: z.coerce.date(),
 });
 export type Hotel = z.infer<typeof hotelSchema>;
@@ -16,8 +20,8 @@ export const hotelListSchema = z.array(hotelSchema);
 export const createHotelSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
   city: z.string().trim().min(1, "City is required").max(80),
+  address: z.string().trim().min(1, "Address is required").max(255),
   description: z.string().trim().max(2000).optional(),
-  rating: z.coerce.number().min(0).max(5).default(0),
 });
 export type CreateHotelInput = z.input<typeof createHotelSchema>;
 export type CreateHotelData = z.output<typeof createHotelSchema>;
@@ -25,11 +29,13 @@ export type CreateHotelData = z.output<typeof createHotelSchema>;
 // ---------- Booking ----------
 export const createBookingSchema = z
   .object({
-    roomId: z.string().min(1),
-    guestName: z.string().trim().min(1).max(120),
-    guestEmail: z.email(),
-    checkIn: z.coerce.date(),
-    checkOut: z.coerce.date(),
+    roomTypeId: z.string().min(1),
+    checkIn: z.iso.date(),
+    checkOut: z.iso.date(),
+    guests: z.coerce.number().int().min(1).max(20),
+    guestName: z.string().trim().min(1).max(120).optional(),
+    guestEmail: z.email().optional(),
+    guestPhone: z.string().trim().min(1).max(30).optional(),
   })
   .refine((b) => b.checkOut > b.checkIn, {
     message: "checkOut must be after checkIn",

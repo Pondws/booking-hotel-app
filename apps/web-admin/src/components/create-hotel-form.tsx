@@ -46,7 +46,7 @@ export function CreateHotelForm() {
         <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
           <Field name="name" label="Name" error={errors.name} />
           <Field name="city" label="City" error={errors.city} />
-          <Field name="rating" label="Rating (0–5)" type="number" step="0.1" defaultValue="0" error={errors.rating} />
+          <Field name="address" label="Address" error={errors.address} />
           <Field name="description" label="Description" error={errors.description} />
           <div className="flex items-center gap-3 sm:col-span-2">
             <Button type="submit" disabled={mutation.isPending}>

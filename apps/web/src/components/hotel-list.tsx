@@ -34,7 +34,7 @@ export function HotelList() {
           </CardHeader>
           <CardContent className="flex items-center justify-between gap-2 text-sm">
             <span className="text-muted-foreground line-clamp-2">{hotel.description}</span>
-            <Badge variant="outline">★ {hotel.rating.toFixed(1)}</Badge>
+            <Badge variant="outline">★ {hotel.ratingAvg.toFixed(1)}</Badge>
           </CardContent>
         </Card>
       ))}
