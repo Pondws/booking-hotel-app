@@ -50,9 +50,9 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 4 | Booking flow | ✅ เสร็จแล้ว |
 | 5 | Payments (Stripe, test mode) | ✅ เสร็จแล้ว (ยังไม่ได้ทดสอบ Stripe จริงในเบราว์เซอร์) |
 | 6 | Back-office (web-admin) | ✅ เสร็จแล้ว (6.1–6.7; 6.6 + 6.7 รอ merge จาก `feat/admin-audit-log`) |
-| 7 | บัญชีผู้ใช้ + ความปลอดภัยของ staff | ⬜ ถัดไป |
-| 8 | Reviews | ⬜ |
-| 9 | ตรวจและแก้ UI ทั้งหมด | ⬜ |
+| 7 | Reviews | ⬜ ถัดไป |
+| 8 | ตรวจและแก้ UI ทั้งหมด | ⬜ |
+| 9 | บัญชีผู้ใช้ + ความปลอดภัยของ staff | ⬜ |
 | 10 | Hardening และ deployment | ⬜ |
 
 ---
@@ -307,10 +307,53 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-dashboard-design.md`
 - [x] `GET /api/admin/audit-logs`: STAFF เห็นเฉพาะแถวของโรงแรมตัวเอง (ผ่าน `hotelId`)
 - [x] web-admin: แท็บ "ประวัติ" (activity timeline) ในทุกหน้าแก้ไข, หน้า amenity แยก และ layout เต็มความกว้าง
 
-## Phase 7 — บัญชีผู้ใช้ + ความปลอดภัยของ staff
+## Phase 7 — Reviews
+
+**Skills:**
+- `prisma-client-api`: transaction สร้างรีวิวและคำนวณคะแนนใหม่
+- `prisma-cli`: migration เพิ่ม `isHidden`
+- `shadcn`: ฟอร์มให้ดาว
+- `tanstack-query-best-practices`: infinite/paginated reviews
+- `impeccable`: ส่วนรีวิวในหน้าโรงแรม
+
+- [ ] `POST /api/bookings/:code/review`
+  - เฉพาะเจ้าของ, booking ต้องเป็น `COMPLETED` และรีวิวได้ booking ละครั้ง
+  - `userId` และ `hotelId` ดึงจาก booking (ห้ามรับจาก request body)
+  - คำนวณ `Hotel.ratingAvg` / `reviewCount` ใหม่ใน `$transaction` เดียวกัน
+- [ ] `GET /api/hotels/:slug/reviews` แบบแบ่งหน้า
+- [ ] web: ฟอร์มรีวิวในหน้าการจองที่เสร็จสิ้นแล้ว และส่วนรีวิวในหน้าโรงแรม
+- [ ] Admin: ซ่อนรีวิวที่ไม่เหมาะสม (ต้องเพิ่ม field `isHidden` + migration) แล้วคำนวณคะแนนใหม่
+
+## Phase 8 — ตรวจและแก้ UI ทั้งหมด
+
+เป้าหมาย: ทุกหน้าของ `apps/web` และ `apps/web-admin` ตรงตาม `DESIGN.md` ใช้งานได้ทั้งบนมือถือและเดสก์ท็อป
+และมี loading/error/empty states ครบ
+Claude ตรวจและแก้เองทั้งหมด: เปิดทุกหน้าในเบราว์เซอร์จริง → จดปัญหา → แก้ → ตรวจซ้ำ
+ทำหลัง Phase 7 เพื่อให้ครอบคลุม UI ของรีวิวด้วย (หน้าใหม่ของ Phase 9 ตรวจตามเกณฑ์เดียวกันตอนทำ Phase 9)
+
+**Skills:**
+- `impeccable`: audit แล้ว polish ทีละหน้า (ลำดับชั้นข้อมูล, ระยะห่าง, typography, สี, ข้อความ)
+- `next-dev-loop`: เปิดทุกหน้าใน `next dev` และดู console/error จริง ไม่ใช่แค่ compile ผ่าน
+- `shadcn`: เปลี่ยน UI ที่ประกอบเองให้ใช้ component จาก `packages/ui`
+- `dataviz`: ตรวจกราฟและ stat tiles ของ dashboard (สี, legend, dark mode)
+
+- [ ] ทำรายการหน้าทั้งหมดของทั้งสองแอป แล้วตรวจทีละหน้าที่ความกว้าง 375px, 768px และ 1280px:
+  - web: ค้นหา, ผลค้นหา, รายละเอียดโรงแรม (+ รีวิว), `/book`, login, register, `/account`, การจองของฉัน, รายละเอียดการจอง + ชำระเงิน
+  - web-admin: login, dashboard, hotels, room types + rooms + rates, bookings, staff, amenities, แท็บประวัติ, รีวิว
+- [ ] ตามกฎของ `DESIGN.md`: ใช้ theme tokens เท่านั้น (ไม่ hardcode สีหรือขนาด, ไม่มี inline style) และใช้ component จาก `packages/ui`
+- [ ] ทุก data view มี loading (skeleton), error (พร้อมปุ่มลองใหม่) และ empty state
+- [ ] ฟอร์ม: error ราย field จาก server แสดงถูกที่, ปุ่มกันกดซ้ำตอนส่ง และข้อความภาษาไทยครบใน web-admin
+- [ ] Accessibility: label ของ input, focus ring, ใช้ keyboard ได้ทั้ง dialog/menu/date picker และ contrast ผ่าน WCAG AA
+- [ ] Dark mode (ถ้า `DESIGN.md` รองรับ) และไม่มี horizontal scroll บนมือถือ
+- [ ] ความสม่ำเสมอระหว่างหน้า: header ของฟอร์ม, ตำแหน่งปุ่ม, รูปแบบวันที่/ราคา และ badge สถานะ
+- [ ] จดผลการตรวจและสิ่งที่แก้ไว้ในส่วนนี้ (ตรวจในเบราว์เซอร์แล้ว + วันที่) แบบเดียวกับ Phase 6
+
+**เสร็จเมื่อ:** ทุกหน้าในรายการผ่านทุกข้อ, console ไม่มี error/warning ใหม่ และ lint/typecheck ผ่าน
+
+## Phase 9 — บัญชีผู้ใช้ + ความปลอดภัยของ staff
 
 เป้าหมาย: ผู้ใช้ทุกคนดูแลบัญชีของตัวเองได้ และ admin เอา staff ที่ลาออกออกจากระบบได้ทันที
-งานนี้เพิ่มเข้ามานอกแผนเดิม ⚠️ แตะเรื่อง auth ต้องถามก่อนตาม CLAUDE.md (ตกลงใน spec ตอน brainstorming)
+งานนี้เพิ่มเข้ามานอกแผนเดิม และต้องเสร็จก่อน deploy (Phase 10) ⚠️ แตะเรื่อง auth ต้องถามก่อนตาม CLAUDE.md (ตกลงใน spec ตอน brainstorming)
 
 **Skills:**
 - `prisma-cli`: migration เพิ่ม `User.isActive`
@@ -331,52 +374,10 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-dashboard-design.md`
       ⚠️ ต้องมีผู้ให้บริการส่งอีเมล (เรื่องที่ต้องตัดสินใจ #8) ถ้ายังไม่ได้ตัดสินใจ ให้ย้ายไปทำคู่กับอีเมลแจ้งเตือนใน Phase 10
 
 **เสร็จเมื่อ:**
+- หน้าใหม่ (โปรไฟล์, เปลี่ยนรหัสผ่าน, ปิดบัญชี/รีเซ็ตรหัส) ผ่านเกณฑ์ของ Phase 8
 - staff ที่ถูกปิดบัญชีเรียก `/api/admin/*` ไม่ได้ตั้งแต่ request ถัดไป
 - เปลี่ยนหรือรีเซ็ตรหัสผ่านแล้ว session เก่าบนเครื่องอื่นใช้ไม่ได้
 - password hash ยังไม่โผล่ใน response ใดเลย
-
-## Phase 8 — Reviews
-
-**Skills:**
-- `prisma-client-api`: transaction สร้างรีวิวและคำนวณคะแนนใหม่
-- `prisma-cli`: migration เพิ่ม `isHidden`
-- `shadcn`: ฟอร์มให้ดาว
-- `tanstack-query-best-practices`: infinite/paginated reviews
-- `impeccable`: ส่วนรีวิวในหน้าโรงแรม
-
-- [ ] `POST /api/bookings/:code/review`
-  - เฉพาะเจ้าของ, booking ต้องเป็น `COMPLETED` และรีวิวได้ booking ละครั้ง
-  - `userId` และ `hotelId` ดึงจาก booking (ห้ามรับจาก request body)
-  - คำนวณ `Hotel.ratingAvg` / `reviewCount` ใหม่ใน `$transaction` เดียวกัน
-- [ ] `GET /api/hotels/:slug/reviews` แบบแบ่งหน้า
-- [ ] web: ฟอร์มรีวิวในหน้าการจองที่เสร็จสิ้นแล้ว และส่วนรีวิวในหน้าโรงแรม
-- [ ] Admin: ซ่อนรีวิวที่ไม่เหมาะสม (ต้องเพิ่ม field `isHidden` + migration) แล้วคำนวณคะแนนใหม่
-
-## Phase 9 — ตรวจและแก้ UI ทั้งหมด
-
-เป้าหมาย: ทุกหน้าของ `apps/web` และ `apps/web-admin` ตรงตาม `DESIGN.md` ใช้งานได้ทั้งบนมือถือและเดสก์ท็อป
-และมี loading/error/empty states ครบ
-Claude ตรวจและแก้เองทั้งหมด: เปิดทุกหน้าในเบราว์เซอร์จริง → จดปัญหา → แก้ → ตรวจซ้ำ
-ทำหลัง Phase 8 เพื่อให้ครอบคลุม UI ของรีวิวด้วย
-
-**Skills:**
-- `impeccable`: audit แล้ว polish ทีละหน้า (ลำดับชั้นข้อมูล, ระยะห่าง, typography, สี, ข้อความ)
-- `next-dev-loop`: เปิดทุกหน้าใน `next dev` และดู console/error จริง ไม่ใช่แค่ compile ผ่าน
-- `shadcn`: เปลี่ยน UI ที่ประกอบเองให้ใช้ component จาก `packages/ui`
-- `dataviz`: ตรวจกราฟและ stat tiles ของ dashboard (สี, legend, dark mode)
-
-- [ ] ทำรายการหน้าทั้งหมดของทั้งสองแอป แล้วตรวจทีละหน้าที่ความกว้าง 375px, 768px และ 1280px:
-  - web: ค้นหา, ผลค้นหา, รายละเอียดโรงแรม (+ รีวิว), `/book`, login, register, `/account`, การจองของฉัน, รายละเอียดการจอง + ชำระเงิน
-  - web-admin: login, dashboard, hotels, room types + rooms + rates, bookings, staff, amenities, แท็บประวัติ, รีวิว
-- [ ] ตามกฎของ `DESIGN.md`: ใช้ theme tokens เท่านั้น (ไม่ hardcode สีหรือขนาด, ไม่มี inline style) และใช้ component จาก `packages/ui`
-- [ ] ทุก data view มี loading (skeleton), error (พร้อมปุ่มลองใหม่) และ empty state
-- [ ] ฟอร์ม: error ราย field จาก server แสดงถูกที่, ปุ่มกันกดซ้ำตอนส่ง และข้อความภาษาไทยครบใน web-admin
-- [ ] Accessibility: label ของ input, focus ring, ใช้ keyboard ได้ทั้ง dialog/menu/date picker และ contrast ผ่าน WCAG AA
-- [ ] Dark mode (ถ้า `DESIGN.md` รองรับ) และไม่มี horizontal scroll บนมือถือ
-- [ ] ความสม่ำเสมอระหว่างหน้า: header ของฟอร์ม, ตำแหน่งปุ่ม, รูปแบบวันที่/ราคา และ badge สถานะ
-- [ ] จดผลการตรวจและสิ่งที่แก้ไว้ในส่วนนี้ (ตรวจในเบราว์เซอร์แล้ว + วันที่) แบบเดียวกับ Phase 6
-
-**เสร็จเมื่อ:** ทุกหน้าในรายการผ่านทุกข้อ, console ไม่มี error/warning ใหม่ และ lint/typecheck ผ่าน
 
 ## Phase 10 — Hardening และ deployment
 
@@ -421,14 +422,14 @@ Claude ตรวจและแก้เองทั้งหมด: เปิ�
 | 5 | นโยบายยกเลิก (ยกเลิกฟรีก่อนเข้าพัก X วัน? คืนเงินบางส่วน?) | Phase 4–5 — ✅ ตัดสินแล้ว: ยกเลิกได้ก่อนวัน check-in (PENDING/CONFIRMED); คืนเงินเต็มจำนวน (Phase 5) |
 | 6 | Payment gateway จริง | Phase 5 — ✅ Stripe (Payment Element), บัตรเท่านั้น, THB, test mode; live mode → Phase 10 |
 | 7 | เวลา check-in/check-out ของโรงแรม (ต้องเพิ่ม field ใน `Hotel`) | Phase 6 — ✅ `checkInTime`/`checkOutTime` บน Hotel (HH:mm, 14:00/12:00), แสดงอย่างเดียว ไม่บังคับใน booking |
-| 8 | ผู้ให้บริการเก็บรูปและส่งอีเมล | Phase 7 (ลืมรหัสผ่าน) หรือ Phase 10 |
+| 8 | ผู้ให้บริการเก็บรูปและส่งอีเมล | Phase 9 (ลืมรหัสผ่าน) หรือ Phase 10 |
 
 ## ช่องโหว่ที่ค้างมาจาก schema v1
 
-- `Review.userId` / `hotelId` ซ้ำกับข้อมูลใน booking ดังนั้น service ต้องดึงค่าจาก booking เอง → Phase 8
+- `Review.userId` / `hotelId` ซ้ำกับข้อมูลใน booking ดังนั้น service ต้องดึงค่าจาก booking เอง → Phase 7
 - DB ไม่ได้ตรวจ scope ของ amenity (HOTEL/ROOM) ดังนั้น service ต้องตรวจเอง → ตรวจแล้วทั้ง hotel (6.1) และ room types (6.2) ผ่าน `assertAmenityScope`
 - Expired sessions ถูกลบเมื่อมีคนใช้เท่านั้น — ต้องมี job ลบ → Phase 10
-- `User` ไม่มี `isActive` — staff ที่ลาออกแล้วยัง login ได้ → Phase 7
+- `User` ไม่มี `isActive` — staff ที่ลาออกแล้วยัง login ได้ → Phase 9
 
 ## ไอเดียที่ยังไม่จัดเข้า phase
 
