@@ -1,17 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Sans_Thai } from "next/font/google";
+import { Geist_Mono, IBM_Plex_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-// Geist has no Thai glyphs; the browser falls back to Noto Sans Thai per character (see globals.css)
-const notoSansThai = Noto_Sans_Thai({
-  variable: "--font-noto-thai",
-  subsets: ["thai"],
+// One family for Thai and Latin so both scripts share metrics and weights (globals.css sets font-sans)
+const plexSansThai = IBM_Plex_Sans_Thai({
+  variable: "--font-plex-thai",
+  weight: ["400", "500", "600", "700"],
+  subsets: ["thai", "latin"],
 });
 
 const geistMono = Geist_Mono({
@@ -28,7 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="th"
-      className={`${geistSans.variable} ${notoSansThai.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${plexSansThai.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col"><Providers>{children}</Providers></body>
     </html>
