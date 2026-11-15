@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import type { HotelDetail, RoomType, StayRange } from "@booking/shared";
 import { Button } from "@booking/ui/components/button";

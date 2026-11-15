@@ -38,7 +38,7 @@ export function BookingDetail({ code }: { code: string }) {
         </div>
       );
     }
-    if (error instanceof ApiError && error.status === 404) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 400)) {
       return (
         <div role="alert" className="space-y-3 rounded-lg border p-6 text-center">
           <p className="font-medium">Booking not found</p>

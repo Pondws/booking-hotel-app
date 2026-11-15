@@ -128,7 +128,7 @@ export async function createBooking(
 
   // 2. Lapsed holds still count for the overlap constraint — release them first.
   await prisma.booking.updateMany({
-    where: { status: "PENDING", expiresAt: { lt: now }, room: { roomTypeId } },
+    where: { status: "PENDING", expiresAt: { lte: now }, room: { roomTypeId } },
     data: { status: "EXPIRED" },
   });
 
@@ -187,7 +187,7 @@ export async function createBooking(
 /** Flips this user's lapsed holds to EXPIRED so reads and cancels agree with the mapper. */
 function expireLapsedHolds(userId: string, now: Date) {
   return prisma.booking.updateMany({
-    where: { userId, status: "PENDING", expiresAt: { lt: now } },
+    where: { userId, status: "PENDING", expiresAt: { lte: now } },
     data: { status: "EXPIRED" },
   });
 }
