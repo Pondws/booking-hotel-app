@@ -89,9 +89,12 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
           id="guestName"
           autoComplete="name"
           aria-invalid={!!errors.guestName}
+          aria-describedby={errors.guestName ? "guestName-error" : undefined}
           {...register("guestName")}
         />
-        {errors.guestName && <p className="text-sm text-destructive">{errors.guestName.message}</p>}
+        {errors.guestName && (
+          <p id="guestName-error" className="text-sm text-destructive">{errors.guestName.message}</p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="guestEmail">Email</Label>
@@ -100,9 +103,12 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
           type="email"
           autoComplete="email"
           aria-invalid={!!errors.guestEmail}
+          aria-describedby={errors.guestEmail ? "guestEmail-error" : undefined}
           {...register("guestEmail")}
         />
-        {errors.guestEmail && <p className="text-sm text-destructive">{errors.guestEmail.message}</p>}
+        {errors.guestEmail && (
+          <p id="guestEmail-error" className="text-sm text-destructive">{errors.guestEmail.message}</p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="guestPhone">Phone (optional)</Label>
@@ -111,11 +117,14 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
           type="tel"
           autoComplete="tel"
           aria-invalid={!!errors.guestPhone}
+          aria-describedby={errors.guestPhone ? "guestPhone-error" : undefined}
           {...register("guestPhone", {
             setValueAs: (v: string) => (v.trim() === "" ? undefined : v),
           })}
         />
-        {errors.guestPhone && <p className="text-sm text-destructive">{errors.guestPhone.message}</p>}
+        {errors.guestPhone && (
+          <p id="guestPhone-error" className="text-sm text-destructive">{errors.guestPhone.message}</p>
+        )}
       </div>
       {alert?.kind === "unavailable" && (
         <p role="alert" className="text-sm text-destructive">

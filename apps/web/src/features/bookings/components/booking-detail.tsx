@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Booking } from "@booking/shared";
 import { Button, buttonVariants } from "@booking/ui/components/button";
 import { Skeleton } from "@booking/ui/components/skeleton";
@@ -25,22 +25,22 @@ function bookAgainHref(booking: Booking): string {
 }
 
 export function BookingDetail({ code }: { code: string }) {
-  const { data: booking, isPending, isError, error, refetch, isFetching } = useBooking(code);
+  const { data: booking, isError, error, refetch, isFetching } = useBooking(code);
 
-  if (isPending) {
-    return (
-      <div className="space-y-4" role="status" aria-busy="true" aria-label="Loading booking">
-        <Skeleton className="h-6 w-1/3" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-32 w-full" />
-      </div>
-    );
-  }
-
-  if (isError) {
+  // Loaded data stays on screen when a background refetch fails
+  if (booking === undefined) {
+    if (!isError) {
+      return (
+        <div className="space-y-4" role="status" aria-busy="true" aria-label="Loading booking">
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      );
+    }
     if (error instanceof ApiError && error.status === 404) {
       return (
-        <div className="space-y-3 rounded-lg border p-6 text-center">
+        <div role="alert" className="space-y-3 rounded-lg border p-6 text-center">
           <p className="font-medium">Booking not found</p>
           <Link href={BACK} className={buttonVariants({ variant: "outline" })}>
             Back to my bookings
@@ -49,7 +49,7 @@ export function BookingDetail({ code }: { code: string }) {
       );
     }
     return (
-      <div className="space-y-3 rounded-lg border p-6 text-center">
+      <div role="alert" className="space-y-3 rounded-lg border p-6 text-center">
         <p className="text-sm">We couldn&apos;t load this booking right now.</p>
         <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
           {isFetching ? "Retrying…" : "Try again"}
@@ -58,10 +58,10 @@ export function BookingDetail({ code }: { code: string }) {
     );
   }
 
-  return <BookingView booking={booking} refetch={() => void refetch()} />;
+  return <BookingView booking={booking} refetch={() => refetch()} />;
 }
 
-type ViewProps = { booking: Booking; refetch: () => void };
+type ViewProps = { booking: Booking; refetch: () => Promise<unknown> };
 
 function BookingView({ booking, refetch }: ViewProps) {
   const holding = booking.status === "PENDING" ? booking.expiresAt : null;
@@ -69,6 +69,10 @@ function BookingView({ booking, refetch }: ViewProps) {
 
   // Refetch once per hold deadline: a reply that is still PENDING (clock skew) must not loop
   const refetchedFor = useRef<string | null>(null);
+  // Deadline whose one refetch has settled: a still-PENDING reply then reads "Expiring shortly…"
+  const [settledFor, setSettledFor] = useState<string | null>(null);
+  // Keeps the cancel dialog mounted while open, even if the hold expires underneath it
+  const [cancelActive, setCancelActive] = useState(false);
   const refetchRef = useRef(refetch);
   useEffect(() => {
     refetchRef.current = refetch;
@@ -76,7 +80,7 @@ function BookingView({ booking, refetch }: ViewProps) {
   useEffect(() => {
     if (holding === null || !done || refetchedFor.current === holding) return;
     refetchedFor.current = holding;
-    refetchRef.current();
+    void refetchRef.current().finally(() => setSettledFor(holding));
   }, [holding, done]);
 
   const { hotel } = booking;
@@ -91,7 +95,7 @@ function BookingView({ booking, refetch }: ViewProps) {
 
       {holding !== null && (
         <>
-          <HoldCountdown expiresAt={holding} remainingMs={remainingMs} done={done} />
+          <HoldCountdown expiresAt={holding} remainingMs={remainingMs} done={done} settled={settledFor === holding} />
           <p className="text-sm text-muted-foreground">Online payment is coming soon</p>
         </>
       )}
@@ -148,7 +152,9 @@ function BookingView({ booking, refetch }: ViewProps) {
         <Link href={BACK} className="text-sm underline underline-offset-4">
           Back to my bookings
         </Link>
-        {booking.cancellable && <CancelBookingDialog booking={booking} />}
+        {(booking.cancellable || cancelActive) && (
+          <CancelBookingDialog booking={booking} onActiveChange={setCancelActive} />
+        )}
       </div>
     </div>
   );

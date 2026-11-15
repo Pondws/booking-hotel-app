@@ -27,8 +27,6 @@ export function useBooking(code: string) {
   return useQuery({
     queryKey: bookingKeys.detail(code),
     queryFn: () => fetchBooking(code),
-    // A missing booking won't appear on retry
-    retry: (count, error) => !(error instanceof ApiError && error.status === 404) && count < 2,
   });
 }
 

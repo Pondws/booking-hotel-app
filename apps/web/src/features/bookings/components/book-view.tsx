@@ -48,7 +48,7 @@ function BookHotel({ slug, input }: { slug: string; input: CreateBookingData }) 
   if (isError) {
     if (error instanceof ApiError && error.status === 404) return <ChooseDatesFirst slug={null} />;
     return (
-      <div className="space-y-3 rounded-lg border p-6 text-center">
+      <div role="alert" className="space-y-3 rounded-lg border p-6 text-center">
         <p className="text-sm">We couldn&apos;t load this hotel right now.</p>
         <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
           {isFetching ? "Retrying…" : "Try again"}
@@ -65,13 +65,15 @@ function BookHotel({ slug, input }: { slug: string; input: CreateBookingData }) 
 
   return (
     <div className="grid gap-8 md:grid-cols-[1fr_20rem] md:items-start">
-      <GuestForm hotelSlug={slug} stay={input} canHold={canHold} />
+      <GuestForm
+        key={`${input.roomTypeId}|${input.checkIn}|${input.checkOut}|${input.guests}`}
+        hotelSlug={slug} stay={input} canHold={canHold} />
       <BookingSummary hotel={hotel} roomType={roomType} range={range} />
     </div>
   );
 }
 
-function BookViewSkeleton() {
+export function BookViewSkeleton() {
   return (
     <div
       className="grid gap-8 md:grid-cols-[1fr_20rem]"

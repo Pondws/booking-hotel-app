@@ -18,10 +18,17 @@ import {
 import { ApiError } from "@/lib/api";
 import { bookingKeys, useCancelBooking } from "../hooks";
 
-export function CancelBookingDialog({ booking }: { booking: Booking }) {
+type Props = { booking: Booking; /** True while the dialog is open, so the parent keeps it mounted. */ onActiveChange: (active: boolean) => void };
+
+export function CancelBookingDialog({ booking, onActiveChange }: Props) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const cancel = useCancelBooking(booking.hotel.slug);
+
+  const changeOpen = (next: boolean) => {
+    setOpen(next);
+    onActiveChange(next);
+  };
 
   const onOpenChange = (next: boolean) => {
     if (cancel.isPending) return;
@@ -31,7 +38,7 @@ export function CancelBookingDialog({ booking }: { booking: Booking }) {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.detail(booking.code) });
       void queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
     }
-    setOpen(next);
+    changeOpen(next);
   };
 
   const message =
@@ -61,7 +68,7 @@ export function CancelBookingDialog({ booking }: { booking: Booking }) {
             onClick={(event) => {
               // Stay open to show a failure; close ourselves on success
               event.preventDefault();
-              cancel.mutate(booking.code, { onSuccess: () => setOpen(false) });
+              cancel.mutate(booking.code, { onSuccess: () => changeOpen(false) });
             }}
           >
             {cancel.isPending ? "Cancelling…" : "Yes, cancel booking"}

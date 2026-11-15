@@ -77,7 +77,7 @@ function Quote({ isPending, isError, isFetching, retry, entry }: QuoteProps) {
   }
   if (isError) {
     return (
-      <div className="space-y-3">
+      <div role="alert" className="space-y-3">
         <p className="text-sm">We couldn&apos;t check the price for these dates.</p>
         <Button variant="outline" onClick={retry} disabled={isFetching}>
           {isFetching ? "Retrying…" : "Try again"}

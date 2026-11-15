@@ -10,9 +10,9 @@ function mmss(ms: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-type Props = { expiresAt: string; remainingMs: number; done: boolean };
+type Props = { expiresAt: string; remainingMs: number; done: boolean; settled: boolean };
 
-export function HoldCountdown({ expiresAt, remainingMs, done }: Props) {
+export function HoldCountdown({ expiresAt, remainingMs, done, settled }: Props) {
   const lastMinute = remainingMs > 0 && remainingMs <= ONE_MINUTE_MS;
   return (
     <div className="space-y-1 rounded-lg border p-4">
@@ -28,7 +28,7 @@ export function HoldCountdown({ expiresAt, remainingMs, done }: Props) {
         >
           {mmss(remainingMs)}
         </span>
-        <span className="text-sm text-muted-foreground">{done ? "Checking your hold…" : "remaining"}</span>
+        <span className="text-sm text-muted-foreground">{done ? (settled ? "Expiring shortly…" : "Checking your hold…") : "remaining"}</span>
       </p>
       {/* Announced once, when the last minute starts */}
       <p aria-live="polite" className="sr-only">
