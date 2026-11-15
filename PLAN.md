@@ -243,7 +243,7 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 | --- | --- | --- | --- |
 | 6.1 | Admin shell + Hotels | `feat/admin-hotels` | ✅ |
 | 6.2 | Room types + Rooms | `feat/admin-room-types` | ✅ |
-| 6.3 | Rate periods | `feat/admin-rate-periods` | ⬜ |
+| 6.3 | Rate periods | `feat/admin-rate-periods` | ✅ |
 | 6.4 | Bookings | `feat/admin-bookings` | ⬜ |
 | 6.5 | Staff + Amenity catalog (เฉพาะ ADMIN) | `feat/admin-staff` | ⬜ |
 | 6.6 | Dashboard | `feat/admin-dashboard` | ⬜ |
@@ -267,7 +267,10 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 - [ ] ยังไม่ได้ตรวจหน้า room types ในเบราว์เซอร์
 
 ### 6.3 — Rate periods
-- [ ] มุมมองปฏิทินหรือรายการ, สร้าง/แก้ไข/ลบ และถ้าช่วงทับกันตอบ `409` (มาจาก `rate_periods_no_overlap`)
+Spec: `docs/superpowers/specs/2026-11-15-admin-rate-periods-design.md`
+- [x] มุมมองรายการ (การ์ด Rates ในหน้า room type), สร้าง/แก้ไข/ลบ และถ้าช่วงทับกันตอบ `409`
+      (service ตรวจก่อนเพื่อบอกช่วงที่ทับ, `rate_periods_no_overlap` เป็น backstop ตอนเขียนพร้อมกัน)
+- [ ] ยังไม่ได้ตรวจการ์ด Rates ในเบราว์เซอร์
 
 ### 6.4 — Bookings
 - [ ] กรองตามโรงแรม, สถานะ และวันที่
