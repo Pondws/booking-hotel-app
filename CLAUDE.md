@@ -28,7 +28,7 @@ apps/
                          # register/, account/; layout.tsx (header + UserNav);
                          # providers.tsx (QueryClient; no retry on 4xx; Query/MutationCache 401 → me = null)
       components/        # app-wide components shared by several features (e.g. pagination.tsx)
-      features/<name>/   # one folder per feature (e.g. auth/, hotels/, bookings/, health/):
+      features/<name>/   # one folder per feature (e.g. auth/, hotels/, bookings/, payments/, health/):
         api.ts           #   fetchers — call request()/requestNoContent() from lib/api.ts, never axios/fetch directly
         hooks.ts         #   TanStack Query hooks + key factory (e.g. hotelKeys.list(), authKeys.me())
         components/      #   feature UI (e.g. hotel-list.tsx, login-form.tsx, require-auth.tsx)
@@ -43,16 +43,19 @@ apps/
       app.ts             # express app: trust proxy, corsPolicy, json, routers, then notFound + errorHandler
       env.ts             # zod-validated env
       types/express.d.ts # declaration merging: Request.auth?: { user: PublicUser; sessionId }
-      routes/            # express routers (public, e.g. hotels.ts, health.ts; auth.ts = /api/auth/* incl. /admin/*)
+      routes/            # express routers (public, e.g. hotels.ts, health.ts; auth.ts = /api/auth/* incl. /admin/*;
+                         # webhooks.ts = /api/webhooks/stripe, mounted in app.ts BEFORE express.json() — raw body)
         admin/           # index.ts = adminRouter, guarded once by loadSession('ADMIN') + requireRole('ADMIN','STAFF');
                          # sub-routers per resource
       controllers/       # parse req, call service, respond with ok()/noContent() — never import prisma
       services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts,
-                         # pricing.service.ts quoteStay(s), availability.service.ts availableRoomCounts)
+                         # pricing.service.ts quoteStay(s), availability.service.ts availableRoomCounts,
+                         # payment.service.ts — settlePayment is the ONLY code that moves a Payment out of PENDING)
       lib/               # prisma.ts (single client, PrismaPg adapter, global omit of passwordHash), app-error.ts,
                          # http.ts (ok, noContent), prisma-errors.ts (isUniqueViolationOn), password.ts (scrypt),
                          # session-token.ts, cookies.ts (sid / admin_sid), cors-policy.ts, slug.ts,
-                         # dates.ts (@db.Date ↔ YYYY-MM-DD — only way to convert), stay-pricing.ts (priceNights, Decimal)
+                         # dates.ts (@db.Date ↔ YYYY-MM-DD — only way to convert), stay-pricing.ts (priceNights, Decimal),
+                         # money.ts (toMinorUnits), payments/ (PaymentProvider; StripeProvider, MockProvider; getPaymentProvider())
       middleware/        # validate.ts, error-handler.ts, not-found.ts, load-session.ts, require-auth.ts,
                          # require-role.ts, require-hotel-access.ts, rate-limit.ts
       generated/prisma/  # Prisma client output (git-ignored, from `prisma generate`)
@@ -74,9 +77,13 @@ DESIGN.md                # FE design rules: tokens, component usage, loading/err
 ## Env
 - `apps/api/.env`: `DATABASE_URL`, `PORT` (8000), `WEB_ORIGINS` / `ADMIN_ORIGINS` (comma-separated browser
   origins per app; defaults localhost:3000 / localhost:3001), `AUTH_RATE_LIMIT_MAX` (10) and
-  `AUTH_RATE_LIMIT_WINDOW_MS` (900000), `TRUST_PROXY` (reverse-proxy hop count, 0 locally — never `true`)
-- `apps/api/.env.test` (committed, no secrets): overrides loaded after `.env` by `npm test` (e.g. a high rate limit)
-- `apps/web/.env.local`, `apps/web-admin/.env.local`: `NEXT_PUBLIC_API_URL` (http://localhost:8000)
+  `AUTH_RATE_LIMIT_WINDOW_MS` (900000), `TRUST_PROXY` (reverse-proxy hop count, 0 locally — never `true`),
+  `PAYMENT_PROVIDER` (`stripe` default | `mock` — rejected in production; use `mock` locally without keys),
+  `STRIPE_SECRET_KEY` (`sk_…`) + `STRIPE_WEBHOOK_SECRET` (`whsec_…`, from `stripe listen`) required for `stripe`
+- `apps/api/.env.test` (committed, no secrets): overrides loaded after `.env` by `npm test` (e.g. a high rate limit,
+  `PAYMENT_PROVIDER=mock` — tests never call Stripe)
+- `apps/web/.env.local`, `apps/web-admin/.env.local`: `NEXT_PUBLIC_API_URL` (http://localhost:8000); web also
+  `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_…`; missing → pay card shows "Payments aren't configured")
 - Each has a committed `.env.example`.
 
 ## Commands
@@ -159,6 +166,10 @@ migration that touches constraints. There is no FE test runner — verify UI in 
   `/account/bookings/[code]` counts down with `use-countdown.ts` and refetches once at 00:00. A booking is
   cancellable before its check-in day (`booking.cancellable` comes from the API). The API returns 409 `ROOM_UNAVAILABLE`
   when the last room is gone and `CONFLICT` for the active-hold cap / non-cancellable bookings.
+- Payments (`apps/web/src/features/payments/`): when `booking.payable`, `PayCard` gets a `clientSecret` from
+  `POST /api/bookings/:code/payments` and mounts Stripe's Payment Element (cards only). After `confirmPayment` it calls
+  `/payments/sync` and polls the booking until CONFIRMED (webhook is the source of truth). Cancelling a paid booking
+  refunds in full (`booking.payment.status` → `REFUNDED`). Never trust the browser about payment outcome or amount.
 - Styling: Tailwind utility classes + `cn()`; no inline styles.
 
 ## Adding a Feature (order)

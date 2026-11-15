@@ -29,6 +29,19 @@ export function isUniqueViolationOn(err: unknown, field: string): boolean {
 }
 
 /**
+ * True when `err` is a P2002 unique violation on the index named `index` — for raw-SQL (e.g. partial)
+ * unique indexes, which PrismaPg reports as `driverAdapterError.cause.constraint.index`.
+ */
+export function isUniqueViolationOnIndex(err: unknown, index: string): boolean {
+  if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== "P2002") return false;
+  const meta: unknown = err.meta;
+  const adapterError = isRecord(meta) ? meta.driverAdapterError : undefined;
+  const cause = isRecord(adapterError) ? adapterError.cause : undefined;
+  const constraint = isRecord(cause) ? cause.constraint : undefined;
+  return isRecord(constraint) && constraint.index === index;
+}
+
+/**
  * True when `err` is a Postgres exclusion violation (23P01) on `constraint`.
  * With PrismaPg it surfaces as a known request error (generic code P2039) whose
  * `meta.driverAdapterError.cause` has `originalCode: "23P01"`. The cause has no
@@ -43,4 +56,13 @@ export function isExclusionViolation(err: unknown, constraint = "bookings_no_ove
   if (!isRecord(cause) || cause.originalCode !== "23P01") return false;
   const message = typeof cause.originalMessage === "string" ? cause.originalMessage : cause.message;
   return typeof message === "string" && message.includes(`"${constraint}"`);
+}
+
+/**
+ * True when Postgres aborted the statement as a deadlock / serialization failure (Prisma P2034,
+ * "Transaction failed due to a write conflict or a deadlock"). Two concurrent inserts that conflict on
+ * an exclusion constraint can deadlock instead of raising 23P01; the aborted one can simply retry.
+ */
+export function isWriteConflict(err: unknown): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034";
 }

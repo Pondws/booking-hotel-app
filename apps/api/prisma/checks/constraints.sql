@@ -53,5 +53,10 @@ SELECT pg_temp.expect_fail($q$INSERT INTO rate_periods (id, room_type_id, start_
 -- review rating outside 1..5 is rejected
 SELECT pg_temp.expect_fail($q$INSERT INTO reviews (id, booking_id, user_id, hotel_id, rating, updated_at) VALUES ('t_v1', 't_b1', 't_user', 't_hotel', 6, now())$q$, '23514');
 
+-- payments: one PENDING/SUCCEEDED payment per booking; FAILED/REFUNDED don't block
+INSERT INTO payments (id, booking_id, amount, currency, status, provider, updated_at) VALUES ('t_pay1', 't_b1', 3000, 'THB', 'PENDING', 'mock', now());
+SELECT pg_temp.expect_fail($q$INSERT INTO payments (id, booking_id, amount, currency, status, provider, updated_at) VALUES ('t_pay2', 't_b1', 3000, 'THB', 'SUCCEEDED', 'mock', now())$q$, '23505');
+INSERT INTO payments (id, booking_id, amount, currency, status, provider, updated_at) VALUES ('t_pay3', 't_b1', 3000, 'THB', 'FAILED', 'mock', now()), ('t_pay4', 't_b1', 3000, 'THB', 'REFUNDED', 'mock', now());
+
 DO $$ BEGIN RAISE NOTICE 'ALL CONSTRAINT CHECKS PASSED'; END $$;
 ROLLBACK;

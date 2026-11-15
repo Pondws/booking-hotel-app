@@ -14,8 +14,9 @@ import { Prisma } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
 import { generateBookingCode } from "../lib/booking-code";
 import { fromDbDate, toDbDate } from "../lib/dates";
+import { getPaymentProvider, type PaymentProvider } from "../lib/payments";
 import { prisma } from "../lib/prisma";
-import { isExclusionViolation, isUniqueViolationOn } from "../lib/prisma-errors";
+import { isExclusionViolation, isUniqueViolationOn, isWriteConflict } from "../lib/prisma-errors";
 import { blockingBookingWhere } from "./availability.service";
 import { quoteStay } from "./pricing.service";
 
@@ -40,6 +41,12 @@ export const bookingSelect = {
   expiresAt: true,
   cancelledAt: true,
   createdAt: true,
+  /** Latest payment attempt only. */
+  payments: {
+    select: { status: true, paidAt: true, refundedAt: true },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 1,
+  },
   room: {
     select: {
       roomType: {
@@ -71,6 +78,7 @@ export function toBooking(row: BookingRow, now: Date): Booking {
   const holdsRoom =
     status === "CONFIRMED" || (status === "PENDING" && (row.expiresAt === null || row.expiresAt > now));
   const { roomType } = row.room;
+  const payment = row.payments[0];
 
   return {
     code: row.code,
@@ -88,6 +96,14 @@ export function toBooking(row: BookingRow, now: Date): Booking {
     cancelledAt: row.cancelledAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     cancellable: holdsRoom && todayIn(BOOKING_TZ, now) < checkIn,
+    payable: status === "PENDING" && row.expiresAt !== null && row.expiresAt > now,
+    payment: payment
+      ? {
+          status: payment.status,
+          paidAt: payment.paidAt?.toISOString() ?? null,
+          refundedAt: payment.refundedAt?.toISOString() ?? null,
+        }
+      : null,
     hotel: {
       name: roomType.hotel.name,
       slug: roomType.hotel.slug,
@@ -175,6 +191,9 @@ export async function createBooking(
       } catch (err) {
         if (isExclusionViolation(err)) break; // taken meanwhile → next room
         if (isUniqueViolationOn(err, "code") && attempt < MAX_CODE_ATTEMPTS) continue;
+        // Racing a concurrent insert on this room can deadlock instead of raising the exclusion
+        // violation; the retry then sees the winner's row and moves on.
+        if (isWriteConflict(err) && attempt < MAX_CODE_ATTEMPTS) continue;
         throw err;
       }
     }
@@ -185,7 +204,7 @@ export async function createBooking(
 }
 
 /** Flips this user's lapsed holds to EXPIRED so reads and cancels agree with the mapper. */
-function expireLapsedHolds(userId: string, now: Date) {
+export function expireLapsedHolds(userId: string, now: Date) {
   return prisma.booking.updateMany({
     where: { userId, status: "PENDING", expiresAt: { lte: now } },
     data: { status: "EXPIRED" },
@@ -239,6 +258,7 @@ export async function cancelMyBooking(
   user: PublicUser,
   code: string,
   now: Date = new Date(),
+  opts: { provider?: PaymentProvider } = {},
 ): Promise<Booking> {
   const today = toDbDate(todayIn(BOOKING_TZ, now));
   const { count } = await prisma.booking.updateMany({
@@ -255,5 +275,35 @@ export async function cancelMyBooking(
     await findMyBooking(user.id, code, now); // 404 when it isn't theirs
     throw new AppError(409, "CONFLICT", "This booking can't be cancelled");
   }
+  await releasePayment(user.id, code, now, opts.provider ?? getPaymentProvider());
   return findMyBooking(user.id, code, now);
+}
+
+/**
+ * After a cancel: full refund of a paid booking, or cancel the open intent of an unpaid hold.
+ * Provider failures are logged for reconciliation and swallowed — the booking stays CANCELLED and
+ * the payment row unchanged (a SUCCEEDED row on a cancelled booking is what reconciliation looks for).
+ */
+async function releasePayment(userId: string, code: string, now: Date, provider: PaymentProvider) {
+  const payment = await prisma.payment.findFirst({
+    where: { booking: { code, userId } },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: { id: true, status: true, providerRef: true },
+  });
+  if (!payment || (payment.status !== "SUCCEEDED" && payment.status !== "PENDING")) return;
+  try {
+    if (payment.status === "SUCCEEDED") {
+      if (!payment.providerRef) return;
+      await provider.refund(payment.providerRef, { idempotencyKey: `refund-${payment.id}` });
+      await prisma.payment.updateMany({
+        where: { id: payment.id, status: "SUCCEEDED" },
+        data: { status: "REFUNDED", refundedAt: now },
+      });
+    } else {
+      if (payment.providerRef) await provider.cancelIntent(payment.providerRef);
+      await prisma.payment.updateMany({ where: { id: payment.id, status: "PENDING" }, data: { status: "FAILED" } });
+    }
+  } catch (err) {
+    console.error(`cancelMyBooking: payment ${payment.id} of booking ${code} needs reconciliation`, err);
+  }
 }

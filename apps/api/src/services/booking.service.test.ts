@@ -7,6 +7,7 @@ import {
   type CreateBookingData,
   type PublicUser,
 } from "@booking/shared";
+import { Prisma } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
 import { generateBookingCode } from "../lib/booking-code";
 import { prisma } from "../lib/prisma";
@@ -20,7 +21,7 @@ import {
   type CatalogFixture,
 } from "../test/catalog-fixtures";
 import { blockingBookingWhere } from "./availability.service";
-import { createBooking } from "./booking.service";
+import { createBooking, toBooking, type BookingRow } from "./booking.service";
 import { quoteStay } from "./pricing.service";
 
 const LABEL = "bk-svc";
@@ -230,5 +231,49 @@ describe("createBooking", () => {
     assert.notEqual(booking.code, existing.code);
     assert.match(booking.code, BOOKING_CODE_PATTERN);
     assert.equal(calls, 2);
+  });
+});
+
+describe("toBooking payment fields", () => {
+  const now = new Date("2026-11-15T10:00:00.000Z");
+  const row = (over: Partial<BookingRow> = {}): BookingRow => ({
+    code: "BK-TOBOOKING",
+    status: "PENDING",
+    checkIn: new Date("2027-01-10T00:00:00.000Z"),
+    checkOut: new Date("2027-01-12T00:00:00.000Z"),
+    guests: 1,
+    guestName: "G",
+    guestEmail: "g@test.local",
+    guestPhone: null,
+    totalAmount: new Prisma.Decimal("3000.00"),
+    currency: "THB",
+    expiresAt: new Date(now.getTime() + 10 * MIN),
+    cancelledAt: null,
+    createdAt: now,
+    room: { roomType: { id: "rt", name: "RT", hotel: { name: "H", slug: "h", city: "C", images: [] } } },
+    payments: [],
+    ...over,
+  });
+
+  test("toBooking marks an unexpired PENDING hold payable", () => {
+    const b = toBooking(row(), now);
+    assert.equal(b.payable, true);
+    assert.equal(b.payment, null);
+  });
+
+  test("toBooking: PENDING with expiresAt null is not payable", () => {
+    assert.equal(toBooking(row({ expiresAt: null }), now).payable, false);
+  });
+
+  test("toBooking: lapsed, CONFIRMED and CANCELLED are not payable", () => {
+    assert.equal(toBooking(row({ expiresAt: new Date(now.getTime() - MIN) }), now).payable, false);
+    assert.equal(toBooking(row({ status: "CONFIRMED", expiresAt: null }), now).payable, false);
+    assert.equal(toBooking(row({ status: "CANCELLED" }), now).payable, false);
+  });
+
+  test("toBooking maps the latest payment", () => {
+    const d = new Date("2026-11-15T09:00:00.000Z");
+    const b = toBooking(row({ payments: [{ status: "SUCCEEDED", paidAt: d, refundedAt: null }] }), now);
+    assert.deepEqual(b.payment, { status: "SUCCEEDED", paidAt: d.toISOString(), refundedAt: null });
   });
 });

@@ -302,6 +302,20 @@ export type CreateBookingData = z.output<typeof createBookingSchema>;
 export const bookingStatusSchema = z.enum(["PENDING", "CONFIRMED", "CANCELLED", "EXPIRED", "COMPLETED"]);
 export type BookingStatus = z.infer<typeof bookingStatusSchema>;
 
+export const paymentStatusSchema = z.enum(["PENDING", "SUCCEEDED", "FAILED", "REFUNDED"]);
+export type PaymentStatus = z.infer<typeof paymentStatusSchema>;
+
+/** The latest payment attempt of a booking. */
+export const bookingPaymentSchema = z.object({
+  status: paymentStatusSchema,
+  paidAt: z.iso.datetime().nullable(),
+  refundedAt: z.iso.datetime().nullable(),
+});
+
+/** `POST /api/bookings/:code/payments` → the PaymentIntent secret the browser confirms with Stripe. */
+export const startPaymentSchema = z.object({ clientSecret: z.string() });
+export type StartPayment = z.infer<typeof startPaymentSchema>;
+
 export const bookingSchema = z.object({
   code: z.string(),
   status: bookingStatusSchema,
@@ -318,6 +332,9 @@ export const bookingSchema = z.object({
   cancelledAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
   cancellable: z.boolean(),
+  /** An unexpired PENDING hold — the only state that can be paid. */
+  payable: z.boolean(),
+  payment: bookingPaymentSchema.nullable(),
   hotel: z.object({
     name: z.string(),
     slug: z.string(),

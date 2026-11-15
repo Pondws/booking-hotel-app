@@ -23,10 +23,12 @@ export function useMyBookings(page: number) {
   });
 }
 
-export function useBooking(code: string) {
+/** `poll`: refetch every 2 s until the booking is CONFIRMED (waiting for the payment webhook). */
+export function useBooking(code: string, { poll = false }: { poll?: boolean } = {}) {
   return useQuery({
     queryKey: bookingKeys.detail(code),
     queryFn: () => fetchBooking(code),
+    refetchInterval: (query) => (poll && query.state.data?.status !== "CONFIRMED" ? 2000 : false),
   });
 }
 

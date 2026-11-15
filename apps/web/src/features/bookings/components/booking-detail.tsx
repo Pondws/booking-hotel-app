@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { Booking } from "@booking/shared";
+import { BOOKING_TZ, todayIn, type Booking } from "@booking/shared";
 import { Button, buttonVariants } from "@booking/ui/components/button";
 import { Skeleton } from "@booking/ui/components/skeleton";
 import { formatDate, formatMoney } from "@/features/hotels/format";
+import { PayCard } from "@/features/payments/components/pay-card";
 import { ApiError } from "@/lib/api";
 import { useBooking } from "../hooks";
 import { useCountdown } from "../use-countdown";
@@ -25,7 +26,9 @@ function bookAgainHref(booking: Booking): string {
 }
 
 export function BookingDetail({ code }: { code: string }) {
-  const { data: booking, isError, error, refetch, isFetching } = useBooking(code);
+  // Set by the pay card after a successful confirm, until the webhook/sync confirms (or 30 s pass)
+  const [polling, setPolling] = useState(false);
+  const { data: booking, isError, error, refetch, isFetching } = useBooking(code, { poll: polling });
 
   // Loaded data stays on screen when a background refetch fails
   if (booking === undefined) {
@@ -58,12 +61,19 @@ export function BookingDetail({ code }: { code: string }) {
     );
   }
 
-  return <BookingView booking={booking} refetch={() => refetch()} />;
+  return <BookingView booking={booking} refetch={() => refetch()} onStillPending={setPolling} />;
 }
 
-type ViewProps = { booking: Booking; refetch: () => Promise<unknown> };
+type ViewProps = {
+  booking: Booking;
+  refetch: () => Promise<unknown>;
+  onStillPending: (polling: boolean) => void;
+};
 
-function BookingView({ booking, refetch }: ViewProps) {
+/** A payment timestamp as a calendar date in the hotel's timezone, e.g. `12 Apr 2027`. */
+const formatInstant = (iso: string) => formatDate(todayIn(BOOKING_TZ, new Date(iso)));
+
+function BookingView({ booking, refetch, onStillPending }: ViewProps) {
   const holding = booking.status === "PENDING" ? booking.expiresAt : null;
   const { remainingMs, done } = useCountdown(holding);
 
@@ -96,8 +106,18 @@ function BookingView({ booking, refetch }: ViewProps) {
       {holding !== null && (
         <>
           <HoldCountdown expiresAt={holding} remainingMs={remainingMs} done={done} settled={settledFor === holding} />
-          <p className="text-sm text-muted-foreground">Online payment is coming soon</p>
+          {booking.payable && !done && <PayCard booking={booking} onStillPending={onStillPending} />}
         </>
+      )}
+
+      {booking.status === "CONFIRMED" && booking.payment?.paidAt && (
+        <p className="rounded-lg border p-4 text-sm">Paid on {formatInstant(booking.payment.paidAt)}</p>
+      )}
+      {booking.payment?.status === "REFUNDED" && booking.payment.refundedAt && (
+        <p className="rounded-lg border p-4 text-sm">
+          Refunded on {formatInstant(booking.payment.refundedAt)} —{" "}
+          {formatMoney(booking.totalAmount, booking.currency)} back to your card
+        </p>
       )}
 
       {ended && (

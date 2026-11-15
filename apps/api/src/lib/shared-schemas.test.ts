@@ -257,6 +257,8 @@ test("bookingSchema parses a sample", () => {
     cancelledAt: null,
     createdAt: "2027-01-01T10:00:00.000Z",
     cancellable: true,
+    payable: true,
+    payment: { status: "PENDING", paidAt: null, refundedAt: null },
     hotel: { name: "A", slug: "a", city: "Bangkok", coverImage: null },
     roomType: { id: "rt1", name: "Deluxe" },
   });

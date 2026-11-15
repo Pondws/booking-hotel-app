@@ -48,8 +48,8 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 2 | Auth และ roles | ✅ เสร็จแล้ว |
 | 3 | Catalog สาธารณะ + ห้องว่าง | ✅ เสร็จแล้ว |
 | 4 | Booking flow | ✅ เสร็จแล้ว |
-| 5 | Payments (เริ่มจาก mock provider) | ⬜ ถัดไป |
-| 6 | Back-office (web-admin) | ⬜ |
+| 5 | Payments (Stripe, test mode) | ✅ เสร็จแล้ว (ยังไม่ได้ทดสอบ Stripe จริงในเบราว์เซอร์) |
+| 6 | Back-office (web-admin) | ⬜ ถัดไป |
 | 7 | Reviews | ⬜ |
 | 8 | Hardening และ deployment | ⬜ |
 
@@ -195,9 +195,10 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
   - ตัวนับถอยหลัง "เหลือเวลาจองอีก"
   - หน้ายืนยัน, รายการ "การจองของฉัน" พร้อมหน้ารายละเอียด และปุ่มยกเลิก
 
-## Phase 5 — Payments (เริ่มจาก mock provider)
+## Phase 5 — Payments (Stripe Payment Element, test mode) ✅
 
 เป้าหมาย: booking เป็น CONFIRMED ได้ก็ต่อเมื่อชำระเงินแล้วเท่านั้น
+Spec: `docs/superpowers/specs/2026-11-15-payments-design.md` · Plan: `docs/superpowers/plans/2026-11-15-payments.md`
 
 **Skills:**
 - `prisma-client-api`: transaction ที่อัปเดต payment + booking พร้อมกัน และ idempotency ด้วย `providerRef`
@@ -205,17 +206,22 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 - `impeccable`: หน้าชำระเงินและหน้าผลลัพธ์ (รวมกรณีจ่ายไม่สำเร็จ)
 - `security-review`: ตรวจก่อน merge (บังคับ โดยเฉพาะตอนต่อ gateway จริง)
 
-- [ ] Interface `PaymentProvider` (`createCharge`, `refund`) พร้อม `MockProvider` ที่สลับให้สำเร็จหรือล้มเหลวได้ตอน dev
-- [ ] `POST /api/bookings/:code/payments`
-  - สร้าง `Payment` (PENDING) ตาม `totalAmount`
-  - ถ้าสำเร็จ ทำใน transaction เดียว: `Payment` → SUCCEEDED (+ `paidAt`), `Booking` → CONFIRMED และล้าง `expiresAt`
-  - จ่ายเงินให้ booking ที่ EXPIRED/CANCELLED → `409`
-- [ ] Idempotency: `providerRef @unique` ทำให้ webhook/confirm ที่ซ้ำไม่มีผลอะไร
-- [ ] ยกเลิก booking ที่ CONFIRMED แล้วจะคืนเงิน (`REFUNDED`) ตามนโยบายยกเลิก
-- [ ] Background job (หรือเช็คตอนมี request) สำหรับยกเลิก hold ที่ไม่จ่ายเงิน
-- [ ] ภายหลังค่อยต่อ gateway จริง (เช่น Omise หรือ Stripe สำหรับ THB) ⚠️ ต้องเพิ่ม dependency และ secret ต้องถามก่อน
-      และเพิ่ม env vars ลง `.env.example`
-- [ ] web มีขั้นตอนชำระเงินและหน้าผลลัพธ์ ส่วน admin เห็นสถานะการชำระเงินในหน้า booking
+- [x] Interface `PaymentProvider` (`createIntent`, `getIntent`, `cancelIntent`, `refund`, `parseWebhook`) —
+      `StripeProvider` (dev/prod) และ `MockProvider` (`npm test`, dev ที่ยังไม่มี key; ห้ามใช้ใน production)
+- [x] `POST /api/bookings/:code/payments` สร้างหรือใช้ PaymentIntent เดิม (บัตรเท่านั้น) ตาม `totalAmount` → `{ clientSecret }`;
+      booking ที่จ่ายไม่ได้ (EXPIRED/CANCELLED/CONFIRMED) → `409`
+- [x] Webhook `POST /api/webhooks/stripe` (raw body + ตรวจลายเซ็น) และ `POST /api/bookings/:code/payments/sync`
+      → `settlePayment` ที่เดียวที่ย้าย payment ออกจาก PENDING: SUCCEEDED + booking CONFIRMED ใน transaction เดียว
+- [x] Idempotency: claim payment row ก่อน, partial unique index `payments_one_active_per_booking`,
+      idempotency key ฝั่ง Stripe — webhook ซ้ำ / sync + webhook พร้อมกันไม่จ่ายซ้ำ
+- [x] จ่ายสำเร็จหลัง hold หมดเวลา → คืนเงินอัตโนมัติ, booking ไม่ถูกยืนยัน
+- [x] ยกเลิก booking ที่จ่ายแล้ว → คืนเงินเต็มจำนวน (`REFUNDED` + `refundedAt`); hold ที่ยังไม่จ่าย → ยกเลิก intent
+- [x] Hold ที่ไม่จ่ายเงิน: ยังใช้ lazy expiry ตอนมี request (Phase 4) ไม่มี background job
+- [x] web: การ์ดชำระเงิน (Payment Element) ในหน้ารายละเอียด, สถานะ "Paid on" / "Refunded on",
+      ข้อความคืนเงินใน dialog ยกเลิก; ไม่มี publishable key → "Payments aren't configured"
+- [ ] ยังไม่ได้ทดสอบ Stripe จริงในเบราว์เซอร์ (4242 สำเร็จ, 4000 0000 0000 0002 ถูกปฏิเสธ, 4000 0027 6000 3184 3-D Secure)
+      — รอใส่ test keys (`pk_test` / `sk_test` / `whsec`)
+- → "admin เห็นสถานะการชำระเงินในหน้า booking" ย้ายไป Phase 6
 
 ## Phase 6 — Back-office (web-admin)
 
@@ -247,6 +253,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
   - check-in และ check-out → `COMPLETED`
   - ยกเลิกพร้อมเหตุผล
   - ย้ายไปห้องอื่นใน room type เดียวกัน
+  - แสดงสถานะการชำระเงิน (`payment.status`, `paidAt`, `refundedAt`) — ย้ายมาจาก Phase 5
 - [ ] Staff (เฉพาะ ADMIN): สร้าง user STAFF และผูกกับโรงแรมหรือเอาออก
 - [ ] Catalog amenities (เฉพาะ ADMIN)
 - [ ] Dashboard: แขกเข้า/ออกวันนี้, อัตราการเข้าพัก และรายได้ตามช่วงวันที่
@@ -293,6 +300,8 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
   - Docker image ของ api
   - hosting สำหรับ web และ web-admin
   - managed Postgres ที่รองรับ `btree_gist`
+- [ ] Payments live mode: ตั้งค่าบัญชี/keys จริง, รองรับ refund ที่ยัง `pending` (webhook `refund.updated`),
+      reconciliation ของ payment ที่ SUCCEEDED บน booking ที่ CANCELLED (refund ล้มเหลวตอนยกเลิก)
 - [ ] (ไม่บังคับ) i18n ไทย/อังกฤษสำหรับ `apps/web`
 
 ---
@@ -305,8 +314,8 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 2 | เพิ่ม dependency สำหรับ HTTP tests (เช่น supertest) | Phase 1 — ✅ ตัดสินแล้ว: supertest |
 | 3 | Session cookie หรือ JWT | Phase 2 — ✅ ตัดสินแล้ว: session cookie + ตาราง Session (แยก sid / admin_sid) |
 | 4 | เวลา hold รอจ่ายเงิน (ค่าเริ่มต้น 15 นาที) และจำนวนคืนสูงสุด (ค่าเริ่มต้น 30 คืน) | Phase 4 — จำนวนคืนสูงสุด ✅ ยืนยันแล้วใน Phase 3: 30 คืน (`MAX_NIGHTS` ใน `@booking/shared`); เวลา hold ✅ ยืนยันแล้วใน Phase 4: 15 นาที (`HOLD_MINUTES` ใน `@booking/shared`) |
-| 5 | นโยบายยกเลิก (ยกเลิกฟรีก่อนเข้าพัก X วัน? คืนเงินบางส่วน?) | Phase 4–5 — ✅ ตัดสินแล้วใน Phase 4: ยกเลิกได้ก่อนวัน check-in (PENDING/CONFIRMED); การคืนเงินตามนโยบายรอ Phase 5 |
-| 6 | Payment gateway จริง | Phase 5 |
+| 5 | นโยบายยกเลิก (ยกเลิกฟรีก่อนเข้าพัก X วัน? คืนเงินบางส่วน?) | Phase 4–5 — ✅ ตัดสินแล้ว: ยกเลิกได้ก่อนวัน check-in (PENDING/CONFIRMED); คืนเงินเต็มจำนวน (Phase 5) |
+| 6 | Payment gateway จริง | Phase 5 — ✅ Stripe (Payment Element), บัตรเท่านั้น, THB, test mode; live mode → Phase 8 |
 | 7 | เวลา check-in/check-out ของโรงแรม (ต้องเพิ่ม field ใน `Hotel`) | Phase 6 |
 | 8 | ผู้ให้บริการเก็บรูปและส่งอีเมล | Phase 8 |
 
