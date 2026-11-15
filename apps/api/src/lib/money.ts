@@ -9,3 +9,6 @@ export function toMinorUnits(amount: Prisma.Decimal): number {
   if (!minor.isInteger()) throw new Error(`Amount ${amount.toString()} has more than 2 decimals`);
   return minor.toNumber();
 }
+
+/** `Decimal(10,2)` from a validated number (≤ 2 decimals) without float noise. */
+export const toPrice = (value: number) => new Prisma.Decimal(value.toFixed(2));

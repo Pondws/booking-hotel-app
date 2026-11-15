@@ -49,7 +49,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 3 | Catalog สาธารณะ + ห้องว่าง | ✅ เสร็จแล้ว |
 | 4 | Booking flow | ✅ เสร็จแล้ว |
 | 5 | Payments (Stripe, test mode) | ✅ เสร็จแล้ว (ยังไม่ได้ทดสอบ Stripe จริงในเบราว์เซอร์) |
-| 6 | Back-office (web-admin) | 🔄 กำลังทำ (6.1 ✅, ถัดไป 6.2 Room types + Rooms) |
+| 6 | Back-office (web-admin) | 🔄 กำลังทำ (6.1–6.3 ✅, ถัดไป 6.4 Bookings) |
 | 7 | Reviews | ⬜ |
 | 8 | Hardening และ deployment | ⬜ |
 
@@ -243,7 +243,7 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 | --- | --- | --- | --- |
 | 6.1 | Admin shell + Hotels | `feat/admin-hotels` | ✅ |
 | 6.2 | Room types + Rooms | `feat/admin-room-types` | ✅ |
-| 6.3 | Rate periods | `feat/admin-rate-periods` | ⬜ |
+| 6.3 | Rate periods | `feat/admin-rate-periods` | ✅ |
 | 6.4 | Bookings | `feat/admin-bookings` | ⬜ |
 | 6.5 | Staff + Amenity catalog (เฉพาะ ADMIN) | `feat/admin-staff` | ⬜ |
 | 6.6 | Dashboard | `feat/admin-dashboard` | ⬜ |
@@ -264,10 +264,13 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
   - รูป
   - amenities (เฉพาะ scope ROOM โดยตรวจใน service)
 - [x] Rooms: เพิ่มห้อง, แก้เลขห้อง, ปิดใช้งาน (เลขห้องไม่ซ้ำภายในโรงแรม)
-- [ ] ยังไม่ได้ตรวจหน้า room types ในเบราว์เซอร์
+- [x] ตรวจในเบราว์เซอร์แล้ว (2026-11-15): สร้าง/แก้ไข/ปิดใช้งาน room type, เพิ่ม/เปลี่ยนเลข/ปิดใช้งานห้อง, เลขห้องซ้ำแสดง error
 
 ### 6.3 — Rate periods
-- [ ] มุมมองปฏิทินหรือรายการ, สร้าง/แก้ไข/ลบ และถ้าช่วงทับกันตอบ `409` (มาจาก `rate_periods_no_overlap`)
+Spec: `docs/superpowers/specs/2026-11-15-admin-rate-periods-design.md`
+- [x] มุมมองรายการ (การ์ด Rates ในหน้า room type), สร้าง/แก้ไข/ลบ และถ้าช่วงทับกันตอบ `409`
+      (service ตรวจก่อนเพื่อบอกช่วงที่ทับ, `rate_periods_no_overlap` เป็น backstop ตอนเขียนพร้อมกัน)
+- [x] ตรวจในเบราว์เซอร์แล้ว (2026-11-15): สร้าง/แก้ไข/ลบ, ช่วงทับกันได้ 409 ทั้งตอนสร้างและแก้ไข, ช่วงที่ต่อกันพอดีบันทึกได้
 
 ### 6.4 — Bookings
 - [ ] กรองตามโรงแรม, สถานะ และวันที่

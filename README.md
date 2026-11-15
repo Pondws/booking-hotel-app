@@ -134,6 +134,10 @@ Response สำเร็จ: `{ "data": ... }` · Error: `{ "error": { "code": "
 | DELETE | `/api/admin/hotels/:hotelId/room-types/:roomTypeId` | เหมือนข้างบน — 204; มีห้องหรือ rate period = 409 (ให้ปิดใช้งานแทน) |
 | POST | `/api/admin/hotels/:hotelId/room-types/:roomTypeId/rooms` | เหมือนข้างบน — 201 `{ number }`; เลขห้องซ้ำในโรงแรมเดียวกัน = 409 |
 | PATCH | `/api/admin/hotels/:hotelId/room-types/:roomTypeId/rooms/:roomId` | เหมือนข้างบน — `{ number?, isActive? }` |
+| GET | `/api/admin/hotels/:hotelId/room-types/:roomTypeId/rate-periods` | เหมือนข้างบน — rate periods เรียงตาม `startDate` |
+| POST | `/api/admin/hotels/:hotelId/room-types/:roomTypeId/rate-periods` | เหมือนข้างบน — 201 `{ name?, startDate, endDate, price }` (ราคาใช้กับคืน `[startDate, endDate)`, ≤ 366 คืน); ช่วงทับกัน = 409 |
+| PUT | `/api/admin/hotels/:hotelId/room-types/:roomTypeId/rate-periods/:ratePeriodId` | เหมือนข้างบน — body เดียวกับ POST |
+| DELETE | `/api/admin/hotels/:hotelId/room-types/:roomTypeId/rate-periods/:ratePeriodId` | เหมือนข้างบน — 204 |
 | POST | `/api/admin/uploads/images` | `admin_sid` — body = ไฟล์รูปดิบ (`Content-Type: image/jpeg|png|webp`, ≤ 5 MB, ตรวจ magic bytes) → 201 `{ url }`; ไฟล์เก็บที่ `UPLOAD_DIR` และเสิร์ฟที่ `/uploads/*` (dev เท่านั้น — object storage → Phase 8) |
 
 กฎวันที่ (ใช้ร่วม FE/BE จาก `@booking/shared`): วันที่ส่งเป็น `YYYY-MM-DD`, คืนที่พักคือ `[checkIn, checkOut)`,
