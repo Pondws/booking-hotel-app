@@ -1,7 +1,8 @@
-import type { CreateHotelData, HotelSearchQuery, StayRange } from "@booking/shared";
+import type { CreateHotelData, HotelReviewsQuery, HotelSearchQuery, StayRange } from "@booking/shared";
 import type { Request, Response } from "express";
 import { ok } from "../lib/http";
 import * as hotelService from "../services/hotel.service";
+import * as reviewService from "../services/review.service";
 import { currentUser } from "./booking.controller";
 
 // Query and params are parsed by validate() into res.locals.
@@ -23,6 +24,13 @@ export async function getAvailability(
   res: Response<unknown, { params: SlugParams; query: StayRange }>,
 ) {
   ok(res, await hotelService.getAvailability(res.locals.params.slug, res.locals.query));
+}
+
+export async function getHotelReviews(
+  _req: Request,
+  res: Response<unknown, { params: SlugParams; query: HotelReviewsQuery }>,
+) {
+  ok(res, await reviewService.listHotelReviews(res.locals.params.slug, res.locals.query));
 }
 
 // Body is already parsed by validate().

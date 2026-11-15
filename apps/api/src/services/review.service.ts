@@ -1,6 +1,13 @@
-import type { Booking, CreateReviewData, PublicUser } from "@booking/shared";
+import type {
+  Booking,
+  CreateReviewData,
+  HotelReviewList,
+  HotelReviewsQuery,
+  PublicUser,
+} from "@booking/shared";
 import type { Prisma } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
+import { fromDbDate } from "../lib/dates";
 import { prisma } from "../lib/prisma";
 import { isUniqueViolationOn } from "../lib/prisma-errors";
 import { getMyBooking } from "./booking.service";
@@ -66,4 +73,48 @@ export async function createMyReview(
     throw err;
   }
   return getMyBooking(user, code, now);
+}
+
+/** First word of the reviewer's name — the public page never shows the full name or email. */
+const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? "";
+
+/** Visible reviews of an active hotel, newest first. Unknown or inactive slug → 404. */
+export async function listHotelReviews(slug: string, query: HotelReviewsQuery): Promise<HotelReviewList> {
+  const { page, pageSize } = query;
+  const hotel = await prisma.hotel.findFirst({ where: { slug, isActive: true }, select: { id: true } });
+  if (!hotel) throw new AppError(404, "NOT_FOUND", "Hotel not found");
+
+  const where = { hotelId: hotel.id, isHidden: false };
+  const [total, reviews] = await prisma.$transaction([
+    prisma.review.count({ where }),
+    prisma.review.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select: {
+        id: true,
+        rating: true,
+        comment: true,
+        createdAt: true,
+        user: { select: { name: true } },
+        booking: { select: { checkOut: true } },
+      },
+    }),
+  ]);
+
+  return {
+    items: reviews.map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      authorName: firstName(r.user.name),
+      stayedAt: fromDbDate(r.booking.checkOut),
+      createdAt: r.createdAt.toISOString(),
+    })),
+    page,
+    pageSize,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+  };
 }

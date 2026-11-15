@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 import request from "supertest";
-import { bookingSchema, REVIEW_COMMENT_MAX, type PublicUser } from "@booking/shared";
+import { bookingSchema, hotelReviewListSchema, REVIEW_COMMENT_MAX, type PublicUser } from "@booking/shared";
 import { app } from "../app";
 import { prisma } from "../lib/prisma";
 import {
@@ -147,5 +147,93 @@ describe("POST /api/bookings/:code/review", () => {
 
     assert.equal((await post(b.code, null, { rating: 4 })).status, 401);
     assert.equal(await prisma.review.count({ where: { bookingId: b.id } }), 0);
+  });
+});
+
+describe("GET /api/hotels/:slug/reviews", () => {
+  const LIST_LABEL = "rv-list";
+  let fx: CatalogFixture;
+  let inactive: CatalogFixture;
+  const ids: string[] = []; // visible, oldest → newest
+
+  const get = (slug: string, query = "") => request(app).get(`/api/hotels/${slug}/reviews${query}`);
+
+  before(async () => {
+    await cleanupCatalogFixtures(LIST_LABEL);
+    fx = await createCatalogFixture(LIST_LABEL, { roomTypes: [{ capacity: 2, basePrice: 1000, rooms: 1 }] });
+    inactive = await createCatalogFixture(LIST_LABEL, {
+      isActive: false,
+      roomTypes: [{ capacity: 2, basePrice: 1000, rooms: 1 }],
+    });
+    const guest = await createFixtureUser(LIST_LABEL);
+    const roomId = fx.roomTypes[0]!.roomIds[0]!;
+    // 3 visible + 1 hidden (i = 2), createdAt one minute apart so the order is deterministic.
+    for (let i = 0; i < 4; i++) {
+      const day = (n: number) => `2025-03-${String(n).padStart(2, "0")}`;
+      const b = await addBooking(fx, roomId, day(1 + i * 2), day(2 + i * 2), "COMPLETED", null, guest.id);
+      const hidden = i === 2;
+      const r = await prisma.review.create({
+        data: {
+          bookingId: b.id,
+          userId: guest.id,
+          hotelId: fx.hotelId,
+          rating: i + 2,
+          comment: i === 0 ? null : `Comment ${i}`,
+          isHidden: hidden,
+          hiddenAt: hidden ? new Date() : null,
+          createdAt: new Date(Date.UTC(2025, 3, 1, 0, i)),
+        },
+      });
+      if (!hidden) ids.push(r.id);
+    }
+  });
+
+  after(async () => {
+    await cleanupCatalogFixtures(LIST_LABEL);
+    await prisma.$disconnect();
+  });
+
+  test("visible reviews newest first, first name only, stayedAt = check-out", async () => {
+    const res = await get(fx.slug);
+    assert.equal(res.status, 200);
+    const list = hotelReviewListSchema.parse(res.body.data);
+    assert.deepEqual(
+      list.items.map((r) => r.id),
+      [...ids].reverse(),
+    );
+    assert.deepEqual([list.page, list.pageSize, list.total, list.totalPages], [1, 10, 3, 1]);
+    const newest = list.items[0]!;
+    assert.equal(newest.rating, 5);
+    assert.equal(newest.comment, "Comment 3");
+    assert.equal(newest.authorName, "Cat");
+    assert.equal(newest.stayedAt, "2025-03-08");
+    assert.equal(list.items[2]!.comment, null);
+    const raw = JSON.stringify(res.body);
+    assert.ok(!raw.includes("@test.local"), "no email");
+    assert.ok(!raw.includes("Customer"), "no full name");
+  });
+
+  test("pagination", async () => {
+    const res = await get(fx.slug, "?page=2&pageSize=2");
+    assert.equal(res.status, 200);
+    const list = hotelReviewListSchema.parse(res.body.data);
+    assert.deepEqual(
+      list.items.map((r) => r.id),
+      [ids[0]],
+    );
+    assert.deepEqual([list.page, list.pageSize, list.total, list.totalPages], [2, 2, 3, 2]);
+  });
+
+  test("404 for unknown and inactive hotels; 400 for a bad page", async () => {
+    for (const slug of ["no-such-hotel-xyz", inactive.slug]) {
+      const res = await get(slug);
+      assert.equal(res.status, 404, slug);
+      assert.equal(res.body.error.code, "NOT_FOUND");
+    }
+    for (const q of ["?page=0", "?pageSize=51", "?page=abc"]) {
+      const res = await get(fx.slug, q);
+      assert.equal(res.status, 400, q);
+      assert.equal(res.body.error.code, "VALIDATION_FAILED");
+    }
   });
 });
