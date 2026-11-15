@@ -22,6 +22,7 @@ import {
 import { NavUser } from "@/features/auth/components/nav-user";
 import { ApiStatus } from "@/features/health/components/api-status";
 import { isActivePath } from "@/lib/is-active-path";
+import { AdminBreadcrumb } from "./admin-breadcrumb";
 import { NAV_ITEMS, type NavItem } from "./nav-items";
 
 const APP_NAME = "ระบบจัดการโรงแรม";
@@ -120,7 +121,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b bg-background px-4 py-3">
           <SidebarTrigger className="-ml-1" aria-label="เปิด/ปิดแถบเมนู" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-          <span className="text-sm font-medium">{active.label}</span>
+          <AdminBreadcrumb />
         </header>
         {children}
       </div>

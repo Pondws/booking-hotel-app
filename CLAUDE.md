@@ -39,7 +39,8 @@ apps/
                          # lives in app/(protected)/ (layout = RequireAuth + AdminShell); no register page;
                          # components/admin-shell.tsx (shadcn sidebar-09: icon rail + the active section's
                          # panel, collapses to the rail; sheet below md) + nav-items.ts (NAV_ITEMS { href, label, icon,
-                         # panel } — append per phase; panels live in features/<name>/components/*-nav-panel.tsx); features/hotels/ (adminHotelKeys, list-params.ts), features/amenities/,
+                         # panel } — append per phase; panels live in features/<name>/components/*-nav-panel.tsx and
+                         # add what the page lacks, never repeat its filters) + admin-breadcrumb.tsx (from the URL); features/hotels/ (adminHotelKeys, list-params.ts), features/amenities/,
                          # features/room-types/ (adminRoomTypeKeys), features/bookings/ (adminBookingKeys, list-params.ts; actions shown from the API's can* flags),
                          # features/rate-periods/ (adminRatePeriodKeys, RatesCard on
                          # the room type page); components/form-header.tsx + form-field.tsx and

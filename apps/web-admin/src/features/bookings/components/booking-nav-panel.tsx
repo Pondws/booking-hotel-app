@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { ADMIN_BOOKING_STATUS_FILTERS, type AdminBookingStatusFilter } from "@booking/shared";
+import { BOOKING_TZ, todayIn, type AdminBookingListQuery } from "@booking/shared";
 import {
   SidebarContent,
   SidebarGroup,
@@ -16,9 +16,25 @@ import {
   useSidebar,
 } from "@booking/ui/components/sidebar";
 import { parseListParams, serializeListParams } from "../list-params";
-import { STAGE_LABELS } from "./booking-badges";
 
-/** Sidebar second column for /bookings: one shortcut per status filter. */
+type View = { label: string; hint?: string; query: (today: string) => Partial<AdminBookingListQuery> };
+
+/**
+ * Front-desk work queues — preset list URLs, not a second copy of the page's filters (those stay on
+ * the page). `from`/`to` match stays overlapping the range, so "today" = guests who should be here today.
+ */
+const VIEWS: View[] = [
+  { label: "การจองทั้งหมด", query: () => ({}) },
+  {
+    label: "รอเช็คอินวันนี้",
+    hint: "ยืนยันแล้ว ยังไม่เช็คอิน และช่วงเข้าพักครอบคลุมวันนี้",
+    query: (today) => ({ status: "CONFIRMED", from: today, to: today }),
+  },
+  { label: "เข้าพักอยู่", hint: "เช็คอินแล้ว ยังไม่เช็คเอาท์", query: () => ({ status: "CHECKED_IN" }) },
+  { label: "รอชำระเงิน", hint: "การจองที่ยังถือห้องไว้รอชำระ", query: () => ({ status: "PENDING" }) },
+];
+
+/** Sidebar second column for /bookings. */
 export function BookingNavPanel() {
   return (
     <>
@@ -27,11 +43,11 @@ export function BookingNavPanel() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>สถานะ</SidebarGroupLabel>
+          <SidebarGroupLabel>งานหน้าเคาน์เตอร์</SidebarGroupLabel>
           <SidebarGroupContent>
             {/* useSearchParams needs a Suspense boundary; the fallback is the same links with nothing active */}
-            <Suspense fallback={<StatusLinks current={null} />}>
-              <StatusLinksFromUrl />
+            <Suspense fallback={<ViewLinks current={null} />}>
+              <ViewLinksFromUrl />
             </Suspense>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -40,26 +56,39 @@ export function BookingNavPanel() {
   );
 }
 
-function StatusLinksFromUrl() {
+function ViewLinksFromUrl() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const current = pathname === "/bookings" ? parseListParams(searchParams).status : null;
-  return <StatusLinks current={current} />;
+  // Compare filters only — paging through a queue keeps it highlighted
+  const current =
+    pathname === "/bookings"
+      ? serializeListParams({ ...parseListParams(searchParams), page: undefined, pageSize: undefined })
+      : null;
+  return <ViewLinks current={current} />;
 }
 
-function StatusLinks({ current }: { current: AdminBookingStatusFilter | null }) {
+function ViewLinks({ current }: { current: string | null }) {
   const { setOpenMobile } = useSidebar();
+  const today = todayIn(BOOKING_TZ);
   return (
     <SidebarMenu>
-      {ADMIN_BOOKING_STATUS_FILTERS.map((status) => (
-        <SidebarMenuItem key={status}>
-          <SidebarMenuButton asChild isActive={status === current}>
-            <Link href={`/bookings${serializeListParams({ status })}`} onClick={() => setOpenMobile(false)}>
-              {status === "all" ? "การจองทั้งหมด" : STAGE_LABELS[status]}
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
+      {VIEWS.map((view) => {
+        const search = serializeListParams(view.query(today));
+        const active = search === current;
+        return (
+          <SidebarMenuItem key={view.label}>
+            <SidebarMenuButton asChild isActive={active} title={view.hint}>
+              <Link
+                href={`/bookings${search}`}
+                onClick={() => setOpenMobile(false)}
+                aria-current={active ? "page" : undefined}
+              >
+                {view.label}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
     </SidebarMenu>
   );
 }
