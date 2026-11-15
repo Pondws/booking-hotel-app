@@ -8,7 +8,7 @@ import {
   type CatalogFixture,
 } from "../test/catalog-fixtures";
 import { prisma } from "./prisma";
-import { isExclusionViolation, isUniqueViolationOn } from "./prisma-errors";
+import { isExclusionViolation, isUniqueViolationOn, isUniqueViolationOnIndex } from "./prisma-errors";
 
 const LABEL = "bk-code";
 let fx: CatalogFixture;
@@ -83,4 +83,12 @@ test("non-P2002 and non-Prisma errors are not matched", () => {
   });
   assert.equal(isUniqueViolationOn(other, "slug"), false);
   assert.equal(isUniqueViolationOn(new Error("x"), "slug"), false);
+});
+
+test("a named (partial) unique index violation is matched by index name only", () => {
+  const err = p2002(adapterMeta("payments_one_active_per_booking"));
+  assert.equal(isUniqueViolationOnIndex(err, "payments_one_active_per_booking"), true);
+  assert.equal(isUniqueViolationOnIndex(err, "hotels_slug_key"), false);
+  assert.equal(isUniqueViolationOnIndex(p2002({}), "payments_one_active_per_booking"), false);
+  assert.equal(isUniqueViolationOnIndex(new Error("x"), "payments_one_active_per_booking"), false);
 });

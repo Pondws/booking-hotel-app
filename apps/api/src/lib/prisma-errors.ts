@@ -29,6 +29,19 @@ export function isUniqueViolationOn(err: unknown, field: string): boolean {
 }
 
 /**
+ * True when `err` is a P2002 unique violation on the index named `index` — for raw-SQL (e.g. partial)
+ * unique indexes, which PrismaPg reports as `driverAdapterError.cause.constraint.index`.
+ */
+export function isUniqueViolationOnIndex(err: unknown, index: string): boolean {
+  if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== "P2002") return false;
+  const meta: unknown = err.meta;
+  const adapterError = isRecord(meta) ? meta.driverAdapterError : undefined;
+  const cause = isRecord(adapterError) ? adapterError.cause : undefined;
+  const constraint = isRecord(cause) ? cause.constraint : undefined;
+  return isRecord(constraint) && constraint.index === index;
+}
+
+/**
  * True when `err` is a Postgres exclusion violation (23P01) on `constraint`.
  * With PrismaPg it surfaces as a known request error (generic code P2039) whose
  * `meta.driverAdapterError.cause` has `originalCode: "23P01"`. The cause has no

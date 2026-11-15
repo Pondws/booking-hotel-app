@@ -1,6 +1,10 @@
+import type { PublicUser, StartPayment } from "@booking/shared";
+import { AppError } from "../lib/app-error";
 import { toMinorUnits } from "../lib/money";
 import { getPaymentProvider, type PaymentProvider } from "../lib/payments";
 import { prisma } from "../lib/prisma";
+import { isUniqueViolationOnIndex } from "../lib/prisma-errors";
+import { expireLapsedHolds } from "./booking.service";
 
 export type SettleOutcome = "SUCCEEDED" | "FAILED";
 export type SettleResult = "confirmed" | "refunded" | "failed" | "noop";
@@ -80,4 +84,84 @@ export async function settlePayment(
     data: { status: "REFUNDED", refundedAt: now },
   });
   return "refunded";
+}
+
+const notPayable = () => new AppError(409, "CONFLICT", "This booking can't be paid");
+
+const pendingPaymentOf = (bookingId: string) =>
+  prisma.payment.findFirst({
+    where: { bookingId, status: "PENDING" },
+    select: { id: true, providerRef: true },
+  });
+
+/**
+ * Returns the PaymentIntent secret for the owner's payable booking, creating the payment (and intent)
+ * or reusing the live one. Amount and currency always come from the booking row.
+ */
+export async function startPayment(
+  user: PublicUser,
+  code: string,
+  now: Date = new Date(),
+  opts: ProviderOpts = {},
+): Promise<StartPayment> {
+  const provider = opts.provider ?? getPaymentProvider();
+  await expireLapsedHolds(user.id, now);
+  const booking = await prisma.booking.findFirst({
+    where: { code, userId: user.id },
+    select: { id: true, code: true, status: true, expiresAt: true, totalAmount: true, currency: true },
+  });
+  if (!booking) throw new AppError(404, "NOT_FOUND", "Booking not found");
+
+  // At most two rounds: a reused intent that was cancelled is settled FAILED, then a fresh one is made.
+  for (;;) {
+    if (booking.status !== "PENDING" || booking.expiresAt === null || booking.expiresAt <= now) throw notPayable();
+
+    let payment = await pendingPaymentOf(booking.id);
+    if (!payment) {
+      try {
+        payment = await prisma.payment.create({
+          data: {
+            bookingId: booking.id,
+            amount: booking.totalAmount,
+            currency: booking.currency,
+            provider: provider.name,
+          },
+          select: { id: true, providerRef: true },
+        });
+      } catch (err) {
+        if (!isUniqueViolationOnIndex(err, "payments_one_active_per_booking")) throw err;
+        payment = await pendingPaymentOf(booking.id); // a concurrent start won — share its payment
+        if (!payment) throw notPayable(); // …or it already succeeded
+      }
+    }
+
+    if (payment.providerRef === null) {
+      // New payment, or one a concurrent start is still creating: the shared idempotency key makes
+      // the provider return the same intent to both.
+      try {
+        const intent = await provider.createIntent({
+          amountMinor: toMinorUnits(booking.totalAmount),
+          currency: booking.currency,
+          idempotencyKey: payment.id,
+          metadata: { bookingCode: booking.code, paymentId: payment.id },
+        });
+        await prisma.payment.update({ where: { id: payment.id }, data: { providerRef: intent.providerRef } });
+        return { clientSecret: intent.clientSecret };
+      } catch (err) {
+        await prisma.payment.updateMany({
+          where: { id: payment.id, status: "PENDING", providerRef: null },
+          data: { status: "FAILED" },
+        });
+        throw err;
+      }
+    }
+
+    const intent = await provider.getIntent(payment.providerRef);
+    if (intent.status === "pending") return { clientSecret: intent.clientSecret };
+    if (intent.status === "succeeded") {
+      await settlePayment(payment.providerRef, "SUCCEEDED", now, { provider });
+      throw notPayable();
+    }
+    await settlePayment(payment.providerRef, "FAILED", now, { provider });
+  }
 }

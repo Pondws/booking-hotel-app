@@ -7,7 +7,7 @@ import * as bookingService from "../services/booking.service";
 type CodeParams = { code: string };
 
 /** The signed-in customer; `requireAuth` guarantees it, this narrows without `!`. */
-function currentUser(req: Request): PublicUser {
+export function currentUser(req: Request): PublicUser {
   if (!req.auth) throw new AppError(401, "UNAUTHORIZED", "Authentication required");
   return req.auth.user;
 }
