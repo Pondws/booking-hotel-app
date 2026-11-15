@@ -18,6 +18,7 @@ import { getPaymentProvider, type PaymentProvider } from "../lib/payments";
 import { prisma } from "../lib/prisma";
 import { isExclusionViolation, isUniqueViolationOn, isWriteConflict } from "../lib/prisma-errors";
 import { blockingBookingWhere } from "./availability.service";
+import { releaseBookingPayment } from "./payment.service";
 import { quoteStay } from "./pricing.service";
 
 /** Inserts per room before giving up on code collisions (each is a 1-in-~10⁹ event). */
@@ -279,35 +280,6 @@ export async function cancelMyBooking(
     await findMyBooking(user.id, code, now); // 404 when it isn't theirs
     throw new AppError(409, "CONFLICT", "This booking can't be cancelled");
   }
-  await releasePayment(user.id, code, now, opts.provider ?? getPaymentProvider());
+  await releaseBookingPayment(code, now, opts.provider ?? getPaymentProvider());
   return findMyBooking(user.id, code, now);
-}
-
-/**
- * After a cancel: full refund of a paid booking, or cancel the open intent of an unpaid hold.
- * Provider failures are logged for reconciliation and swallowed — the booking stays CANCELLED and
- * the payment row unchanged (a SUCCEEDED row on a cancelled booking is what reconciliation looks for).
- */
-async function releasePayment(userId: string, code: string, now: Date, provider: PaymentProvider) {
-  const payment = await prisma.payment.findFirst({
-    where: { booking: { code, userId } },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    select: { id: true, status: true, providerRef: true },
-  });
-  if (!payment || (payment.status !== "SUCCEEDED" && payment.status !== "PENDING")) return;
-  try {
-    if (payment.status === "SUCCEEDED") {
-      if (!payment.providerRef) return;
-      await provider.refund(payment.providerRef, { idempotencyKey: `refund-${payment.id}` });
-      await prisma.payment.updateMany({
-        where: { id: payment.id, status: "SUCCEEDED" },
-        data: { status: "REFUNDED", refundedAt: now },
-      });
-    } else {
-      if (payment.providerRef) await provider.cancelIntent(payment.providerRef);
-      await prisma.payment.updateMany({ where: { id: payment.id, status: "PENDING" }, data: { status: "FAILED" } });
-    }
-  } catch (err) {
-    console.error(`cancelMyBooking: payment ${payment.id} of booking ${code} needs reconciliation`, err);
-  }
 }

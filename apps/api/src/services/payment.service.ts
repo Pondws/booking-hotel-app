@@ -229,3 +229,32 @@ export async function syncPayment(
   }
   return getMyBooking(user, code, now);
 }
+
+/**
+ * After a cancel (customer or admin): full refund of a paid booking, or cancel the open intent of an unpaid
+ * hold. Provider failures are logged for reconciliation and swallowed — the booking stays CANCELLED and the
+ * payment row unchanged (a SUCCEEDED row on a cancelled booking is what reconciliation looks for).
+ */
+export async function releaseBookingPayment(code: string, now: Date, provider: PaymentProvider): Promise<void> {
+  const payment = await prisma.payment.findFirst({
+    where: { booking: { code } },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: { id: true, status: true, providerRef: true },
+  });
+  if (!payment || (payment.status !== "SUCCEEDED" && payment.status !== "PENDING")) return;
+  try {
+    if (payment.status === "SUCCEEDED") {
+      if (!payment.providerRef) return;
+      await provider.refund(payment.providerRef, { idempotencyKey: `refund-${payment.id}` });
+      await prisma.payment.updateMany({
+        where: { id: payment.id, status: "SUCCEEDED" },
+        data: { status: "REFUNDED", refundedAt: now },
+      });
+    } else {
+      if (payment.providerRef) await provider.cancelIntent(payment.providerRef);
+      await prisma.payment.updateMany({ where: { id: payment.id, status: "PENDING" }, data: { status: "FAILED" } });
+    }
+  } catch (err) {
+    console.error(`releaseBookingPayment: payment ${payment.id} of booking ${code} needs reconciliation`, err);
+  }
+}
