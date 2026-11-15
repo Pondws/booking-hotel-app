@@ -1,8 +1,9 @@
-import type { BookingListQuery, CreateBookingData, PublicUser } from "@booking/shared";
+import type { BookingListQuery, CreateBookingData, CreateReviewData, PublicUser } from "@booking/shared";
 import type { Request, Response } from "express";
 import { AppError } from "../lib/app-error";
 import { ok } from "../lib/http";
 import * as bookingService from "../services/booking.service";
+import * as reviewService from "../services/review.service";
 
 type CodeParams = { code: string };
 
@@ -26,6 +27,13 @@ export async function listMine(req: Request, res: Response<unknown, { query: Boo
 
 export async function getOne(req: Request, res: Response<unknown, { params: CodeParams }>) {
   ok(res, await bookingService.getMyBooking(currentUser(req), res.locals.params.code));
+}
+
+export async function review(
+  req: Request<Record<string, string>, unknown, CreateReviewData>,
+  res: Response<unknown, { params: CodeParams }>,
+) {
+  ok(res, await reviewService.createMyReview(currentUser(req), res.locals.params.code, req.body), 201);
 }
 
 export async function cancel(req: Request, res: Response<unknown, { params: CodeParams }>) {
