@@ -44,6 +44,9 @@ variants only where shadcn components already do.
 ### Typography
 
 - Font: Geist Sans (`font-sans`) for everything; Geist Mono (`font-mono`) only for codes/IDs (booking refs).
+  web-admin (Thai UI) sets `font-sans` to IBM Plex Sans Thai (Thai + Latin) in its `globals.css`.
+- web-admin theme: its `globals.css` redefines the colour tokens (blue primary on slate-tinted neutrals, white
+  cards on a tinted page, `--radius` 0.5rem). Same token names — components still use `bg-primary`, `bg-sidebar` etc., never raw colours.
 - Scale (Tailwind defaults): page title `text-2xl font-semibold tracking-tight` (hero may use `text-3xl`/`text-4xl`
   on `sm:`+), section title `text-lg font-semibold`, card title via `CardTitle`, body `text-sm`/`text-base`,
   meta `text-sm text-muted-foreground`, fine print `text-xs text-muted-foreground`.
