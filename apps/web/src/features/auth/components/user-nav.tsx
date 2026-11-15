@@ -29,6 +29,9 @@ export function UserNav() {
   return (
     <nav className="flex items-center gap-2">
       <span className="hidden text-sm text-muted-foreground sm:inline">{user.name}</span>
+      <Link href="/account/bookings" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+        My bookings
+      </Link>
       <Link href="/account" className={buttonVariants({ variant: "ghost", size: "sm" })}>
         Account
       </Link>

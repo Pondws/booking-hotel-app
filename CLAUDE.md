@@ -27,6 +27,7 @@ apps/
       app/               # routes (App Router): / (search), hotels/ (results), hotels/[slug]/ (detail), login/,
                          # register/, account/; layout.tsx (header + UserNav);
                          # providers.tsx (QueryClient; no retry on 4xx; Query/MutationCache 401 → me = null)
+      components/        # app-wide components shared by several features (e.g. pagination.tsx)
       features/<name>/   # one folder per feature (e.g. auth/, hotels/, health/):
         api.ts           #   fetchers — call request()/requestNoContent() from lib/api.ts, never axios/fetch directly
         hooks.ts         #   TanStack Query hooks + key factory (e.g. hotelKeys.list(), authKeys.me())
