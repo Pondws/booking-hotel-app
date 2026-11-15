@@ -3,6 +3,7 @@ import {
   adminHotelListQuerySchema,
   createHotelSchema,
   hotelAmenitiesInputSchema,
+  hotelContentInputSchema,
   hotelIdParamsSchema,
   hotelImagesInputSchema,
   hotelStatusInputSchema,
@@ -13,6 +14,7 @@ import {
   listAdminHotels,
   replaceHotelAmenities,
   replaceHotelImages,
+  saveHotelContent,
   setHotelStatus,
   updateHotel,
 } from "../../controllers/admin-hotel.controller";
@@ -44,6 +46,14 @@ adminHotelsRouter.patch(
   requireHotelAccess(),
   validate({ params: hotelIdParamsSchema, body: updateHotelSchema }),
   updateHotel,
+);
+
+// The admin hotel page saves everything in one form
+adminHotelsRouter.put(
+  "/:hotelId",
+  requireHotelAccess(),
+  validate({ params: hotelIdParamsSchema, body: hotelContentInputSchema }),
+  saveHotelContent,
 );
 
 adminHotelsRouter.put(

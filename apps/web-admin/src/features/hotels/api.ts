@@ -3,9 +3,7 @@ import {
   adminHotelSchema,
   type AdminHotelListQuery,
   type CreateHotelInput,
-  type HotelAmenitiesInput,
-  type HotelImagesInput,
-  type UpdateHotelInput,
+  type HotelContentInput,
 } from "@booking/shared";
 import { request } from "@/lib/api";
 
@@ -21,26 +19,11 @@ export function createHotel(input: CreateHotelInput) {
   return request(adminHotelSchema, { method: "POST", url: "/api/admin/hotels", data: input });
 }
 
-export function updateHotel(id: string, input: UpdateHotelInput) {
+/** Saves details, times, images and amenities together (all or nothing). */
+export function saveHotel(id: string, input: HotelContentInput) {
   return request(adminHotelSchema, {
-    method: "PATCH",
+    method: "PUT",
     url: `/api/admin/hotels/${encodeURIComponent(id)}`,
-    data: input,
-  });
-}
-
-export function replaceHotelImages(id: string, input: HotelImagesInput) {
-  return request(adminHotelSchema, {
-    method: "PUT",
-    url: `/api/admin/hotels/${encodeURIComponent(id)}/images`,
-    data: input,
-  });
-}
-
-export function replaceHotelAmenities(id: string, input: HotelAmenitiesInput) {
-  return request(adminHotelSchema, {
-    method: "PUT",
-    url: `/api/admin/hotels/${encodeURIComponent(id)}/amenities`,
     data: input,
   });
 }

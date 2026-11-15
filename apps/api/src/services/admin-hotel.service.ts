@@ -3,6 +3,7 @@ import type {
   AdminHotelListQuery,
   AdminHotelSummary,
   HotelAmenitiesInput,
+  HotelContentData,
   HotelImagesInput,
   Paginated,
   PublicUser,
@@ -141,26 +142,51 @@ export async function replaceHotelImages(
   return getAdminHotel(hotelId);
 }
 
-export async function replaceHotelAmenities(
-  hotelId: string,
-  input: HotelAmenitiesInput,
-): Promise<AdminHotel> {
-  await assertHotelExists(hotelId);
+/** Every id must exist and be a HOTEL-scope amenity (the DB doesn't check scope). Ids are unique (zod). */
+async function assertHotelAmenityIds(amenityIds: string[]): Promise<void> {
   const amenities = await prisma.amenity.findMany({
-    where: { id: { in: input.amenityIds } },
+    where: { id: { in: amenityIds } },
     select: { id: true, scope: true },
   });
-  if (amenities.length !== input.amenityIds.length || amenities.some((a) => a.scope !== "HOTEL")) {
+  if (amenities.length !== amenityIds.length || amenities.some((a) => a.scope !== "HOTEL")) {
     throw new AppError(400, "VALIDATION_FAILED", "Only hotel amenities can be added", {
       formErrors: [],
       fieldErrors: { amenityIds: ["Only hotel amenities can be added"] },
     });
   }
+}
+
+export async function replaceHotelAmenities(
+  hotelId: string,
+  input: HotelAmenitiesInput,
+): Promise<AdminHotel> {
+  await assertHotelExists(hotelId);
+  await assertHotelAmenityIds(input.amenityIds);
   await prisma.$transaction([
     prisma.hotelAmenity.deleteMany({ where: { hotelId } }),
     prisma.hotelAmenity.createMany({
       data: input.amenityIds.map((amenityId) => ({ hotelId, amenityId })),
     }),
+  ]);
+  return getAdminHotel(hotelId);
+}
+
+/** Saves details, times, the ordered image list and the amenity set together — all or nothing. */
+export async function saveHotelContent(hotelId: string, data: HotelContentData): Promise<AdminHotel> {
+  await assertHotelExists(hotelId);
+  await assertHotelAmenityIds(data.amenityIds);
+  const { name, city, address, description, checkInTime, checkOutTime, images, amenityIds } = data;
+  await prisma.$transaction([
+    prisma.hotel.update({
+      where: { id: hotelId },
+      data: { name, city, address, description, checkInTime, checkOutTime },
+    }),
+    prisma.hotelImage.deleteMany({ where: { hotelId } }),
+    prisma.hotelImage.createMany({
+      data: images.map((img, index) => ({ hotelId, url: img.url, alt: img.alt ?? null, sortOrder: index })),
+    }),
+    prisma.hotelAmenity.deleteMany({ where: { hotelId } }),
+    prisma.hotelAmenity.createMany({ data: amenityIds.map((amenityId) => ({ hotelId, amenityId })) }),
   ]);
   return getAdminHotel(hotelId);
 }

@@ -5,10 +5,8 @@ import { useParams } from "next/navigation";
 import { Button } from "@booking/ui/components/button";
 import { Skeleton } from "@booking/ui/components/skeleton";
 import { useAdminHotel } from "@/features/hotels/hooks";
-import { HotelAmenitiesForm } from "@/features/hotels/components/hotel-amenities-form";
-import { HotelDetailsForm } from "@/features/hotels/components/hotel-details-form";
+import { HotelForm } from "@/features/hotels/components/hotel-form";
 import { HotelHeader } from "@/features/hotels/components/hotel-header";
-import { HotelImagesForm } from "@/features/hotels/components/hotel-images-form";
 import { ApiError } from "@/lib/api";
 
 export default function HotelPage() {
@@ -24,12 +22,8 @@ export default function HotelPage() {
       ) : (
         <>
           <HotelHeader hotel={hotel} />
-          {/* Remount the forms when another hotel is opened so their defaults follow */}
-          <div key={hotel.id} className="space-y-6">
-            <HotelDetailsForm hotel={hotel} />
-            <HotelImagesForm hotel={hotel} />
-            <HotelAmenitiesForm hotel={hotel} />
-          </div>
+          {/* Remount the form when another hotel is opened so its defaults follow */}
+          <HotelForm key={hotel.id} hotel={hotel} />
         </>
       )}
     </main>
