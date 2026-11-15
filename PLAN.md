@@ -173,7 +173,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 - `next-dev-loop`: ตรวจ flow จองตั้งแต่ต้นจนจบ
 
 - [x] `POST /api/bookings` รับ `createBookingSchema` (`roomTypeId`, วันที่, `guests` และข้อมูลแขกที่ไม่บังคับ)
-      ทำทุกขั้นใน `$transaction` เดียว:
+      ไม่ใช้ `$transaction` ครอบ — แต่ละ insert เป็นคำสั่งเดียว และให้ DB exclusion constraint `bookings_no_overlap` ตัดสิน (Postgres จะ abort transaction ทันทีที่เกิด error แรก ทำให้ retry ห้องถัดไปไม่ได้):
   1. เปลี่ยน booking PENDING ของ room type นี้ที่ `expiresAt < now()` ให้เป็น `EXPIRED`
   2. ตรวจว่า `guests ≤ capacity` และคำนวณราคาด้วย `quoteStay`
   3. หาห้องจริงที่ active และไม่มี booking active คืนทับกัน
