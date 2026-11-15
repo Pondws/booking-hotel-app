@@ -15,7 +15,7 @@
 - Counted bookings: `status IN (CONFIRMED, COMPLETED)` only.
 - Range: `from`/`to` inclusive night dates; default `to = todayIn(BOOKING_TZ)`, `from = to − 29`; one given → other is 29 nights away; `to < from` → 400; > `DASHBOARD_MAX_NIGHTS = 92` nights → 400.
 - Sellable rooms = `Room.isActive && RoomType.isActive && Hotel.isActive` in scope; 0 → `rate: null`.
-- Revenue per stayed night; split in minor units, remainder on the first night.
+- Revenue per stayed night; split in minor units, leftover satang on the earliest nights (one each).
 - `hotelId` not accessible → `403 FORBIDDEN`; STAFF without `hotelId` = assigned hotels only.
 - Lists max 20 items, ordered by guest name; `total` = full count.
 - UI copy Thai; theme tokens `chart-1` (occupancy), `chart-2` (revenue); no inline styles.

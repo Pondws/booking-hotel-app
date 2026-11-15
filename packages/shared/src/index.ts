@@ -855,6 +855,80 @@ export type CancelBookingData = z.output<typeof cancelBookingInputSchema>;
 export const moveBookingRoomInputSchema = z.object({ roomId: z.string().min(1, "Choose a room") });
 export type MoveBookingRoomInput = z.output<typeof moveBookingRoomInputSchema>;
 
+// ---------- Admin dashboard ----------
+export const DASHBOARD_MAX_NIGHTS = 92;
+export const DASHBOARD_DEFAULT_NIGHTS = 30;
+
+/** `from` / `to` are inclusive night dates; the API fills in whichever is missing. */
+export const adminDashboardQuerySchema = z
+  .object({
+    hotelId: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+    from: z.preprocess(blankToUndefined, isoDate.optional()),
+    to: z.preprocess(blankToUndefined, isoDate.optional()),
+  })
+  .superRefine((v, ctx) => {
+    if (v.from === undefined || v.to === undefined) return;
+    if (v.to < v.from) {
+      ctx.addIssue({ code: "custom", path: ["to"], message: "End date must be on or after the start date" });
+    } else if (nightsBetween(v.from, v.to) + 1 > DASHBOARD_MAX_NIGHTS) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["to"],
+        message: `The range can cover at most ${DASHBOARD_MAX_NIGHTS} nights`,
+      });
+    }
+  });
+export type AdminDashboardQuery = z.output<typeof adminDashboardQuerySchema>;
+
+export const adminDashboardStaySchema = z.object({
+  code: z.string(),
+  guestName: z.string(),
+  guests: z.number().int().min(1),
+  nights: z.number().int().min(1),
+  hotel: z.object({ id: z.string(), name: z.string() }),
+  roomType: z.object({ id: z.string(), name: z.string() }),
+  room: z.object({ id: z.string(), number: z.string() }),
+  /** Arrivals: already checked in. Departures: already checked out. */
+  done: z.boolean(),
+});
+export type AdminDashboardStay = z.infer<typeof adminDashboardStaySchema>;
+
+const dashboardStayListSchema = z.object({
+  total: z.number().int().min(0),
+  done: z.number().int().min(0),
+  /** First 20 by guest name. */
+  items: z.array(adminDashboardStaySchema),
+});
+
+export const adminDashboardSchema = z.object({
+  today: isoDate,
+  from: isoDate,
+  to: isoDate,
+  nights: z.number().int().min(1),
+  hotelCount: z.number().int().min(0),
+  /** Sellable rooms now (room, room type and hotel all active). */
+  roomCount: z.number().int().min(0),
+  arrivals: dashboardStayListSchema,
+  departures: dashboardStayListSchema,
+  inHouse: z.number().int().min(0),
+  occupancy: z.object({
+    roomNightsSold: z.number().int().min(0),
+    roomNightsAvailable: z.number().int().min(0),
+    /** 0..1 (can exceed 1 if rooms were deactivated after being sold); null when no room is sellable. */
+    rate: z.number().nullable(),
+    daily: z.array(z.object({ date: isoDate, sold: z.number().int().min(0), rate: z.number().nullable() })),
+  }),
+  /** One entry per currency in scope, largest total first (every hotel is THB today). */
+  revenue: z.array(
+    z.object({
+      currency: z.string(),
+      total: z.number(),
+      daily: z.array(z.object({ date: isoDate, amount: z.number() })),
+    }),
+  ),
+});
+export type AdminDashboard = z.infer<typeof adminDashboardSchema>;
+
 // ---------- Admin staff (ADMIN only) ----------
 export const adminStaffListQuerySchema = z.object({
   q: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),

@@ -32,7 +32,7 @@ hotels (same `HotelStaff` scope as 6.4), ADMIN sees all.
 | Hand-drawn SVG/Tailwind bars | no dependency, but no tooltips and more custom code | – |
 
 Revenue basis (builder's call): **per stayed night** — a booking's `totalAmount` is split evenly over its nights
-(minor units, the remainder goes to the first night so the parts sum exactly) and each night's share counts on that
+(minor units; leftover satang go to the earliest nights, one each, so the parts sum exactly) and each night's share counts on that
 date. This lines up with occupancy (same nights, same bookings). Payment-date revenue would put a stay's money on the
 day it was booked, which doesn't match the occupancy chart.
 
@@ -76,7 +76,7 @@ Fixture: own hotel + room type + 2 rooms + bookings with a unique prefix, cleane
 - occupancy: CONFIRMED + COMPLETED count, PENDING / CANCELLED don't; night outside range ignored; rate math.
 - revenue: 3-night booking of 1000.00 splits 333.34 / 333.33 / 333.33 and only in-range nights count.
 - today: arrival / departure / in-house counts and `done` flags.
-Unit test for the night-split helper (sums exactly, remainder on the first night).
+Unit test for the night-split helper (sums exactly, leftover on the earliest nights).
 
 ## Left to the builder
 
