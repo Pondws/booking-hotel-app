@@ -28,7 +28,7 @@ apps/
                          # register/, account/; layout.tsx (header + UserNav);
                          # providers.tsx (QueryClient; no retry on 4xx; Query/MutationCache 401 → me = null)
       components/        # app-wide components shared by several features (e.g. pagination.tsx)
-      features/<name>/   # one folder per feature (e.g. auth/, hotels/, health/):
+      features/<name>/   # one folder per feature (e.g. auth/, hotels/, bookings/, health/):
         api.ts           #   fetchers — call request()/requestNoContent() from lib/api.ts, never axios/fetch directly
         hooks.ts         #   TanStack Query hooks + key factory (e.g. hotelKeys.list(), authKeys.me())
         components/      #   feature UI (e.g. hotel-list.tsx, login-form.tsx, require-auth.tsx)
@@ -154,6 +154,11 @@ migration that touches constraints. There is no FE test runner — verify UI in 
 - Search/stay state (city, dates, guests, page) lives in the URL — parse/serialize via
   `features/hotels/search-params.ts`. Date rules come from `@booking/shared` (`BOOKING_TZ`, `MAX_NIGHTS`,
   `todayIn`, `stayRangeSchema`); never re-implement them in a component.
+- Bookings (`apps/web/src/features/bookings/`): `/book` reads the stay + room type from the URL
+  (`book-params.ts`), shows a live quote and creates a 15-minute `PENDING` hold (`HOLD_MINUTES`); the detail page
+  `/account/bookings/[code]` counts down with `use-countdown.ts` and refetches once at 00:00. A booking is
+  cancellable before its check-in day (`booking.cancellable` comes from the API). The API returns 409 `ROOM_UNAVAILABLE`
+  when the last room is gone and `CONFLICT` for the active-hold cap / non-cancellable bookings.
 - Styling: Tailwind utility classes + `cn()`; no inline styles.
 
 ## Adding a Feature (order)

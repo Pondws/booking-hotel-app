@@ -33,7 +33,7 @@ npm run db:seed             # ข้อมูลตัวอย่าง (โร
 npm run dev
 ```
 
-- Web: http://localhost:3000 (`/` ค้นหา, `/hotels` ผลค้นหา, `/hotels/<slug>` รายละเอียด + ราคาตามวันที่, `/login`, `/register`, `/account`)
+- Web: http://localhost:3000 (`/` ค้นหา, `/hotels` ผลค้นหา, `/hotels/<slug>` รายละเอียด + ราคาตามวันที่, `/book` จอง + hold 15 นาที, `/account/bookings` การจองของฉัน, `/account/bookings/<code>` รายละเอียด + นับถอยหลัง + ยกเลิก, `/login`, `/register`, `/account`)
 - Admin: http://localhost:3001 (`/login`; หน้าอื่นต้อง login เป็น ADMIN หรือ STAFF)
 - API: http://localhost:8000/api/health, http://localhost:8000/api/hotels
 
@@ -97,6 +97,10 @@ Response สำเร็จ: `{ "data": ... }` · Error: `{ "error": { "code": "
 | GET | `/api/hotels?city=&checkIn=&checkOut=&guests=&page=&pageSize=` | public — ค้นหาโรงแรม active แบบแบ่งหน้า (`{ items, page, pageSize, total, totalPages }`) |
 | GET | `/api/hotels/:slug` | public — รูป, amenities, room types ที่ active |
 | GET | `/api/hotels/:slug/availability?checkIn=&checkOut=&guests=` | public — ห้องว่าง + ราคาทีละคืนของแต่ละ room type |
+| POST | `/api/bookings` | `sid` — จอง room type (PENDING, hold 15 นาที; 409 `ROOM_UNAVAILABLE` ถ้าห้องหมด) |
+| GET | `/api/bookings/me?page=&pageSize=` | `sid` — การจองของฉัน แบบแบ่งหน้า |
+| GET | `/api/bookings/:code` | `sid` — เฉพาะเจ้าของ (คนอื่น = 404) |
+| POST | `/api/bookings/:code/cancel` | `sid` — ยกเลิกได้ก่อนวัน check-in (PENDING/CONFIRMED) |
 | POST | `/api/auth/register` | public (rate limited) |
 | POST | `/api/auth/login` / `logout` | public / `sid` |
 | GET | `/api/auth/me` | `sid` |
