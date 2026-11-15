@@ -4,6 +4,7 @@ import { requireRole } from "../../middleware/require-role";
 import { adminAmenitiesRouter } from "./amenities";
 import { adminBookingsRouter } from "./bookings";
 import { adminHotelsRouter } from "./hotels";
+import { adminStaffRouter } from "./staff";
 import { adminUploadsRouter } from "./uploads";
 
 export const adminRouter = Router();
@@ -12,4 +13,5 @@ adminRouter.use(loadSession("ADMIN"), requireRole("ADMIN", "STAFF"));
 adminRouter.use("/hotels", adminHotelsRouter);
 adminRouter.use("/amenities", adminAmenitiesRouter);
 adminRouter.use("/bookings", adminBookingsRouter);
+adminRouter.use("/staff", adminStaffRouter);
 adminRouter.use("/uploads", adminUploadsRouter);

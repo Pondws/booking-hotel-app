@@ -49,7 +49,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 3 | Catalog สาธารณะ + ห้องว่าง | ✅ เสร็จแล้ว |
 | 4 | Booking flow | ✅ เสร็จแล้ว |
 | 5 | Payments (Stripe, test mode) | ✅ เสร็จแล้ว (ยังไม่ได้ทดสอบ Stripe จริงในเบราว์เซอร์) |
-| 6 | Back-office (web-admin) | 🔄 กำลังทำ (6.1–6.4 ✅, ถัดไป 6.5 Staff + Amenity catalog) |
+| 6 | Back-office (web-admin) | 🔄 กำลังทำ (6.1–6.5 ✅, ถัดไป 6.6 Dashboard) |
 | 7 | Reviews | ⬜ |
 | 8 | Hardening และ deployment | ⬜ |
 
@@ -245,7 +245,7 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 | 6.2 | Room types + Rooms | `feat/admin-room-types` | ✅ |
 | 6.3 | Rate periods | `feat/admin-rate-periods` | ✅ |
 | 6.4 | Bookings | `feat/admin-bookings` | ✅ |
-| 6.5 | Staff + Amenity catalog (เฉพาะ ADMIN) | `feat/admin-staff` | ⬜ |
+| 6.5 | Staff + Amenity catalog (เฉพาะ ADMIN) | `feat/admin-staff` | ✅ |
 | 6.6 | Dashboard | `feat/admin-dashboard` | ⬜ |
 
 ### 6.1 — Admin shell + Hotels
@@ -284,8 +284,11 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-bookings-design.md`
       ยกเลิก (เหตุผลว่างแสดง error, การจองที่ชำระแล้วคืนเงินเต็มจำนวน), หน้าไม่พบการจอง
 
 ### 6.5 — Staff + Amenity catalog (เฉพาะ ADMIN)
-- [ ] Staff: สร้าง user STAFF และผูกกับโรงแรมหรือเอาออก
-- [ ] Catalog amenities: CRUD
+Spec: `docs/superpowers/specs/2026-11-15-admin-staff-design.md`
+- [x] Staff: สร้าง user STAFF (อีเมลซ้ำ → `409`), แก้ชื่อ/เบอร์โทร, ผูกกับโรงแรมหรือเอาออก (มีผลใน request ถัดไป)
+- [x] Catalog amenities: CRUD (scope แก้ไม่ได้หลังสร้าง, รหัสซ้ำ → `409`, ลบได้แม้ใช้อยู่ — dialog แสดงจำนวนที่ใช้)
+- [x] ตรวจในเบราว์เซอร์แล้ว (2026-11-15): สร้างพนักงาน (อีเมลซ้ำแสดง error), เพิ่ม/เอาโรงแรมออก,
+      เพิ่ม/แก้/ลบสิ่งอำนวยความสะดวก (รหัสซ้ำแสดง error, dialog ลบบอกจำนวนที่ใช้), STAFF ไม่เห็นเมนูและเปิดหน้าไม่ได้
 
 ### 6.6 — Dashboard
 - [ ] แขกเข้า/ออกวันนี้, อัตราการเข้าพัก และรายได้ตามช่วงวันที่ (stat tiles + กราฟ)

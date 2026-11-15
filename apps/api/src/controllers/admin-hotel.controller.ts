@@ -1,6 +1,5 @@
 import type {
   AdminHotelListQuery,
-  AmenityListQuery,
   HotelAmenitiesInput,
   HotelContentData,
   HotelIdParams,
@@ -12,7 +11,6 @@ import type { Request, Response } from "express";
 import { AppError } from "../lib/app-error";
 import { ok } from "../lib/http";
 import * as adminHotelService from "../services/admin-hotel.service";
-import * as amenityService from "../services/amenity.service";
 
 // Query and params are parsed by validate() into res.locals.
 export async function listAdminHotels(
@@ -28,13 +26,6 @@ export async function getAdminHotel(
   res: Response<unknown, { params: HotelIdParams }>,
 ) {
   ok(res, await adminHotelService.getAdminHotel(res.locals.params.hotelId));
-}
-
-export async function listAmenities(
-  _req: Request,
-  res: Response<unknown, { query: AmenityListQuery }>,
-) {
-  ok(res, await amenityService.listAmenities(res.locals.query.scope));
 }
 
 type HotelParams = { params: HotelIdParams };
