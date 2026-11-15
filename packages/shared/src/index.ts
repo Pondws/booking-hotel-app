@@ -226,6 +226,13 @@ const MAX_PRICE = 99_999_999.99;
 /** Whole cents only (`Decimal(10,2)` in the DB). */
 const hasAtMostTwoDecimals = (v: number) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6;
 
+/** A nightly price: 0–99,999,999.99 with at most 2 decimals (`Decimal(10,2)`). */
+const priceField = z
+  .number({ error: "Enter a price" })
+  .min(0, "Price can't be negative")
+  .max(MAX_PRICE, "Price is too high")
+  .refine(hasAtMostTwoDecimals, "Use at most 2 decimal places");
+
 /**
  * `POST /api/admin/hotels/:hotelId/room-types` and `PUT …/room-types/:roomTypeId` — the whole room type
  * (details, ordered images, ROOM amenities) saved in one transaction. `description: ""` clears it.
@@ -245,11 +252,7 @@ export const roomTypeInputSchema = z
       .int("Use a whole number")
       .min(1, "At least 1 guest")
       .max(ROOM_TYPE_MAX_CAPACITY, `At most ${ROOM_TYPE_MAX_CAPACITY} guests`),
-    basePrice: z
-      .number({ error: "Enter a price" })
-      .min(0, "Price can't be negative")
-      .max(MAX_PRICE, "Price is too high")
-      .refine(hasAtMostTwoDecimals, "Use at most 2 decimal places"),
+    basePrice: priceField,
     images: hotelImagesField,
     amenityIds: hotelAmenityIdsField,
   })
@@ -341,6 +344,43 @@ export const stayRangeSchema = z
   .superRefine((v, ctx) => refineStay(ctx, v.checkIn, v.checkOut));
 export type StayRange = z.output<typeof stayRangeSchema>;
 export type StayRangeInput = z.input<typeof stayRangeSchema>;
+
+// ---------- Admin rate periods (input) ----------
+export const RATE_PERIOD_MAX_NIGHTS = 366;
+
+/**
+ * `POST …/room-types/:roomTypeId/rate-periods` and `PUT …/rate-periods/:ratePeriodId` — `price` replaces the
+ * room type's base price for every night in `[startDate, endDate)`. `name: ""` clears it.
+ */
+export const ratePeriodInputSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .max(80, "At most 80 characters")
+      .nullable()
+      .optional()
+      .transform((v) => (v === "" || v === undefined ? null : v)),
+    startDate: z.iso.date({ error: "Pick the dates" }),
+    endDate: z.iso.date({ error: "Pick the dates" }),
+    price: priceField,
+  })
+  .superRefine((v, ctx) => {
+    if (v.endDate <= v.startDate) {
+      ctx.addIssue({ code: "custom", path: ["endDate"], message: "The end date must be after the start date" });
+    } else if (nightsBetween(v.startDate, v.endDate) > RATE_PERIOD_MAX_NIGHTS) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["endDate"],
+        message: `A rate period can cover at most ${RATE_PERIOD_MAX_NIGHTS} nights`,
+      });
+    }
+  });
+export type RatePeriodInput = z.input<typeof ratePeriodInputSchema>;
+export type RatePeriodData = z.output<typeof ratePeriodInputSchema>;
+
+export const ratePeriodParamsSchema = roomTypeParamsSchema.extend({ ratePeriodId: z.string().min(1) });
+export type RatePeriodParams = z.output<typeof ratePeriodParamsSchema>;
 
 export const hotelSearchQuerySchema = z
   .object({
@@ -517,6 +557,22 @@ export const adminRoomTypeSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 export type AdminRoomType = z.infer<typeof adminRoomTypeSchema>;
+
+export const adminRatePeriodSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  /** First night priced at `price`. */
+  startDate: z.iso.date(),
+  /** Exclusive: the night of `endDate` is back to the base price (or the next period). */
+  endDate: z.iso.date(),
+  nights: z.number().int(),
+  price: z.number(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+export type AdminRatePeriod = z.infer<typeof adminRatePeriodSchema>;
+
+export const adminRatePeriodListSchema = z.array(adminRatePeriodSchema);
 
 export const roomTypeSchema = z.object({
   id: z.string(),

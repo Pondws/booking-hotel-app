@@ -19,6 +19,7 @@ import {
   updateRoom,
 } from "../../controllers/admin-room-type.controller";
 import { validate } from "../../middleware/validate";
+import { adminRatePeriodsRouter } from "./rate-periods";
 
 /**
  * `/api/admin/hotels/:hotelId/room-types` — mounted behind `requireHotelAccess()` in `hotels.ts`, so
@@ -55,6 +56,8 @@ adminRoomTypesRouter.post(
   validate({ params: roomTypeParamsSchema, body: createRoomSchema }),
   addRoom,
 );
+
+adminRoomTypesRouter.use("/:roomTypeId/rate-periods", adminRatePeriodsRouter);
 
 adminRoomTypesRouter.patch(
   "/:roomTypeId/rooms/:roomId",

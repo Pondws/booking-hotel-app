@@ -7,6 +7,7 @@ import type {
 import { Prisma } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
 import { imageOrder } from "../lib/image-order";
+import { toPrice } from "../lib/money";
 import { prisma } from "../lib/prisma";
 import { isUniqueViolationOn } from "../lib/prisma-errors";
 import { assertHotelExists } from "./admin-hotel.service";
@@ -51,9 +52,6 @@ function toAdminRoomType(row: AdminRoomTypeRow): AdminRoomType {
   };
 }
 
-/** `Decimal(10,2)` from a validated number (≤ 2 decimals) without float noise. */
-const toPrice = (value: number) => new Prisma.Decimal(value.toFixed(2));
-
 const notFound = () => new AppError(404, "NOT_FOUND", "Room type not found");
 
 export async function listRoomTypes(hotelId: string): Promise<AdminRoomTypeSummary[]> {
@@ -95,7 +93,7 @@ export async function getRoomType(hotelId: string, roomTypeId: string): Promise<
   return toAdminRoomType(row);
 }
 
-async function assertRoomTypeInHotel(hotelId: string, roomTypeId: string): Promise<void> {
+export async function assertRoomTypeInHotel(hotelId: string, roomTypeId: string): Promise<void> {
   const found = await prisma.roomType.findFirst({
     where: { id: roomTypeId, hotelId },
     select: { id: true },
