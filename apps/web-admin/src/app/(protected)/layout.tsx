@@ -1,12 +1,11 @@
 import type { ReactNode } from "react";
-import { AdminHeader } from "@/features/auth/components/admin-header";
+import { AdminShell } from "@/components/admin-shell";
 import { RequireAuth } from "@/features/auth/components/require-auth";
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
     <RequireAuth>
-      <AdminHeader />
-      {children}
+      <AdminShell>{children}</AdminShell>
     </RequireAuth>
   );
 }
