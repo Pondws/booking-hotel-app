@@ -25,15 +25,15 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (isError) {
     return (
       <div className="space-y-3 py-10 text-center">
-        <p className="text-destructive">Could not load your session.</p>
+        <p className="text-destructive">โหลดข้อมูลการเข้าสู่ระบบไม่สำเร็จ</p>
         <Button variant="outline" onClick={() => void refetch()}>
-          Try again
+          ลองอีกครั้ง
         </Button>
       </div>
     );
   }
   if (isPending || user === null) {
-    return <p className="py-10 text-center text-muted-foreground">Loading…</p>;
+    return <p className="py-10 text-center text-muted-foreground">กำลังโหลด…</p>;
   }
   return <>{children}</>;
 }

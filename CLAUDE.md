@@ -41,7 +41,9 @@ apps/
                          # per phase); features/hotels/ (adminHotelKeys, list-params.ts), features/amenities/,
                          # features/room-types/ (adminRoomTypeKeys), features/rate-periods/ (adminRatePeriodKeys, RatesCard on
                          # the room type page); components/form-header.tsx + form-field.tsx and
-                         # ImagesSection / AmenitiesSection (useFormContext) are shared by the hotel + room type forms
+                         # ImagesSection / AmenitiesSection (useFormContext) are shared by the hotel + room type forms;
+                         # UI copy is Thai (hardcoded, no i18n lib): lib/messages-th.ts toThai() translates shared-schema
+                         # + API messages, thaiResolver(zodResolver(...)) for forms; lib/zod-locale.ts = zod's th locale
   api/
     src/
       index.ts           # starts server (env.PORT)

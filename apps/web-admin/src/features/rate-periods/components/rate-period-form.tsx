@@ -12,6 +12,7 @@ import { Button } from "@booking/ui/components/button";
 import { Input } from "@booking/ui/components/input";
 import { Field } from "@/components/form-field";
 import { applyServerFieldErrors, formErrorMessage } from "@/lib/form-errors";
+import { thaiResolver } from "@/lib/messages-th";
 import { useCreateRatePeriod, useUpdateRatePeriod } from "../hooks";
 import { PeriodRangeField } from "./period-range-field";
 
@@ -38,7 +39,7 @@ export function RatePeriodForm({ hotelId, roomTypeId, currency, period, onDone }
     setValue,
     formState: { errors, isSubmitted },
   } = useForm<RatePeriodInput, unknown, RatePeriodData>({
-    resolver: zodResolver(ratePeriodInputSchema),
+    resolver: thaiResolver(zodResolver(ratePeriodInputSchema)),
     defaultValues: period
       ? { name: period.name ?? "", startDate: period.startDate, endDate: period.endDate, price: period.price }
       : { name: "", startDate: "", endDate: "" },
@@ -52,7 +53,7 @@ export function RatePeriodForm({ hotelId, roomTypeId, currency, period, onDone }
   return (
     <form
       noValidate
-      aria-label={period ? "Edit rate period" : "New rate period"}
+      aria-label={period ? "แก้ไขช่วงราคา" : "เพิ่มช่วงราคา"}
       className="space-y-4 rounded-lg border p-4"
       onSubmit={handleSubmit((data) =>
         mutation.mutate(data, {
@@ -61,17 +62,17 @@ export function RatePeriodForm({ hotelId, roomTypeId, currency, period, onDone }
         }),
       )}
     >
-      <p className="font-medium">{period ? "Edit rate period" : "New rate period"}</p>
+      <p className="font-medium">{period ? "แก้ไขช่วงราคา" : "เพิ่มช่วงราคา"}</p>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="rate-name" label="Name (optional)" error={errors.name?.message}>
+        <Field id="rate-name" label="ชื่อ (ไม่บังคับ)" error={errors.name?.message}>
           <Input
             id="rate-name"
-            placeholder="e.g. High season"
+            placeholder="เช่น ช่วงไฮซีซั่น"
             aria-invalid={!!errors.name}
             {...register("name", { onChange: () => mutation.reset() })}
           />
         </Field>
-        <Field id="rate-price" label={`Price per night (${currency})`} error={errors.price?.message}>
+        <Field id="rate-price" label={`ราคาต่อคืน (${currency})`} error={errors.price?.message}>
           <Input
             id="rate-price"
             type="number"
@@ -82,7 +83,7 @@ export function RatePeriodForm({ hotelId, roomTypeId, currency, period, onDone }
             {...register("price", { valueAsNumber: true, onChange: () => mutation.reset() })}
           />
         </Field>
-        <Field id="rate-dates" label="Nights" error={datesError} className="sm:col-span-2">
+        <Field id="rate-dates" label="คืนที่ใช้ราคานี้" error={datesError} className="sm:col-span-2">
           <PeriodRangeField
             id="rate-dates"
             invalid={!!datesError}
@@ -96,8 +97,7 @@ export function RatePeriodForm({ hotelId, roomTypeId, currency, period, onDone }
             }}
           />
           <p id="rate-dates-hint" className="text-sm text-muted-foreground">
-            Pick the first night, then the day the price ends — like check-in and check-out. That night is
-            back at the base price.
+            เลือกคืนแรก แล้วเลือกวันที่ราคานี้สิ้นสุด เหมือนวันเช็คอินและเช็คเอาท์ คืนของวันสิ้นสุดจะกลับไปใช้ราคาพื้นฐาน
           </p>
         </Field>
       </div>
@@ -108,10 +108,10 @@ export function RatePeriodForm({ hotelId, roomTypeId, currency, period, onDone }
       )}
       <div className="flex gap-2">
         <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? "Saving…" : period ? "Save" : "Add rate period"}
+          {mutation.isPending ? "กำลังบันทึก…" : period ? "บันทึก" : "เพิ่มช่วงราคา"}
         </Button>
         <Button type="button" variant="ghost" disabled={mutation.isPending} onClick={onDone}>
-          Cancel
+          ยกเลิก
         </Button>
       </div>
     </form>

@@ -26,17 +26,17 @@ const instance = axios.create({
 instance.interceptors.response.use(undefined, (error: unknown) => {
   if (!axios.isAxiosError(error)) throw error;
   const res = error.response;
-  if (!res) throw new ApiError(0, "NETWORK_ERROR", "Cannot reach the server");
+  if (!res) throw new ApiError(0, "NETWORK_ERROR", "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
   const parsed = apiErrorSchema.safeParse(res.data);
   if (parsed.success) {
     const { code, message, details } = parsed.data.error;
     throw new ApiError(res.status, code, message, details);
   }
-  throw new ApiError(res.status, "INTERNAL", `Request failed with status ${res.status}`);
+  throw new ApiError(res.status, "INTERNAL", `คำขอล้มเหลว (สถานะ ${res.status})`);
 });
 
 function unexpectedResponse(status: number, error: z.ZodError): ApiError {
-  return new ApiError(status, "INTERNAL", "Unexpected response from server", z.flattenError(error));
+  return new ApiError(status, "INTERNAL", "ได้รับข้อมูลจากเซิร์ฟเวอร์ไม่ถูกต้อง", z.flattenError(error));
 }
 
 /** Sends the request and validates the `{ data }` envelope with a zod schema. */

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BOOKING_TZ, RATE_PERIOD_MAX_NIGHTS, nightsBetween, todayIn } from "@booking/shared";
 import { Button } from "@booking/ui/components/button";
 import { Calendar } from "@booking/ui/components/calendar";
+import { th } from "@booking/ui/lib/calendar-locales";
 import { Popover, PopoverContent, PopoverTrigger } from "@booking/ui/components/popover";
 import { cn } from "@booking/ui/lib/utils";
 import { formatDate, formatDateRange } from "@/features/room-types/format";
@@ -34,13 +35,16 @@ function addDays(date: Date, n: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + n);
 }
 
+// Month captions with the Buddhist-era year, like the rest of the back-office (`เมษายน 2570`)
+const captionFormat = new Intl.DateTimeFormat("th-TH", { month: "long", year: "numeric" });
+
 function label({ startDate, endDate }: PeriodRangeValue): string {
   if (startDate && endDate) {
     const nights = nightsBetween(startDate, endDate);
-    return `${formatDateRange(startDate, endDate)} · ${nights} ${nights === 1 ? "night" : "nights"}`;
+    return `${formatDateRange(startDate, endDate)} · ${nights} คืน`;
   }
-  if (startDate) return `${formatDate(startDate)} – end?`;
-  return "Pick dates";
+  if (startDate) return `${formatDate(startDate)} – เลือกวันสิ้นสุด`;
+  return "เลือกวันที่";
 }
 
 /**
@@ -70,6 +74,8 @@ export function PeriodRangeField({ value, onChange, id, invalid, describedBy }: 
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="range"
+          locale={th}
+          formatters={{ formatCaption: (month) => captionFormat.format(month) }}
           numberOfMonths={2}
           defaultMonth={from ?? toLocalDate(todayIn(BOOKING_TZ))}
           selected={{ from, to }}

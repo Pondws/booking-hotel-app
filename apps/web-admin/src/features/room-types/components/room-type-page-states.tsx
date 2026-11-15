@@ -19,14 +19,14 @@ export function RoomTypePageError({
     return (
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">
-          {status === 403 ? "You don't have access to this hotel" : "Room type not found"}
+          {status === 403 ? "คุณไม่มีสิทธิ์เข้าถึงโรงแรมนี้" : "ไม่พบประเภทห้อง"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {status === 403 ? "Ask an admin to assign you to it." : "It may have been deleted, or the link is wrong."}
+          {status === 403 ? "ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์เข้าถึง" : "ประเภทห้องอาจถูกลบไปแล้ว หรือลิงก์ไม่ถูกต้อง"}
         </p>
         <Button asChild variant="link" className="px-0">
           <Link href={status === 403 ? "/hotels" : `/hotels/${hotelId}`}>
-            {status === 403 ? "Back to hotels" : "Back to the hotel"}
+            {status === 403 ? "กลับไปที่รายการโรงแรม" : "กลับไปที่โรงแรม"}
           </Link>
         </Button>
       </div>
@@ -34,9 +34,9 @@ export function RoomTypePageError({
   }
   return (
     <div role="alert" className="space-y-2">
-      <h1 className="text-2xl font-semibold tracking-tight">Couldn&apos;t load this page</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">โหลดหน้านี้ไม่สำเร็จ</h1>
       <Button variant="outline" onClick={onRetry}>
-        Try again
+        ลองอีกครั้ง
       </Button>
     </div>
   );

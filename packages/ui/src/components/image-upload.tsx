@@ -18,6 +18,8 @@ type ImageUploadProps = {
   uploading?: boolean
   /** Main line of the drop zone. */
   label?: React.ReactNode
+  /** Main line while `uploading`. */
+  uploadingLabel?: React.ReactNode
   /** Secondary line, e.g. "JPEG, PNG or WebP, up to 5 MB". */
   hint?: React.ReactNode
   id?: string
@@ -36,6 +38,7 @@ function ImageUpload({
   disabled = false,
   uploading = false,
   label,
+  uploadingLabel = "Uploading…",
   hint,
   id,
   className,
@@ -79,7 +82,7 @@ function ImageUpload({
     >
       <ImageUp className="size-5 text-muted-foreground" aria-hidden />
       <span className="font-medium">
-        {uploading ? "Uploading…" : (label ?? (multiple ? "Upload images" : "Upload an image"))}
+        {uploading ? uploadingLabel : (label ?? (multiple ? "Upload images" : "Upload an image"))}
       </span>
       {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       <input

@@ -1,9 +1,12 @@
 "use client";
 
+import type { Role } from "@booking/shared";
 import { Badge } from "@booking/ui/components/badge";
 import { Button } from "@booking/ui/components/button";
 import { useLogout, useMe } from "../hooks";
 import { markExplicitLogout, resetExplicitLogout } from "../logout-intent";
+
+const ROLE_LABELS: Record<Role, string> = { ADMIN: "ผู้ดูแลระบบ", STAFF: "พนักงาน", CUSTOMER: "ลูกค้า" };
 
 /** Signed-in user's name, role and Log out — shown in the admin shell's sidebar footer. */
 export function AdminUserBlock() {
@@ -15,7 +18,7 @@ export function AdminUserBlock() {
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-sm font-medium">{user.name}</span>
-        <Badge variant="secondary">{user.role}</Badge>
+        <Badge variant="secondary">{ROLE_LABELS[user.role]}</Badge>
       </div>
       <Button
         variant="outline"
@@ -28,7 +31,7 @@ export function AdminUserBlock() {
           logout.mutate(undefined, { onError: resetExplicitLogout });
         }}
       >
-        {logout.isPending ? "Logging out…" : "Log out"}
+        {logout.isPending ? "กำลังออกจากระบบ…" : "ออกจากระบบ"}
       </Button>
     </div>
   );

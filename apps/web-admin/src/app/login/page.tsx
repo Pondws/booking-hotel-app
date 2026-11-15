@@ -7,8 +7,8 @@ export default function LoginPage() {
     <main className="mx-auto w-full max-w-sm px-4 py-12">
       <Card>
         <CardHeader>
-          <CardTitle>Admin log in</CardTitle>
-          <CardDescription>Staff and administrators only.</CardDescription>
+          <CardTitle>เข้าสู่ระบบหลังบ้าน</CardTitle>
+          <CardDescription>สำหรับพนักงานและผู้ดูแลระบบเท่านั้น</CardDescription>
         </CardHeader>
         <CardContent>
           <Suspense>

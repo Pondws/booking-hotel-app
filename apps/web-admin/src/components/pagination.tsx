@@ -9,7 +9,7 @@ type Props = {
 };
 
 /** Previous / Next links with "Page x of y" — same pattern as the customer site. */
-export function Pagination({ page, totalPages, hrefFor, label = "Results pages" }: Props) {
+export function Pagination({ page, totalPages, hrefFor, label = "หน้าผลลัพธ์" }: Props) {
   if (totalPages <= 1 && page <= 1) return null;
   const hasPrev = page > 1;
   const hasNext = page < totalPages;
@@ -19,26 +19,26 @@ export function Pagination({ page, totalPages, hrefFor, label = "Results pages" 
       {hasPrev ? (
         <Button asChild variant="outline">
           <Link href={hrefFor(Math.min(page - 1, totalPages))} rel="prev">
-            Previous
+            ก่อนหน้า
           </Link>
         </Button>
       ) : (
         <Button variant="outline" disabled>
-          Previous
+          ก่อนหน้า
         </Button>
       )}
       <p className="text-sm text-muted-foreground tabular-nums">
-        Page {page} of {totalPages}
+        หน้า {page} จาก {totalPages}
       </p>
       {hasNext ? (
         <Button asChild variant="outline">
           <Link href={hrefFor(page + 1)} rel="next">
-            Next
+            ถัดไป
           </Link>
         </Button>
       ) : (
         <Button variant="outline" disabled>
-          Next
+          ถัดไป
         </Button>
       )}
     </nav>

@@ -34,18 +34,18 @@ export function HotelStatusDialog({ hotel }: { hotel: AdminHotel }) {
     >
       <AlertDialogTrigger asChild>
         <Button type="button" variant="outline">
-          {deactivating ? "Deactivate" : "Reactivate"}
+          {deactivating ? "ปิดใช้งาน" : "เปิดใช้งานอีกครั้ง"}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {deactivating ? `Deactivate ${hotel.name}?` : `Reactivate ${hotel.name}?`}
+            {deactivating ? `ปิดใช้งาน ${hotel.name}?` : `เปิดใช้งาน ${hotel.name} อีกครั้ง?`}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {deactivating
-              ? "It disappears from search and can't be booked. Existing bookings are kept."
-              : "It shows up in search again and can be booked."}
+              ? "โรงแรมจะไม่แสดงในผลการค้นหาและจองไม่ได้ การจองที่มีอยู่จะยังคงอยู่"
+              : "โรงแรมจะแสดงในผลการค้นหาและจองได้อีกครั้ง"}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {mutation.isError && (
@@ -54,7 +54,7 @@ export function HotelStatusDialog({ hotel }: { hotel: AdminHotel }) {
           </p>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={mutation.isPending}>ยกเลิก</AlertDialogCancel>
           <AlertDialogAction
             disabled={mutation.isPending}
             onClick={(event) => {
@@ -65,11 +65,11 @@ export function HotelStatusDialog({ hotel }: { hotel: AdminHotel }) {
           >
             {mutation.isPending
               ? deactivating
-                ? "Deactivating…"
-                : "Reactivating…"
+                ? "กำลังปิดใช้งาน…"
+                : "กำลังเปิดใช้งาน…"
               : deactivating
-                ? "Deactivate"
-                : "Reactivate"}
+                ? "ปิดใช้งาน"
+                : "เปิดใช้งานอีกครั้ง"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

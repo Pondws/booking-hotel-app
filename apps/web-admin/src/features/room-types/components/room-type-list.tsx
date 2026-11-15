@@ -24,11 +24,11 @@ export function RoomTypeList({ hotelId, currency }: { hotelId: string; currency:
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-        <CardTitle>Room types</CardTitle>
+        <CardTitle>ประเภทห้อง</CardTitle>
         <Button asChild variant="outline">
           <Link href={`/hotels/${hotelId}/room-types/new`}>
             <Plus className="size-4" aria-hidden />
-            New room type
+            เพิ่มประเภทห้อง
           </Link>
         </Button>
       </CardHeader>
@@ -41,25 +41,25 @@ export function RoomTypeList({ hotelId, currency }: { hotelId: string; currency:
           </div>
         ) : isError ? (
           <div role="alert" className="space-y-2">
-            <p className="text-sm">Couldn&apos;t load room types.</p>
+            <p className="text-sm">โหลดรายการประเภทห้องไม่สำเร็จ</p>
             <Button variant="outline" onClick={() => void refetch()}>
-              Try again
+              ลองอีกครั้ง
             </Button>
           </div>
         ) : data.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No room types yet. Add one so guests can book this hotel.
+            ยังไม่มีประเภทห้อง เพิ่มอย่างน้อย 1 ประเภทเพื่อให้ลูกค้าจองโรงแรมนี้ได้
           </p>
         ) : (
           <div className="rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="text-right">Guests</TableHead>
-                  <TableHead className="text-right">Base price / night</TableHead>
-                  <TableHead className="text-right">Rooms active</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>ชื่อ</TableHead>
+                  <TableHead className="text-right">ผู้เข้าพัก</TableHead>
+                  <TableHead className="text-right">ราคาพื้นฐาน / คืน</TableHead>
+                  <TableHead className="text-right">ห้องที่เปิดใช้งาน</TableHead>
+                  <TableHead>สถานะ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

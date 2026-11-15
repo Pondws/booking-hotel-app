@@ -8,7 +8,7 @@ import { HotelForm } from "@/features/hotels/components/hotel-form";
 export default function NewHotelPage() {
   const { data: me } = useMe();
   const heading = (
-    <h1 className="text-2xl font-semibold tracking-tight">New hotel</h1>
+    <h1 className="text-2xl font-semibold tracking-tight">เพิ่มโรงแรม</h1>
   );
 
   return (
@@ -20,11 +20,11 @@ export default function NewHotelPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             {heading}
             <Button asChild variant="outline">
-              <Link href="/hotels">Back</Link>
+              <Link href="/hotels">กลับ</Link>
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            You don&apos;t have access to this page.
+            คุณไม่มีสิทธิ์เข้าถึงหน้านี้
           </p>
         </>
       )}

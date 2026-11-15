@@ -31,11 +31,11 @@ export function ImagesSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Images</CardTitle>
+        <CardTitle>รูปภาพ</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {fields.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No images yet</p>
+          <p className="text-sm text-muted-foreground">ยังไม่มีรูปภาพ</p>
         ) : (
           <ol className="space-y-4">
             {fields.map((field, index) => {
@@ -50,13 +50,13 @@ export function ImagesSection() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={preview}
-                        alt={images[index]?.alt || `Image ${n}`}
+                        alt={images[index]?.alt || `รูปภาพที่ ${n}`}
                         className="size-full object-cover"
                       />
                     )}
                   </div>
                   <div className="grid flex-1 gap-3">
-                    <Field id={`image-${index}-url`} label={`Image ${n} URL`} error={rowErrors?.url?.message}>
+                    <Field id={`image-${index}-url`} label={`URL รูปภาพที่ ${n}`} error={rowErrors?.url?.message}>
                       <Input
                         id={`image-${index}-url`}
                         type="url"
@@ -66,7 +66,7 @@ export function ImagesSection() {
                     </Field>
                     <Field
                       id={`image-${index}-alt`}
-                      label={`Image ${n} alt text`}
+                      label={`ข้อความแทนรูปภาพที่ ${n}`}
                       error={rowErrors?.alt?.message}
                     >
                       <Input
@@ -81,7 +81,7 @@ export function ImagesSection() {
                       type="button"
                       variant="outline"
                       size="icon"
-                      aria-label={`Move image ${n} up`}
+                      aria-label={`เลื่อนรูปภาพที่ ${n} ขึ้น`}
                       disabled={index === 0}
                       onClick={() => move(index, index - 1)}
                     >
@@ -91,7 +91,7 @@ export function ImagesSection() {
                       type="button"
                       variant="outline"
                       size="icon"
-                      aria-label={`Move image ${n} down`}
+                      aria-label={`เลื่อนรูปภาพที่ ${n} ลง`}
                       disabled={index === fields.length - 1}
                       onClick={() => move(index, index + 1)}
                     >
@@ -101,7 +101,7 @@ export function ImagesSection() {
                       type="button"
                       variant="outline"
                       size="icon"
-                      aria-label={`Remove image ${n}`}
+                      aria-label={`ลบรูปภาพที่ ${n}`}
                       onClick={() => remove(index)}
                     >
                       <X className="size-4" aria-hidden />
@@ -117,7 +117,9 @@ export function ImagesSection() {
           multiple
           maxFiles={remaining}
           accept={IMAGE_ACCEPT}
-          hint={remaining > 0 ? `${IMAGE_UPLOAD_HINT} · ${remaining} left` : `Limit of ${MAX_IMAGES} reached`}
+          label="อัปโหลดรูปภาพ"
+          uploadingLabel="กำลังอัปโหลด…"
+          hint={remaining > 0 ? `${IMAGE_UPLOAD_HINT} · เพิ่มได้อีก ${remaining} รูป` : `ครบ ${MAX_IMAGES} รูปแล้ว`}
           disabled={remaining <= 0}
           uploading={upload.isPending}
           onSelect={(files) =>
@@ -128,7 +130,7 @@ export function ImagesSection() {
         />
         {upload.data && upload.data.failed.length > 0 && (
           <p role="alert" className="text-sm text-destructive">
-            Not uploaded: {upload.data.failed.map((f) => `${f.name} (${f.reason})`).join(", ")}
+            อัปโหลดไม่สำเร็จ: {upload.data.failed.map((f) => `${f.name} (${f.reason})`).join(", ")}
           </p>
         )}
         {upload.isError && (
@@ -143,7 +145,7 @@ export function ImagesSection() {
           onClick={() => append({ url: "", alt: "" })}
         >
           <Plus className="size-4" aria-hidden />
-          Add image URL
+          เพิ่ม URL รูปภาพ
         </Button>
       </CardContent>
     </Card>

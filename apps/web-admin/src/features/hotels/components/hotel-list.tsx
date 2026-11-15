@@ -25,12 +25,12 @@ import { useAdminHotels } from "../hooks";
 import { parseListParams, serializeListParams } from "../list-params";
 
 const STATUS_OPTIONS = [
-  { value: "all", label: "All statuses" },
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
+  { value: "all", label: "ทุกสถานะ" },
+  { value: "active", label: "เปิดใช้งาน" },
+  { value: "inactive", label: "ปิดใช้งาน" },
 ] as const;
 
-const dateFormat = new Intl.DateTimeFormat("en-GB", {
+const dateFormat = new Intl.DateTimeFormat("th-TH", {
   day: "numeric",
   month: "short",
   year: "numeric",
@@ -42,13 +42,13 @@ function isStatus(value: string): value is AdminHotelListQuery["status"] {
 }
 
 export function HotelStatusBadge({ isActive }: { isActive: boolean }) {
-  return <Badge variant={isActive ? "secondary" : "outline"}>{isActive ? "Active" : "Inactive"}</Badge>;
+  return <Badge variant={isActive ? "secondary" : "outline"}>{isActive ? "เปิดใช้งาน" : "ปิดใช้งาน"}</Badge>;
 }
 
 const COLUMNS: DataTableColumn<AdminHotelSummary>[] = [
   {
     id: "name",
-    header: "Name",
+    header: "ชื่อ",
     className: "font-medium",
     cell: (hotel) => (
       <Link href={`/hotels/${hotel.id}`} className="hover:underline">
@@ -56,11 +56,11 @@ const COLUMNS: DataTableColumn<AdminHotelSummary>[] = [
       </Link>
     ),
   },
-  { id: "city", header: "City", cell: (hotel) => hotel.city },
-  { id: "status", header: "Status", cell: (hotel) => <HotelStatusBadge isActive={hotel.isActive} /> },
+  { id: "city", header: "เมือง", cell: (hotel) => hotel.city },
+  { id: "status", header: "สถานะ", cell: (hotel) => <HotelStatusBadge isActive={hotel.isActive} /> },
   {
     id: "updated",
-    header: "Updated",
+    header: "อัปเดตล่าสุด",
     className: "text-muted-foreground tabular-nums",
     cell: (hotel) => dateFormat.format(new Date(hotel.updatedAt)),
   },
@@ -92,15 +92,15 @@ export function HotelList() {
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="hotel-search">Search</Label>
-            <Input id="hotel-search" name="q" placeholder="Name or city" defaultValue={query.q ?? ""} />
+            <Label htmlFor="hotel-search">ค้นหา</Label>
+            <Input id="hotel-search" name="q" placeholder="ชื่อหรือเมือง" defaultValue={query.q ?? ""} />
           </div>
           <Button type="submit" variant="outline">
-            Search
+            ค้นหา
           </Button>
         </form>
         <div className="space-y-2">
-          <Label htmlFor="hotel-status">Status</Label>
+          <Label htmlFor="hotel-status">สถานะ</Label>
           <Select
             value={query.status}
             onValueChange={(value) => {
@@ -125,33 +125,33 @@ export function HotelList() {
         <DataTableSkeleton />
       ) : isError ? (
         <div role="alert" className="space-y-2">
-          <p className="text-sm">Couldn&apos;t load hotels.</p>
+          <p className="text-sm">โหลดรายการโรงแรมไม่สำเร็จ</p>
           <Button variant="outline" onClick={() => void refetch()}>
-            Try again
+            ลองอีกครั้ง
           </Button>
         </div>
       ) : data.items.length === 0 ? (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
             {hasFilters
-              ? "No hotels match these filters"
+              ? "ไม่พบโรงแรมที่ตรงกับตัวกรอง"
               : me?.role === "ADMIN"
-                ? "No hotels yet"
-                : "No hotels assigned to you"}
+                ? "ยังไม่มีโรงแรม"
+                : "ยังไม่มีโรงแรมที่มอบหมายให้คุณ"}
           </p>
           {hasFilters && (
             <Button asChild variant="link" className="px-0">
-              <Link href={pathname}>Clear filters</Link>
+              <Link href={pathname}>ล้างตัวกรอง</Link>
             </Button>
           )}
         </div>
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground" aria-live="polite">
-            {data.total} {data.total === 1 ? "hotel" : "hotels"}
+            {data.total} โรงแรม
           </p>
           <DataTable
-            caption="Hotels"
+            caption="โรงแรม"
             columns={COLUMNS}
             rows={data.items}
             getRowKey={(hotel) => hotel.id}
@@ -161,7 +161,7 @@ export function HotelList() {
             page={data.page}
             totalPages={data.totalPages}
             hrefFor={(page) => `${pathname}${serializeListParams({ ...query, page })}`}
-            label="Hotel pages"
+            label="หน้ารายการโรงแรม"
           />
         </div>
       )}

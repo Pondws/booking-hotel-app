@@ -20,7 +20,7 @@ export default function NewRoomTypePage() {
         <RoomTypeForm
           hotelId={hotel.id}
           currency={hotel.currency}
-          heading={<RoomTypeHeading hotel={hotel} title="New room type" />}
+          heading={<RoomTypeHeading hotel={hotel} title="เพิ่มประเภทห้อง" />}
         />
       )}
     </main>

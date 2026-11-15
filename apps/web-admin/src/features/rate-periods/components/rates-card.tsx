@@ -39,16 +39,16 @@ export function RatesCard({ roomType }: { roomType: AdminRoomType }) {
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
         <div className="space-y-1.5">
-          <CardTitle>Rates</CardTitle>
+          <CardTitle>ราคา</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Base price {formatMoney(roomType.basePrice, currency)} per night. A rate period replaces it for
-            the nights it covers. Existing bookings keep their price.
+            ราคาพื้นฐาน {formatMoney(roomType.basePrice, currency)} ต่อคืน ช่วงราคาจะใช้แทนราคาพื้นฐานในคืนที่ครอบคลุม
+            การจองที่มีอยู่จะใช้ราคาเดิม
           </p>
         </div>
         {editor === null && (
           <Button type="button" variant="outline" onClick={() => setEditor({ mode: "new" })}>
             <Plus className="size-4" aria-hidden />
-            Add rate period
+            เพิ่มช่วงราคา
           </Button>
         )}
       </CardHeader>
@@ -70,16 +70,16 @@ export function RatesCard({ roomType }: { roomType: AdminRoomType }) {
           <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
             <span className="text-destructive">{formErrorMessage(error)}</span>
             <Button type="button" size="sm" variant="outline" onClick={() => void refetch()}>
-              Try again
+              ลองอีกครั้ง
             </Button>
           </div>
         ) : periods.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No rate periods — every night is at the base price.
+            ยังไม่มีช่วงราคา ทุกคืนใช้ราคาพื้นฐาน
           </p>
         ) : (
           <DataTable
-            caption={`Rate periods of ${roomType.name}`}
+            caption={`ช่วงราคาของ ${roomType.name}`}
             columns={columns(roomType, currency, (period) => setEditor({ mode: "edit", period }))}
             rows={periods}
             getRowKey={(p) => p.id}
@@ -92,8 +92,8 @@ export function RatesCard({ roomType }: { roomType: AdminRoomType }) {
 }
 
 function PeriodStatus({ period, today }: { period: AdminRatePeriod; today: string }) {
-  if (period.endDate <= today) return <Badge variant="outline">Ended</Badge>;
-  if (period.startDate <= today) return <Badge variant="secondary">Now</Badge>;
+  if (period.endDate <= today) return <Badge variant="outline">สิ้นสุดแล้ว</Badge>;
+  if (period.startDate <= today) return <Badge variant="secondary">กำลังใช้</Badge>;
   return null;
 }
 
@@ -106,18 +106,18 @@ function columns(
   return [
     {
       id: "name",
-      header: "Name",
+      header: "ชื่อ",
       className: "font-medium",
-      cell: (p) => p.name ?? <span className="text-muted-foreground">Untitled</span>,
+      cell: (p) => p.name ?? <span className="text-muted-foreground">ไม่มีชื่อ</span>,
     },
     {
       id: "dates",
-      header: "Nights",
+      header: "คืน",
       cell: (p) => (
         <div className="flex flex-wrap items-center gap-2">
           <span className="tabular-nums">{formatDateRange(p.startDate, p.endDate)}</span>
           <span className="text-muted-foreground">
-            {p.nights} {p.nights === 1 ? "night" : "nights"}
+            {p.nights} คืน
           </span>
           <PeriodStatus period={p} today={today} />
         </div>
@@ -125,13 +125,13 @@ function columns(
     },
     {
       id: "price",
-      header: "Per night",
+      header: "ต่อคืน",
       className: "text-right tabular-nums",
       cell: (p) => formatMoney(p.price, currency),
     },
     {
       id: "actions",
-      header: <span className="sr-only">Actions</span>,
+      header: <span className="sr-only">การดำเนินการ</span>,
       className: "text-right",
       cell: (p) => (
         <div className="flex justify-end gap-2">
@@ -139,10 +139,10 @@ function columns(
             type="button"
             size="sm"
             variant="ghost"
-            aria-label={`Edit ${p.name ?? formatDateRange(p.startDate, p.endDate)}`}
+            aria-label={`แก้ไข ${p.name ?? formatDateRange(p.startDate, p.endDate)}`}
             onClick={() => onEdit(p)}
           >
-            Edit
+            แก้ไข
           </Button>
           <DeletePeriodDialog roomType={roomType} period={p} />
         </div>
@@ -166,15 +166,15 @@ function DeletePeriodDialog({ roomType, period }: { roomType: AdminRoomType; per
       }}
     >
       <AlertDialogTrigger asChild>
-        <Button type="button" size="sm" variant="ghost" className="text-destructive" aria-label={`Delete ${title}`}>
-          Delete
+        <Button type="button" size="sm" variant="ghost" className="text-destructive" aria-label={`ลบ ${title}`}>
+          ลบ
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete {title}?</AlertDialogTitle>
+          <AlertDialogTitle>ลบ {title}?</AlertDialogTitle>
           <AlertDialogDescription>
-            Nights {dates} go back to the base price for new bookings. Existing bookings keep their price.
+            คืนวันที่ {dates} จะกลับไปใช้ราคาพื้นฐานสำหรับการจองใหม่ การจองที่มีอยู่จะใช้ราคาเดิม
           </AlertDialogDescription>
         </AlertDialogHeader>
         {mutation.isError && (
@@ -183,7 +183,7 @@ function DeletePeriodDialog({ roomType, period }: { roomType: AdminRoomType; per
           </p>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={mutation.isPending}>ยกเลิก</AlertDialogCancel>
           <AlertDialogAction
             disabled={mutation.isPending}
             className="bg-destructive text-white hover:bg-destructive/90"
@@ -193,7 +193,7 @@ function DeletePeriodDialog({ roomType, period }: { roomType: AdminRoomType; per
               mutation.mutate(period.id, { onSuccess: () => setOpen(false) });
             }}
           >
-            {mutation.isPending ? "Deleting…" : "Delete"}
+            {mutation.isPending ? "กำลังลบ…" : "ลบ"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

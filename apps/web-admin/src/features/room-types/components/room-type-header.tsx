@@ -68,18 +68,18 @@ function StatusDialog({ roomType }: { roomType: AdminRoomType }) {
     >
       <AlertDialogTrigger asChild>
         <Button type="button" variant="outline">
-          {deactivating ? "Deactivate" : "Reactivate"}
+          {deactivating ? "ปิดใช้งาน" : "เปิดใช้งานอีกครั้ง"}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {deactivating ? `Deactivate ${roomType.name}?` : `Reactivate ${roomType.name}?`}
+            {deactivating ? `ปิดใช้งาน ${roomType.name}?` : `เปิดใช้งาน ${roomType.name} อีกครั้ง?`}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {deactivating
-              ? "Guests can no longer find or book it. Existing bookings are kept."
-              : "Guests can find and book it again."}
+              ? "ลูกค้าจะค้นหาหรือจองห้องประเภทนี้ไม่ได้ การจองที่มีอยู่จะยังคงอยู่"
+              : "ลูกค้าจะค้นหาและจองห้องประเภทนี้ได้อีกครั้ง"}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {mutation.isError && (
@@ -88,7 +88,7 @@ function StatusDialog({ roomType }: { roomType: AdminRoomType }) {
           </p>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={mutation.isPending}>ยกเลิก</AlertDialogCancel>
           <AlertDialogAction
             disabled={mutation.isPending}
             onClick={(event) => {
@@ -99,11 +99,11 @@ function StatusDialog({ roomType }: { roomType: AdminRoomType }) {
           >
             {mutation.isPending
               ? deactivating
-                ? "Deactivating…"
-                : "Reactivating…"
+                ? "กำลังปิดใช้งาน…"
+                : "กำลังเปิดใช้งาน…"
               : deactivating
-                ? "Deactivate"
-                : "Reactivate"}
+                ? "ปิดใช้งาน"
+                : "เปิดใช้งานอีกครั้ง"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -127,14 +127,14 @@ function DeleteDialog({ roomType }: { roomType: AdminRoomType }) {
     >
       <AlertDialogTrigger asChild>
         <Button type="button" variant="outline" className="text-destructive">
-          Delete
+          ลบ
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete {roomType.name}?</AlertDialogTitle>
+          <AlertDialogTitle>ลบ {roomType.name}?</AlertDialogTitle>
           <AlertDialogDescription>
-            It has no rooms or rates yet, so it can be removed for good. This can&apos;t be undone.
+            ประเภทห้องนี้ยังไม่มีห้องพักหรือช่วงราคา จึงลบออกถาวรได้ การลบนี้ย้อนกลับไม่ได้
           </AlertDialogDescription>
         </AlertDialogHeader>
         {mutation.isError && (
@@ -143,7 +143,7 @@ function DeleteDialog({ roomType }: { roomType: AdminRoomType }) {
           </p>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={mutation.isPending}>ยกเลิก</AlertDialogCancel>
           <AlertDialogAction
             disabled={mutation.isPending}
             className="bg-destructive text-white hover:bg-destructive/90"
@@ -152,7 +152,7 @@ function DeleteDialog({ roomType }: { roomType: AdminRoomType }) {
               mutation.mutate(undefined, { onSuccess: () => router.replace(`/hotels/${hotelId}`) });
             }}
           >
-            {mutation.isPending ? "Deleting…" : "Delete"}
+            {mutation.isPending ? "กำลังลบ…" : "ลบ"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

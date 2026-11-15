@@ -44,25 +44,25 @@ export function FormHeader({
         <div className="min-w-0">{heading}</div>
         <div className="flex flex-wrap items-center gap-2">
           <p role="status" className="text-sm text-muted-foreground">
-            {!isCreate && isSuccess && !isDirty ? "Saved" : ""}
+            {!isCreate && isSuccess && !isDirty ? "บันทึกแล้ว" : ""}
           </p>
           {actions}
           <Button asChild variant="outline">
-            <Link href={backHref}>Back</Link>
+            <Link href={backHref}>กลับ</Link>
           </Button>
           {!isCreate && (
             <Button type="button" variant="outline" disabled={!isDirty || isPending} onClick={onDiscard}>
-              Discard
+              ยกเลิกการแก้ไข
             </Button>
           )}
           <Button type="submit" disabled={(!isCreate && !isDirty) || isPending}>
             {isCreate
               ? isPending
-                ? "Creating…"
+                ? "กำลังสร้าง…"
                 : createLabel
               : isPending
-                ? "Saving…"
-                : "Save changes"}
+                ? "กำลังบันทึก…"
+                : "บันทึกการเปลี่ยนแปลง"}
           </Button>
         </div>
       </div>
@@ -73,7 +73,7 @@ export function FormHeader({
       )}
       {hasFieldError && (
         <p role="alert" className="text-sm text-destructive">
-          Some fields need attention. Nothing was saved.
+          มีบางช่องที่ต้องแก้ไข ยังไม่ได้บันทึกข้อมูล
         </p>
       )}
     </header>

@@ -1,3 +1,7 @@
 @import "@booking/ui/globals.css";
 
 /* App-specific styles go below */
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), var(--font-noto-thai);
+}
