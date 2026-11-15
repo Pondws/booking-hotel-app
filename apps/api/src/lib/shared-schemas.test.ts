@@ -27,6 +27,8 @@ import {
   hotelAmenitiesInputSchema,
   adminBookingListQuerySchema,
   cancelBookingInputSchema,
+  adminDashboardQuerySchema,
+  DASHBOARD_MAX_NIGHTS,
 } from "@booking/shared";
 
 test("createHotel requires address and no longer accepts rating", () => {
@@ -335,4 +337,19 @@ test("cancelBookingInputSchema trims and needs 1–500 chars", () => {
   assert.equal(cancelBookingInputSchema.safeParse({ reason: "   " }).success, false);
   assert.equal(cancelBookingInputSchema.safeParse({ reason: "x".repeat(500) }).success, true);
   assert.equal(cancelBookingInputSchema.safeParse({ reason: "x".repeat(501) }).success, false);
+});
+
+test("adminDashboardQuerySchema drops blanks and limits the range to DASHBOARD_MAX_NIGHTS nights", () => {
+  const blank = adminDashboardQuerySchema.parse({ hotelId: "", from: "", to: "" });
+  assert.deepEqual([blank.hotelId, blank.from, blank.to], [undefined, undefined, undefined]);
+  assert.equal(DASHBOARD_MAX_NIGHTS, 92);
+  const reversed = adminDashboardQuerySchema.safeParse({ from: "2026-11-10", to: "2026-11-01" });
+  assert.equal(reversed.success, false);
+  assert.deepEqual(reversed.error?.issues[0]?.path, ["to"]);
+  // 2026-01-01 … 2026-04-02 inclusive = 92 nights; one more is too many.
+  assert.equal(adminDashboardQuerySchema.safeParse({ from: "2026-01-01", to: "2026-04-02" }).success, true);
+  const long = adminDashboardQuerySchema.safeParse({ from: "2026-01-01", to: "2026-04-03" });
+  assert.equal(long.success, false);
+  assert.deepEqual(long.error?.issues[0]?.path, ["to"]);
+  assert.equal(adminDashboardQuerySchema.safeParse({ from: "2026-11-01" }).success, true);
 });
