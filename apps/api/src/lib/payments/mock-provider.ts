@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { AppError } from "../app-error";
 import type { CreateIntentInput, Intent, IntentStatus, PaymentProvider, WebhookEvent } from "./provider";
 
@@ -21,13 +22,15 @@ export class MockProvider implements PaymentProvider {
   failNextRefund = false;
 
   private seq = 0;
+  /** Per-instance, so parallel test processes never collide on the unique `providerRef`. */
+  private readonly prefix = randomBytes(6).toString("hex");
   private readonly intents = new Map<string, MockIntent>();
   private readonly byKey = new Map<string, string>();
 
   async createIntent(input: CreateIntentInput): Promise<{ providerRef: string; clientSecret: string }> {
     let ref = this.byKey.get(input.idempotencyKey);
     if (!ref) {
-      ref = `mock_pi_${++this.seq}`;
+      ref = `mock_pi_${this.prefix}_${++this.seq}`;
       this.byKey.set(input.idempotencyKey, ref);
       this.intents.set(ref, { status: "pending", amountMinor: input.amountMinor, currency: input.currency });
     }

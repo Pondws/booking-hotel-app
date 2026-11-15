@@ -9,7 +9,7 @@ const body = (o: unknown) => Buffer.from(JSON.stringify(o));
 test("mock createIntent starts pending and succeed flips it", async () => {
   const mock = new MockProvider();
   const { providerRef, clientSecret } = await mock.createIntent(input("k1"));
-  assert.match(providerRef, /^mock_pi_\d+$/);
+  assert.match(providerRef, /^mock_pi_[0-9a-f]+_\d+$/);
   assert.equal(clientSecret, `${providerRef}_secret`);
   assert.deepEqual(await mock.getIntent(providerRef), {
     status: "pending",
@@ -77,4 +77,10 @@ test("mock cancelIntent records the ref and cancels the intent", async () => {
   await mock.cancelIntent(providerRef);
   assert.deepEqual(mock.cancelled, [providerRef]);
   assert.equal((await mock.getIntent(providerRef)).status, "canceled");
+});
+
+test("mock refs are unique across provider instances (providerRef is unique in the DB)", async () => {
+  const a = await new MockProvider().createIntent(input("k"));
+  const b = await new MockProvider().createIntent(input("k"));
+  assert.notEqual(a.providerRef, b.providerRef);
 });
