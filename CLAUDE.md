@@ -38,7 +38,9 @@ apps/
   web-admin/             # back-office — same layout as web, except: app/login/ is public and every other page
                          # lives in app/(protected)/ (layout = RequireAuth + AdminShell); no register page;
                          # components/admin-shell.tsx (sidebar, mobile top bar) + nav-items.ts (NAV_ITEMS — append
-                         # per phase); features/hotels/ (adminHotelKeys, list-params.ts), features/amenities/
+                         # per phase); features/hotels/ (adminHotelKeys, list-params.ts), features/amenities/,
+                         # features/room-types/ (adminRoomTypeKeys); components/form-header.tsx + form-field.tsx and
+                         # ImagesSection / AmenitiesSection (useFormContext) are shared by the hotel + room type forms
   api/
     src/
       index.ts           # starts server (env.PORT)
@@ -48,12 +50,15 @@ apps/
       routes/            # express routers (public, e.g. hotels.ts, health.ts; auth.ts = /api/auth/* incl. /admin/*;
                          # webhooks.ts = /api/webhooks/stripe, mounted in app.ts BEFORE express.json() — raw body)
         admin/           # index.ts = adminRouter, guarded once by loadSession('ADMIN') + requireRole('ADMIN','STAFF');
-                         # sub-routers per resource (hotels.ts, amenities.ts, uploads.ts = raw-body image upload)
+                         # sub-routers per resource (hotels.ts, amenities.ts, uploads.ts = raw-body image upload;
+                         # room-types.ts mounted at hotels/:hotelId/room-types behind requireHotelAccess, mergeParams)
       controllers/       # parse req, call service, respond with ok()/noContent() — never import prisma
       services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts,
                          # pricing.service.ts quoteStay(s), availability.service.ts availableRoomCounts,
                          # payment.service.ts — settlePayment is the ONLY code that moves a Payment out of PENDING,
-                         # admin-hotel.service.ts — admin hotel list/detail/writes, all writes return AdminHotel)
+                         # admin-hotel.service.ts — admin hotel list/detail/writes, all writes return AdminHotel,
+                         # admin-room-type.service.ts — room types + rooms, all writes return AdminRoomType,
+                         # amenity.service.ts assertAmenityScope — the DB doesn't check amenity scope)
       lib/               # prisma.ts (single client, PrismaPg adapter, global omit of passwordHash), app-error.ts,
                          # http.ts (ok, noContent), prisma-errors.ts (isUniqueViolationOn), password.ts (scrypt),
                          # session-token.ts, cookies.ts (sid / admin_sid), cors-policy.ts, slug.ts,

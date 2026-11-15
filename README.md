@@ -126,6 +126,14 @@ Response สำเร็จ: `{ "data": ... }` · Error: `{ "error": { "code": "
 | PUT | `/api/admin/hotels/:hotelId/amenities` | เหมือนข้างบน — แทน amenity ทั้งชุด `{ amenityIds }` (เฉพาะ scope HOTEL) |
 | PATCH | `/api/admin/hotels/:hotelId/status` | `admin_sid` + ADMIN — `{ isActive }` ปิด/เปิดใช้งาน |
 | GET | `/api/admin/amenities?scope=HOTEL|ROOM` | `admin_sid` — ตัวเลือก amenity |
+| GET | `/api/admin/hotels/:hotelId/room-types` | `admin_sid` + เข้าถึงโรงแรมได้ — room types ของโรงแรม (จำนวนห้อง/ห้องที่ active) |
+| POST | `/api/admin/hotels/:hotelId/room-types` | เหมือนข้างบน — 201; `{ name, description?, capacity, basePrice, images, amenityIds }` (amenity เฉพาะ scope ROOM) |
+| GET | `/api/admin/hotels/:hotelId/room-types/:roomTypeId` | เหมือนข้างบน — รายละเอียด + rooms + `deletable`; room type ของโรงแรมอื่น = 404 |
+| PUT | `/api/admin/hotels/:hotelId/room-types/:roomTypeId` | เหมือนข้างบน — บันทึกทั้ง room type ใน transaction เดียว |
+| PATCH | `/api/admin/hotels/:hotelId/room-types/:roomTypeId/status` | เหมือนข้างบน — `{ isActive }` |
+| DELETE | `/api/admin/hotels/:hotelId/room-types/:roomTypeId` | เหมือนข้างบน — 204; มีห้องหรือ rate period = 409 (ให้ปิดใช้งานแทน) |
+| POST | `/api/admin/hotels/:hotelId/room-types/:roomTypeId/rooms` | เหมือนข้างบน — 201 `{ number }`; เลขห้องซ้ำในโรงแรมเดียวกัน = 409 |
+| PATCH | `/api/admin/hotels/:hotelId/room-types/:roomTypeId/rooms/:roomId` | เหมือนข้างบน — `{ number?, isActive? }` |
 | POST | `/api/admin/uploads/images` | `admin_sid` — body = ไฟล์รูปดิบ (`Content-Type: image/jpeg|png|webp`, ≤ 5 MB, ตรวจ magic bytes) → 201 `{ url }`; ไฟล์เก็บที่ `UPLOAD_DIR` และเสิร์ฟที่ `/uploads/*` (dev เท่านั้น — object storage → Phase 8) |
 
 กฎวันที่ (ใช้ร่วม FE/BE จาก `@booking/shared`): วันที่ส่งเป็น `YYYY-MM-DD`, คืนที่พักคือ `[checkIn, checkOut)`,
@@ -175,7 +183,9 @@ import { Button } from "@booking/ui/components/button";
 - `src/lib/api.ts` axios client — `request(schema, config)` แกะ `{ data }` และ throw `ApiError`
 - web-admin: `app/login/` เป็น public, หน้าอื่นอยู่ใน `app/(protected)/` (layout = `RequireAuth` + `AdminShell` เมนูข้าง
   จาก `components/nav-items.ts`); routes: `/` → `/hotels`, `/hotels` (ค้นหา/กรองสถานะ/แบ่งหน้าผ่าน URL),
-  `/hotels/new` (ADMIN), `/hotels/[hotelId]` (Details / Images / Amenities, ADMIN ปิด-เปิดใช้งาน)
+  `/hotels/new` (ADMIN), `/hotels/[hotelId]` (Details / Images / Amenities, ADMIN ปิด-เปิดใช้งาน + รายการ Room types),
+  `/hotels/[hotelId]/room-types/new`, `/hotels/[hotelId]/room-types/[roomTypeId]` (Details / Images / Amenities +
+  Rooms: เพิ่ม, เปลี่ยนเลข, ปิด-เปิดใช้งาน)
 - web: `features/hotels/search-params.ts` — URL search params คือ state ของการค้นหา/วันที่ (ค่าที่ไม่ถูกต้องถูกตัดทิ้ง ไม่ throw)
 - web กับ web-admin ห้าม import กันเอง — ของที่ใช้ร่วมไปไว้ใน `packages/ui` หรือ `packages/shared`
 - UI ทำตาม `DESIGN.md` (tokens, การใช้ component, สถานะ loading/error/empty)
