@@ -246,5 +246,48 @@ describe("admin hotels read API", () => {
       assert.equal(on.body.data.isActive, true);
       assert.equal((await publicGet(w.slug)).status, 200);
     });
+
+    test("deactivated hotel drops out of public search and comes back on reactivate", async () => {
+      const url = `/api/admin/hotels/${w.hotelId}/status`;
+      const searchIds = async () =>
+        ((await request(app).get("/api/hotels").query({ city: w.city })).body.data.items as { id: string }[]).map(
+          (h) => h.id,
+        );
+      assert.ok((await searchIds()).includes(w.hotelId));
+      await send("patch", url, { isActive: false }, adminCookie);
+      assert.equal((await searchIds()).includes(w.hotelId), false);
+      await send("patch", url, { isActive: true }, adminCookie);
+      assert.ok((await searchIds()).includes(w.hotelId));
+    });
+
+    test("PUT amenities on an unassigned hotel as staff → 403, nothing changed", async () => {
+      const before = await prisma.hotelAmenity.count({ where: { hotelId: h3.hotelId } });
+      const res = await send("put", `/api/admin/hotels/${h3.hotelId}/amenities`, {
+        amenityIds: [await amenityId("wifi")],
+      });
+      assert.equal(res.status, 403);
+      assert.equal(await prisma.hotelAmenity.count({ where: { hotelId: h3.hotelId } }), before);
+    });
+
+    test("every write on an unknown hotel as admin → 404", async () => {
+      const base = "/api/admin/hotels/does-not-exist";
+      const writes = [
+        ["PATCH details", send("patch", base, { city: "Nope" }, adminCookie)],
+        ["PUT images", send("put", `${base}/images`, { images: [] }, adminCookie)],
+        ["PUT amenities", send("put", `${base}/amenities`, { amenityIds: [] }, adminCookie)],
+        ["PATCH status", send("patch", `${base}/status`, { isActive: false }, adminCookie)],
+      ] as const;
+      for (const [name, pending] of writes) {
+        const res = await pending;
+        assert.equal(res.status, 404, name);
+        assert.equal(res.body.error.code, "NOT_FOUND", name);
+      }
+    });
+
+    test("web session cookie → 401 on the list and on writes", async () => {
+      assert.equal((await get("/api/admin/hotels", webCookie)).status, 401);
+      const res = await send("patch", `/api/admin/hotels/${w.hotelId}`, { city: "Nope" }, webCookie);
+      assert.equal(res.status, 401);
+    });
   });
 });
