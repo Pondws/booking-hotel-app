@@ -15,7 +15,7 @@ import { imageOrder } from "../lib/image-order";
 import { isUniqueViolationOn } from "../lib/prisma-errors";
 import { prisma } from "../lib/prisma";
 import { toSlug, withSuffix } from "../lib/slug";
-import { getAdminHotel } from "./admin-hotel.service";
+import { assertHotelAmenityIds, getAdminHotel } from "./admin-hotel.service";
 import { availableRoomCounts, blockingBookingWhere } from "./availability.service";
 import { quoteStays } from "./pricing.service";
 
@@ -247,10 +247,22 @@ async function nextSlug(name: string): Promise<string> {
   );
 }
 
+/** Creates the hotel with its ordered images and hotel amenities in one statement (all or nothing). */
 export async function createHotel(input: CreateHotelData): Promise<AdminHotel> {
+  const { images, amenityIds, ...details } = input;
+  await assertHotelAmenityIds(amenityIds);
   const create = async () =>
     prisma.hotel.create({
-      data: { ...input, slug: await nextSlug(input.name) },
+      data: {
+        ...details,
+        slug: await nextSlug(details.name),
+        images: {
+          createMany: {
+            data: images.map((img, index) => ({ url: img.url, alt: img.alt ?? null, sortOrder: index })),
+          },
+        },
+        amenities: { createMany: { data: amenityIds.map((amenityId) => ({ amenityId })) } },
+      },
       select: { id: true },
     });
   let created: { id: string };

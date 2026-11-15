@@ -7,22 +7,8 @@ import {
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
-import type {
-  AdminHotel,
-  AdminHotelListQuery,
-  HotelAmenitiesInput,
-  HotelImagesInput,
-  UpdateHotelInput,
-} from "@booking/shared";
-import {
-  createHotel,
-  fetchAdminHotel,
-  fetchAdminHotels,
-  replaceHotelAmenities,
-  replaceHotelImages,
-  setHotelStatus,
-  updateHotel,
-} from "./api";
+import type { AdminHotel, AdminHotelListQuery, HotelContentInput } from "@booking/shared";
+import { createHotel, fetchAdminHotel, fetchAdminHotels, saveHotel, setHotelStatus } from "./api";
 
 export const adminHotelKeys = {
   all: ["admin-hotels"] as const,
@@ -57,26 +43,10 @@ export function useCreateHotel() {
   });
 }
 
-export function useUpdateHotel(id: string) {
+export function useSaveHotel(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: UpdateHotelInput) => updateHotel(id, input),
-    onSuccess: (hotel) => storeHotel(queryClient, hotel),
-  });
-}
-
-export function useReplaceHotelImages(id: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: HotelImagesInput) => replaceHotelImages(id, input),
-    onSuccess: (hotel) => storeHotel(queryClient, hotel),
-  });
-}
-
-export function useReplaceHotelAmenities(id: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: HotelAmenitiesInput) => replaceHotelAmenities(id, input),
+    mutationFn: (input: HotelContentInput) => saveHotel(id, input),
     onSuccess: (hotel) => storeHotel(queryClient, hotel),
   });
 }

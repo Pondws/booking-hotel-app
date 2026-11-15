@@ -101,17 +101,6 @@ const hotelNameField = z.string().trim().min(1, "Name is required").max(120);
 const hotelCityField = z.string().trim().min(1, "City is required").max(80);
 const hotelAddressField = z.string().trim().min(1, "Address is required").max(255);
 
-export const createHotelSchema = z.object({
-  name: hotelNameField,
-  city: hotelCityField,
-  address: hotelAddressField,
-  description: z.string().trim().max(2000).optional(),
-  checkInTime: hotelTimeSchema.optional(),
-  checkOutTime: hotelTimeSchema.optional(),
-});
-export type CreateHotelInput = z.input<typeof createHotelSchema>;
-export type CreateHotelData = z.output<typeof createHotelSchema>;
-
 /** Slug and currency never change on edit. `description: ""` or `null` clears it. */
 export const updateHotelSchema = z
   .object({
@@ -132,30 +121,97 @@ export const updateHotelSchema = z
 export type UpdateHotelInput = z.input<typeof updateHotelSchema>;
 export type UpdateHotelData = z.output<typeof updateHotelSchema>;
 
+const hotelImagesField = z
+  .array(
+    z.object({
+      url: z.url({ protocol: /^https?$/ }).max(2048),
+      alt: z.string().trim().max(200).optional(),
+    }),
+  )
+  .max(20);
+const hotelAmenityIdsField = z.array(z.string().min(1)).max(50);
+
+function refineUniqueImageUrls(v: { images: { url: string }[] }, ctx: z.RefinementCtx): void {
+  if (new Set(v.images.map((i) => i.url)).size !== v.images.length) {
+    ctx.addIssue({ code: "custom", path: ["images"], message: "Each image URL must be unique" });
+  }
+}
+function refineUniqueAmenityIds(v: { amenityIds: string[] }, ctx: z.RefinementCtx): void {
+  if (new Set(v.amenityIds).size !== v.amenityIds.length) {
+    ctx.addIssue({ code: "custom", path: ["amenityIds"], message: "Each amenity can only be added once" });
+  }
+}
+
 export const hotelImagesInputSchema = z
-  .object({
-    images: z
-      .array(
-        z.object({
-          url: z.url({ protocol: /^https?$/ }).max(2048),
-          alt: z.string().trim().max(200).optional(),
-        }),
-      )
-      .max(20),
-  })
-  .refine((v) => new Set(v.images.map((i) => i.url)).size === v.images.length, {
-    message: "Each image URL must be unique",
-    path: ["images"],
-  });
+  .object({ images: hotelImagesField })
+  .superRefine(refineUniqueImageUrls);
 export type HotelImagesInput = z.output<typeof hotelImagesInputSchema>;
 
 export const hotelAmenitiesInputSchema = z
-  .object({ amenityIds: z.array(z.string().min(1)).max(50) })
-  .refine((v) => new Set(v.amenityIds).size === v.amenityIds.length, {
-    message: "Each amenity can only be added once",
-    path: ["amenityIds"],
-  });
+  .object({ amenityIds: hotelAmenityIdsField })
+  .superRefine(refineUniqueAmenityIds);
 export type HotelAmenitiesInput = z.output<typeof hotelAmenitiesInputSchema>;
+
+/**
+ * `PUT /api/admin/hotels/:hotelId` — the whole editable hotel (details, times, ordered images, hotel
+ * amenities) saved in one transaction. Slug and currency never change. `description: ""` clears it.
+ */
+export const hotelContentInputSchema = z
+  .object({
+    name: hotelNameField,
+    city: hotelCityField,
+    address: hotelAddressField,
+    description: z
+      .string()
+      .trim()
+      .max(2000)
+      .nullable()
+      .transform((v) => (v === "" ? null : v)),
+    checkInTime: hotelTimeSchema,
+    checkOutTime: hotelTimeSchema,
+    images: hotelImagesField,
+    amenityIds: hotelAmenityIdsField,
+  })
+  .superRefine((v, ctx) => {
+    refineUniqueImageUrls(v, ctx);
+    refineUniqueAmenityIds(v, ctx);
+  });
+export type HotelContentInput = z.input<typeof hotelContentInputSchema>;
+export type HotelContentData = z.output<typeof hotelContentInputSchema>;
+
+/** `POST /api/admin/hotels` — same fields as the edit form; times, images and amenities are optional. */
+export const createHotelSchema = z
+  .object({
+    name: hotelNameField,
+    city: hotelCityField,
+    address: hotelAddressField,
+    description: z
+      .string()
+      .trim()
+      .max(2000)
+      .nullable()
+      .optional()
+      .transform((v) => (v === "" ? null : v)),
+    checkInTime: hotelTimeSchema.optional(),
+    checkOutTime: hotelTimeSchema.optional(),
+    images: hotelImagesField.default([]),
+    amenityIds: hotelAmenityIdsField.default([]),
+  })
+  .superRefine((v, ctx) => {
+    refineUniqueImageUrls(v, ctx);
+    refineUniqueAmenityIds(v, ctx);
+  });
+export type CreateHotelInput = z.input<typeof createHotelSchema>;
+export type CreateHotelData = z.output<typeof createHotelSchema>;
+
+// ---------- Uploads ----------
+/** `POST /api/admin/uploads/images` takes the raw file as the body with one of these `Content-Type`s. */
+export const IMAGE_UPLOAD_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export type ImageUploadType = (typeof IMAGE_UPLOAD_TYPES)[number];
+export const IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+
+export const uploadedImageSchema = z.object({ url: z.string() });
+export type UploadedImage = z.infer<typeof uploadedImageSchema>;
 
 export const hotelStatusInputSchema = z.object({ isActive: z.boolean() });
 export type HotelStatusInput = z.output<typeof hotelStatusInputSchema>;

@@ -33,7 +33,9 @@ export function HotelStatusDialog({ hotel }: { hotel: AdminHotel }) {
       }}
     >
       <AlertDialogTrigger asChild>
-        <Button variant="outline">{deactivating ? "Deactivate" : "Reactivate"}</Button>
+        <Button type="button" variant="outline">
+          {deactivating ? "Deactivate" : "Reactivate"}
+        </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

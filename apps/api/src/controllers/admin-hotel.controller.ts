@@ -2,6 +2,7 @@ import type {
   AdminHotelListQuery,
   AmenityListQuery,
   HotelAmenitiesInput,
+  HotelContentData,
   HotelIdParams,
   HotelImagesInput,
   HotelStatusInput,
@@ -44,6 +45,13 @@ export async function updateHotel(
   res: Response<unknown, HotelParams>,
 ) {
   ok(res, await adminHotelService.updateAdminHotel(res.locals.params.hotelId, req.body));
+}
+
+export async function saveHotelContent(
+  req: Request<Record<string, string>, unknown, HotelContentData>,
+  res: Response<unknown, HotelParams>,
+) {
+  ok(res, await adminHotelService.saveHotelContent(res.locals.params.hotelId, req.body));
 }
 
 export async function replaceHotelImages(

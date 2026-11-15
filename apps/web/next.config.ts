@@ -6,8 +6,14 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   images: {
-    // Seeded hotel and room photos
-    remotePatterns: [new URL("https://picsum.photos/**")],
+    remotePatterns: [
+      // Seeded hotel and room photos
+      new URL("https://picsum.photos/**"),
+      // Images uploaded in web-admin (served by the API at /uploads/*)
+      new URL(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/uploads/**`),
+    ],
+    // The API runs on localhost in dev; Next 16 refuses to optimize local-IP images unless allowed
+    dangerouslyAllowLocalIP: process.env.NODE_ENV !== "production",
   },
   turbopack: {
     rules: {

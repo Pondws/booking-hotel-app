@@ -1,0 +1,50 @@
+"use client";
+
+import { useMutation } from "@tanstack/react-query";
+import { IMAGE_UPLOAD_MAX_BYTES, IMAGE_UPLOAD_TYPES } from "@booking/shared";
+import { uploadImage } from "./api";
+
+export const IMAGE_ACCEPT = IMAGE_UPLOAD_TYPES.join(",");
+export const IMAGE_UPLOAD_HINT = `JPEG, PNG or WebP, up to ${IMAGE_UPLOAD_MAX_BYTES / 1024 / 1024} MB each`;
+
+export type UploadResult = {
+  urls: string[];
+  failed: { name: string; reason: string }[];
+};
+
+function checkFile(file: File): string | null {
+  if (!(IMAGE_UPLOAD_TYPES as readonly string[]).includes(file.type))
+    return "not a JPEG, PNG or WebP";
+  if (file.size > IMAGE_UPLOAD_MAX_BYTES) return "larger than 5 MB";
+  return null;
+}
+
+/**
+ * Uploads one or many files (in parallel). Resolves with the URLs that made it, in the picked
+ * order, plus the files that didn't — one bad file doesn't drop the rest.
+ */
+export function useUploadImages() {
+  return useMutation({
+    mutationFn: async (files: File[]): Promise<UploadResult> => {
+      const results = await Promise.allSettled(
+        files.map(async (file) => {
+          const problem = checkFile(file);
+          if (problem) throw new Error(problem);
+          return (await uploadImage(file)).url;
+        }),
+      );
+      const urls: string[] = [];
+      const failed: UploadResult["failed"] = [];
+      results.forEach((r, i) => {
+        if (r.status === "fulfilled") urls.push(r.value);
+        else
+          failed.push({
+            name: files[i]?.name ?? "file",
+            reason:
+              r.reason instanceof Error ? r.reason.message : "upload failed",
+          });
+      });
+      return { urls, failed };
+    },
+  });
+}

@@ -19,6 +19,9 @@ next-env.d.ts
 # prisma generated client
 apps/api/src/generated/
 
+# uploaded images (local dev storage)
+apps/api/uploads/
+
 # misc
 .DS_Store
 *.pem

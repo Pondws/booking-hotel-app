@@ -118,13 +118,15 @@ Response สำเร็จ: `{ "data": ... }` · Error: `{ "error": { "code": "
 | POST | `/api/auth/admin/login` / `admin/logout` | public / `admin_sid` |
 | GET | `/api/auth/admin/me` | `admin_sid` + ADMIN/STAFF |
 | GET | `/api/admin/hotels?q=&status=active|inactive|all&page=&pageSize=` | `admin_sid` — STAFF เห็นเฉพาะโรงแรมที่ดูแล, ADMIN เห็นทั้งหมด (รวมที่ปิดใช้งาน) |
-| POST | `/api/admin/hotels` | `admin_sid` + ADMIN — 201 รายละเอียดโรงแรม (shape admin) |
+| POST | `/api/admin/hotels` | `admin_sid` + ADMIN — 201 รายละเอียดโรงแรม (shape admin); รับ `images` / `amenityIds` ได้ด้วย (สร้างพร้อมกันแบบ all-or-nothing) |
 | GET | `/api/admin/hotels/:hotelId` | `admin_sid` + เข้าถึงโรงแรมได้ (STAFF ที่ไม่ได้ดูแล = 403) — รายละเอียด, รูป, amenities |
+| PUT | `/api/admin/hotels/:hotelId` | เหมือนข้างบน — บันทึกทั้งโรงแรมในครั้งเดียว (details + เวลา + รูปเรียงลำดับ + amenities) ใน transaction เดียว; หน้า admin ใช้อันนี้ |
 | PATCH | `/api/admin/hotels/:hotelId` | เหมือนข้างบน — แก้ name/city/address/description/checkInTime/checkOutTime (slug ไม่เปลี่ยน) |
 | PUT | `/api/admin/hotels/:hotelId/images` | เหมือนข้างบน — แทนรายการรูปทั้งชุด `{ images: [{ url, alt? }] }` (สูงสุด 20, ลำดับ = ลำดับใน array) |
 | PUT | `/api/admin/hotels/:hotelId/amenities` | เหมือนข้างบน — แทน amenity ทั้งชุด `{ amenityIds }` (เฉพาะ scope HOTEL) |
 | PATCH | `/api/admin/hotels/:hotelId/status` | `admin_sid` + ADMIN — `{ isActive }` ปิด/เปิดใช้งาน |
 | GET | `/api/admin/amenities?scope=HOTEL|ROOM` | `admin_sid` — ตัวเลือก amenity |
+| POST | `/api/admin/uploads/images` | `admin_sid` — body = ไฟล์รูปดิบ (`Content-Type: image/jpeg|png|webp`, ≤ 5 MB, ตรวจ magic bytes) → 201 `{ url }`; ไฟล์เก็บที่ `UPLOAD_DIR` และเสิร์ฟที่ `/uploads/*` (dev เท่านั้น — object storage → Phase 8) |
 
 กฎวันที่ (ใช้ร่วม FE/BE จาก `@booking/shared`): วันที่ส่งเป็น `YYYY-MM-DD`, คืนที่พักคือ `[checkIn, checkOut)`,
 `checkIn` ต้องไม่ก่อน "วันนี้" ตามเวลา Asia/Bangkok และพักได้ไม่เกิน 30 คืน (`MAX_NIGHTS`)
