@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@booking/ui/components/alert-dialog";
+import { formatMoney } from "@/features/hotels/format";
 import { ApiError } from "@/lib/api";
 import { bookingKeys, useCancelBooking } from "../hooks";
 
@@ -54,6 +55,8 @@ export function CancelBookingDialog({ booking, onActiveChange }: Props) {
           <AlertDialogTitle>Cancel this booking?</AlertDialogTitle>
           <AlertDialogDescription>
             {booking.hotel.name} · {booking.code}. The room will be released and you can book again later.
+            {booking.payment?.status === "SUCCEEDED" &&
+              ` You'll get a full refund of ${formatMoney(booking.totalAmount, booking.currency)}.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {cancel.isError && (
