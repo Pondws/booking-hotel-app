@@ -55,7 +55,7 @@ day it was booked, which doesn't match the occupancy chart.
 
 - `npm run ui:add -- chart` → `packages/ui/src/components/chart.tsx` (+ `recharts` dependency in `packages/ui`).
 - `app/(protected)/page.tsx` renders the dashboard (no more redirect); `NAV_ITEMS` gets "ภาพรวม" (`/`) first, with
-  exact-match active state so it isn't highlighted on every page.
+  the shell's active check already matches `/` exactly (`startsWith("//")` never hits), so no extra flag.
 - `features/dashboard/`: `api.ts`, `hooks.ts` (`adminDashboardKeys.detail(query)`, `placeholderData` keeps the old
   numbers while the range changes), `dashboard-params.ts` (URL ↔ query, same drop-invalid pattern as bookings),
   `components/`:

@@ -71,8 +71,8 @@ Service outline: resolve range → hotel scope `Prisma.HotelWhereInput` (`{id: h
 
 **Files:**
 - Run: `npm run ui:add -- chart` (adds `packages/ui/src/components/chart.tsx` + `recharts`)
-- Create: `apps/web-admin/src/features/dashboard/{api.ts,hooks.ts,dashboard-params.ts}`, `components/{dashboard.tsx,dashboard-filters.tsx,stat-tiles.tsx,today-card.tsx,occupancy-chart.tsx,revenue-chart.tsx}`
-- Modify: `apps/web-admin/src/app/(protected)/page.tsx`, `components/nav-items.ts` (+ `exact?: boolean`, "ภาพรวม" `/` with `LayoutDashboard`), `components/admin-shell.tsx` (honour `exact`), `features/bookings/hooks.ts` (mutations invalidate `adminDashboardKeys.all`)
+- Create: `apps/web-admin/src/features/dashboard/{api.ts,hooks.ts,dashboard-params.ts}`, `components/{dashboard.tsx,stat-tiles.tsx,today-card.tsx,daily-chart.tsx}` (one `DailyChart` for both series; filters live in `dashboard.tsx`), `format.ts` (`formatShortDate`, `formatRate`, `niceTicks`)
+- Modify: `apps/web-admin/src/app/(protected)/page.tsx`, `components/nav-items.ts` ("ภาพรวม" `/` with `LayoutDashboard`; the shell already matches `/` exactly), `features/bookings/hooks.ts` (mutations invalidate `adminDashboardKeys.all`)
 
 **Interfaces:**
 - `fetchAdminDashboard(q: AdminDashboardQuery): Promise<AdminDashboard>` via `request(adminDashboardSchema, …)`
