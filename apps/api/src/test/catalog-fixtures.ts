@@ -133,16 +133,25 @@ export function addBooking(
   });
 }
 
-/** A standalone customer under `label` (removed by `cleanupCatalogFixtures(label)`). */
-export function createFixtureUser(label: string): Promise<PublicUser> {
+/** A standalone user under `label` (removed by `cleanupCatalogFixtures(label)`); a customer unless `role` says otherwise. */
+export function createFixtureUser(
+  label: string,
+  role: "CUSTOMER" | "STAFF" | "ADMIN" = "CUSTOMER",
+): Promise<PublicUser> {
   return prisma.user.create({
     data: {
       email: `${userPrefix(label)}${unique()}@test.local`,
       passwordHash: "x",
       name: `${CATALOG_PREFIX}Customer`,
+      role,
     },
     select: { id: true, email: true, name: true, phone: true, role: true },
   });
+}
+
+/** Assigns a staff user to a hotel (the link goes with the hotel/user on cleanup). */
+export async function assignStaff(userId: string, hotelId: string): Promise<void> {
+  await prisma.hotelStaff.create({ data: { userId, hotelId } });
 }
 
 /** Creates a live session for `userId` and returns the raw token (cookie value). Sessions go with the user. */

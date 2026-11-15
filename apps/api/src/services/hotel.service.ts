@@ -21,7 +21,7 @@ export type { Hotel };
 const hotelNotFound = () => new AppError(404, "NOT_FOUND", "Hotel not found");
 
 const imageSelect = { url: true, alt: true } as const;
-const imageOrder = [{ sortOrder: "asc" }, { id: "asc" }] as const;
+export const imageOrder = [{ sortOrder: "asc" }, { id: "asc" }] as const;
 const amenitySelect = { amenity: { select: { code: true, name: true } } } as const;
 const amenityOrder = { amenity: { name: "asc" } } as const;
 
