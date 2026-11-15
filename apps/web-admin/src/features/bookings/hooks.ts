@@ -17,6 +17,7 @@ import {
   fetchBookingRoomOptions,
   moveBookingRoom,
 } from "./api";
+import { adminDashboardKeys } from "@/features/dashboard/hooks";
 
 export const adminBookingKeys = {
   all: ["admin-bookings"] as const,
@@ -46,12 +47,13 @@ export function useBookingRoomOptions(code: string, enabled: boolean) {
   });
 }
 
-/** Every action returns the full booking: cache it, refresh the lists and the room options. */
+/** Every action returns the full booking: cache it, refresh the lists, the room options and the dashboard. */
 function storeBooking(queryClient: QueryClient, booking: AdminBooking) {
   queryClient.setQueryData(adminBookingKeys.detail(booking.code), booking);
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: adminBookingKeys.lists() }),
     queryClient.invalidateQueries({ queryKey: adminBookingKeys.rooms(booking.code) }),
+    queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all }),
   ]);
 }
 

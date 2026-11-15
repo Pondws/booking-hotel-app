@@ -1,4 +1,4 @@
-import { Building2, CalendarCheck, Sparkles, Users, type LucideIcon } from "lucide-react";
+import { Building2, CalendarCheck, LayoutDashboard, Sparkles, Users, type LucideIcon } from "lucide-react";
 import type { Role } from "@booking/shared";
 
 export type NavItem = {
@@ -11,6 +11,7 @@ export type NavItem = {
 
 /** Sidebar navigation; later phases append their sections here. */
 export const NAV_ITEMS: NavItem[] = [
+  { href: "/", label: "ภาพรวม", icon: LayoutDashboard },
   { href: "/hotels", label: "โรงแรม", icon: Building2 },
   { href: "/bookings", label: "การจอง", icon: CalendarCheck },
   { href: "/staff", label: "พนักงาน", icon: Users, roles: ["ADMIN"] },
