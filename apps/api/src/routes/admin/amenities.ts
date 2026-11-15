@@ -1,8 +1,36 @@
 import { Router } from "express";
-import { amenityListQuerySchema } from "@booking/shared";
-import { listAmenities } from "../../controllers/admin-hotel.controller";
+import {
+  amenityIdParamsSchema,
+  amenityListQuerySchema,
+  createAmenitySchema,
+  updateAmenitySchema,
+} from "@booking/shared";
+import {
+  createAmenity,
+  deleteAmenity,
+  listAmenities,
+  updateAmenity,
+} from "../../controllers/amenity.controller";
+import { requireRole } from "../../middleware/require-role";
 import { validate } from "../../middleware/validate";
 
+/** `/api/admin/amenities` — ADMIN + STAFF read the options (hotel / room type forms); only ADMIN writes. */
 export const adminAmenitiesRouter = Router();
 
 adminAmenitiesRouter.get("/", validate({ query: amenityListQuerySchema }), listAmenities);
+
+adminAmenitiesRouter.post("/", requireRole("ADMIN"), validate({ body: createAmenitySchema }), createAmenity);
+
+adminAmenitiesRouter.patch(
+  "/:amenityId",
+  requireRole("ADMIN"),
+  validate({ params: amenityIdParamsSchema, body: updateAmenitySchema }),
+  updateAmenity,
+);
+
+adminAmenitiesRouter.delete(
+  "/:amenityId",
+  requireRole("ADMIN"),
+  validate({ params: amenityIdParamsSchema }),
+  deleteAmenity,
+);

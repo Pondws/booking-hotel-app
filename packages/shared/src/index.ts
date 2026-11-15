@@ -517,6 +517,46 @@ export const amenityOptionListSchema = z.array(amenityOptionSchema);
 export const amenityListQuerySchema = z.object({ scope: amenityScopeSchema.optional() });
 export type AmenityListQuery = z.output<typeof amenityListQuerySchema>;
 
+/** `GET /api/admin/amenities` item: an option plus how many hotels / room types use it. */
+export const adminAmenitySchema = amenityOptionSchema.extend({
+  hotelCount: z.number().int().min(0),
+  roomTypeCount: z.number().int().min(0),
+});
+export type AdminAmenity = z.infer<typeof adminAmenitySchema>;
+
+export const adminAmenityListSchema = z.array(adminAmenitySchema);
+
+export const AMENITY_CODE_PATTERN = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
+
+const amenityCodeField = z
+  .string()
+  .trim()
+  .min(1, "Code is required")
+  .max(40, "At most 40 characters")
+  .regex(AMENITY_CODE_PATTERN, "Use lowercase letters, digits, - and _ only");
+const amenityNameField = z
+  .string()
+  .trim()
+  .min(1, "Name is required")
+  .max(80, "At most 80 characters");
+
+/** `POST /api/admin/amenities` (ADMIN). Scope is fixed once created. */
+export const createAmenitySchema = z.object({
+  code: amenityCodeField,
+  name: amenityNameField,
+  scope: amenityScopeSchema,
+});
+export type CreateAmenityInput = z.input<typeof createAmenitySchema>;
+export type CreateAmenityData = z.output<typeof createAmenitySchema>;
+
+/** `PATCH /api/admin/amenities/:amenityId` (ADMIN). */
+export const updateAmenitySchema = z.object({ code: amenityCodeField, name: amenityNameField });
+export type UpdateAmenityInput = z.input<typeof updateAmenitySchema>;
+export type UpdateAmenityData = z.output<typeof updateAmenitySchema>;
+
+export const amenityIdParamsSchema = z.object({ amenityId: z.string().min(1) });
+export type AmenityIdParams = z.output<typeof amenityIdParamsSchema>;
+
 // ---------- Admin room types + rooms (output) ----------
 export const adminRoomTypeSummarySchema = z.object({
   id: z.string(),
@@ -814,6 +854,67 @@ export type CancelBookingData = z.output<typeof cancelBookingInputSchema>;
 
 export const moveBookingRoomInputSchema = z.object({ roomId: z.string().min(1, "Choose a room") });
 export type MoveBookingRoomInput = z.output<typeof moveBookingRoomInputSchema>;
+
+// ---------- Admin staff (ADMIN only) ----------
+export const adminStaffListQuerySchema = z.object({
+  q: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type AdminStaffListQuery = z.output<typeof adminStaffListQuerySchema>;
+
+export const adminStaffSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  phone: z.string().nullable(),
+  hotels: z.array(z.object({ id: z.string(), name: z.string() })),
+  createdAt: z.iso.datetime(),
+});
+export type AdminStaffSummary = z.infer<typeof adminStaffSummarySchema>;
+
+export const adminStaffListSchema = paginated(adminStaffSummarySchema);
+
+export const adminStaffSchema = adminStaffSummarySchema.extend({
+  hotels: z.array(
+    z.object({ id: z.string(), name: z.string(), city: z.string(), isActive: z.boolean() }),
+  ),
+  updatedAt: z.iso.datetime(),
+});
+export type AdminStaff = z.infer<typeof adminStaffSchema>;
+
+const staffNameField = z.string().trim().min(1, "Name is required").max(120);
+/** `""` or null → null. */
+const staffPhoneField = z
+  .string()
+  .trim()
+  .max(30, "At most 30 characters")
+  .nullable()
+  .transform((v) => (v === "" ? null : v));
+
+/** `POST /api/admin/staff` — creates a STAFF user. */
+export const createStaffSchema = z.object({
+  name: staffNameField,
+  email: emailField,
+  password: registerSchema.shape.password,
+  phone: staffPhoneField.default(null),
+});
+export type CreateStaffInput = z.input<typeof createStaffSchema>;
+export type CreateStaffData = z.output<typeof createStaffSchema>;
+
+/** `PATCH /api/admin/staff/:userId`. Email and password don't change here. */
+export const updateStaffSchema = z.object({ name: staffNameField, phone: staffPhoneField });
+export type UpdateStaffInput = z.input<typeof updateStaffSchema>;
+export type UpdateStaffData = z.output<typeof updateStaffSchema>;
+
+export const staffIdParamsSchema = z.object({ userId: z.string().min(1) });
+export type StaffIdParams = z.output<typeof staffIdParamsSchema>;
+
+export const staffHotelParamsSchema = staffIdParamsSchema.extend({ hotelId: z.string().min(1) });
+export type StaffHotelParams = z.output<typeof staffHotelParamsSchema>;
+
+export const assignStaffHotelSchema = z.object({ hotelId: z.string().min(1, "Choose a hotel") });
+export type AssignStaffHotelInput = z.output<typeof assignStaffHotelSchema>;
 
 // ---------- Health ----------
 export const healthSchema = z.object({
