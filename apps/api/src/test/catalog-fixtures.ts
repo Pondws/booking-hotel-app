@@ -155,18 +155,21 @@ export async function signIn(userId: string, audience: "WEB" | "ADMIN"): Promise
 }
 
 /** Deletes the bookings of one fixture — its user's and any on its rooms (to reset between tests). */
-export function clearBookings(fx: CatalogFixture) {
-  return prisma.booking.deleteMany({
-    where: { OR: [{ userId: fx.userId }, { room: { roomType: { hotelId: fx.hotelId } } }] },
-  });
+export async function clearBookings(fx: CatalogFixture) {
+  const where = { OR: [{ userId: fx.userId }, { room: { roomType: { hotelId: fx.hotelId } } }] };
+  await prisma.payment.deleteMany({ where: { booking: where } });
+  return prisma.booking.deleteMany({ where });
 }
 
 /** Deletes every row created under `label`, in reverse FK order. */
 export async function cleanupCatalogFixtures(label: string): Promise<void> {
   const hotel = { name: { startsWith: hotelPrefix(label) } };
   const roomType = { hotel };
+  const user = { email: { startsWith: userPrefix(label) } };
+  await prisma.payment.deleteMany({ where: { booking: { room: { roomType } } } });
   await prisma.booking.deleteMany({ where: { room: { roomType } } });
-  await prisma.booking.deleteMany({ where: { user: { email: { startsWith: userPrefix(label) } } } });
+  await prisma.payment.deleteMany({ where: { booking: { user } } });
+  await prisma.booking.deleteMany({ where: { user } });
   await prisma.ratePeriod.deleteMany({ where: { roomType } });
   await prisma.room.deleteMany({ where: { roomType } });
   await prisma.roomType.deleteMany({ where: roomType });
