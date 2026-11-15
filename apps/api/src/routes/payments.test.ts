@@ -220,4 +220,64 @@ describe("payments API", () => {
       assert.equal((await webhook({ type: "charge.updated", providerRef: "mock_pi_unknown" })).status, 200);
     });
   });
+
+  describe("POST /api/bookings/:code/cancel with payments", () => {
+    const cancel = (code: string) => post(`/api/bookings/${code}/cancel`, aliceCookie);
+    /** A hold with a started payment; `paid` also succeeds the intent and delivers the webhook. */
+    const withPayment = async (paid: boolean) => {
+      const booking = await hold();
+      await start(booking.code);
+      const ref = (await paymentsOf(booking.code))[0]!.providerRef!;
+      if (paid) {
+        mock.succeed(ref);
+        await request(app)
+          .post("/api/webhooks/stripe")
+          .set("Content-Type", "application/json")
+          .set("stripe-signature", MOCK_WEBHOOK_SIGNATURE)
+          .send(JSON.stringify({ type: "payment_intent.succeeded", providerRef: ref }));
+      }
+      return { code: booking.code, ref };
+    };
+
+    test("cancelling a paid booking refunds it", async () => {
+      const { code, ref } = await withPayment(true);
+      const res = await cancel(code);
+      assert.equal(res.status, 200);
+      const booking = bookingSchema.parse(res.body.data);
+      assert.equal(booking.status, "CANCELLED");
+      assert.equal(booking.payment?.status, "REFUNDED");
+      assert.ok(booking.payment?.refundedAt);
+      assert.ok(mock.refunds.includes(ref));
+    });
+
+    test("cancelling an unpaid hold cancels the intent", async () => {
+      const { code, ref } = await withPayment(false);
+      const res = await cancel(code);
+      assert.equal(res.status, 200);
+      assert.equal(bookingSchema.parse(res.body.data).payment?.status, "FAILED");
+      assert.ok(mock.cancelled.includes(ref));
+      assert.ok(!mock.refunds.includes(ref));
+    });
+
+    test("cancelling a CONFIRMED booking without a payment makes no provider call", async () => {
+      const booking = await hold();
+      await prisma.booking.update({ where: { code: booking.code }, data: { status: "CONFIRMED", expiresAt: null } });
+      const [refunds, cancelled] = [mock.refunds.length, mock.cancelled.length];
+      const res = await cancel(booking.code);
+      assert.equal(res.status, 200);
+      assert.equal(bookingSchema.parse(res.body.data).payment, null);
+      assert.deepEqual([mock.refunds.length, mock.cancelled.length], [refunds, cancelled]);
+    });
+
+    test("refund failure still cancels", async () => {
+      const { code, ref } = await withPayment(true);
+      mock.failNextRefund = true;
+      const res = await cancel(code);
+      assert.equal(res.status, 200);
+      const booking = bookingSchema.parse(res.body.data);
+      assert.equal(booking.status, "CANCELLED");
+      assert.equal(booking.payment?.status, "SUCCEEDED");
+      assert.ok(!mock.refunds.includes(ref));
+    });
+  });
 });
