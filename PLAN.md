@@ -49,7 +49,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 3 | Catalog สาธารณะ + ห้องว่าง | ✅ เสร็จแล้ว |
 | 4 | Booking flow | ✅ เสร็จแล้ว |
 | 5 | Payments (Stripe, test mode) | ✅ เสร็จแล้ว (ยังไม่ได้ทดสอบ Stripe จริงในเบราว์เซอร์) |
-| 6 | Back-office (web-admin) | 🔄 กำลังทำ (6.1–6.3 ✅, ถัดไป 6.4 Bookings) |
+| 6 | Back-office (web-admin) | 🔄 กำลังทำ (6.1–6.4 ✅, ถัดไป 6.5 Staff + Amenity catalog) |
 | 7 | Reviews | ⬜ |
 | 8 | Hardening และ deployment | ⬜ |
 
@@ -244,7 +244,7 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 | 6.1 | Admin shell + Hotels | `feat/admin-hotels` | ✅ |
 | 6.2 | Room types + Rooms | `feat/admin-room-types` | ✅ |
 | 6.3 | Rate periods | `feat/admin-rate-periods` | ✅ |
-| 6.4 | Bookings | `feat/admin-bookings` | ⬜ |
+| 6.4 | Bookings | `feat/admin-bookings` | ✅ |
 | 6.5 | Staff + Amenity catalog (เฉพาะ ADMIN) | `feat/admin-staff` | ⬜ |
 | 6.6 | Dashboard | `feat/admin-dashboard` | ⬜ |
 
@@ -273,11 +273,15 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-rate-periods-design.md`
 - [x] ตรวจในเบราว์เซอร์แล้ว (2026-11-15): สร้าง/แก้ไข/ลบ, ช่วงทับกันได้ 409 ทั้งตอนสร้างและแก้ไข, ช่วงที่ต่อกันพอดีบันทึกได้
 
 ### 6.4 — Bookings
-- [ ] กรองตามโรงแรม, สถานะ และวันที่
-- [ ] หน้ารายละเอียด พร้อมสถานะการชำระเงิน (`payment.status`, `paidAt`, `refundedAt`) — ย้ายมาจาก Phase 5
-- [ ] check-in และ check-out → `COMPLETED` (ต้องแก้ schema: ยังไม่มี `checkedInAt`/`checkedOutAt` และไม่มีสถานะ `CHECKED_IN`)
-- [ ] ยกเลิกพร้อมเหตุผล (ต้องแก้ schema: ยังไม่มี `cancelReason`) และคืนเงินผ่าน `payment.service`
-- [ ] ย้ายไปห้องอื่นใน room type เดียวกัน
+Spec: `docs/superpowers/specs/2026-11-15-admin-bookings-design.md`
+- [x] กรองตามโรงแรม, สถานะ (รวม "เข้าพักอยู่"), ช่วงวันที่ และค้นหารหัส/ชื่อ/อีเมล
+- [x] หน้ารายละเอียด พร้อมสถานะการชำระเงิน (`payment.status`, `paidAt`, `refundedAt`) และเตือนเมื่อคืนเงินไม่สำเร็จ
+- [x] check-in และ check-out → `COMPLETED` (เพิ่ม `checkedInAt`/`checkedOutAt`; ไม่เพิ่มสถานะ `CHECKED_IN` —
+      "เข้าพักอยู่" = `CONFIRMED` + `checkedInAt` เพื่อไม่ต้องแก้ `bookings_no_overlap`)
+- [x] ยกเลิกพร้อมเหตุผล (`cancelReason`) และคืนเงินเต็มจำนวนผ่าน `payment.service` `releaseBookingPayment`
+- [x] ย้ายไปห้องอื่นใน room type เดียวกัน (ห้องไม่ว่าง → `409 ROOM_UNAVAILABLE`)
+- [x] ตรวจในเบราว์เซอร์แล้ว (2026-11-15): ค้นหา/กรองสถานะ/กรองวันที่, ย้ายห้อง, เช็คอิน → เช็คเอาท์,
+      ยกเลิก (เหตุผลว่างแสดง error, การจองที่ชำระแล้วคืนเงินเต็มจำนวน), หน้าไม่พบการจอง
 
 ### 6.5 — Staff + Amenity catalog (เฉพาะ ADMIN)
 - [ ] Staff: สร้าง user STAFF และผูกกับโรงแรมหรือเอาออก

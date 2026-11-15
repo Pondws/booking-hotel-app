@@ -262,6 +262,12 @@ model Booking {
   currency    String
   expiresAt   DateTime?     @map("expires_at")
   cancelledAt DateTime?     @map("cancelled_at")
+  /// Staff-entered reason for an admin cancel (null for a customer cancel).
+  cancelReason String?      @map("cancel_reason")
+  /// Set at check-in; a CONFIRMED booking with this set is in house.
+  checkedInAt  DateTime?    @map("checked_in_at")
+  /// Set at check-out, together with status COMPLETED.
+  checkedOutAt DateTime?    @map("checked_out_at")
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 

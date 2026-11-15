@@ -53,12 +53,22 @@ const EXACT: Record<string, string> = {
   "The file is empty": "ไฟล์ว่างเปล่า",
   "The file isn't a valid image of that type": "ไฟล์ไม่ใช่รูปภาพที่ถูกต้องตามประเภท",
   "These dates overlap another rate period": "วันที่ทับซ้อนกับช่วงราคาอื่น",
+  "Enter a reason": "กรุณากรอกเหตุผล",
+  "Choose a room": "กรุณาเลือกห้อง",
+  "End date must be on or after the start date": "วันสิ้นสุดต้องไม่ก่อนวันเริ่มต้น",
+  "Booking not found": "ไม่พบการจอง",
+  "This booking can't be checked in": "เช็คอินการจองนี้ไม่ได้ สถานะหรือวันที่ไม่ตรงเงื่อนไข",
+  "This booking can't be checked out": "เช็คเอาท์การจองนี้ไม่ได้ ผู้เข้าพักยังไม่ได้เช็คอิน",
+  "This booking can't be cancelled": "ยกเลิกการจองนี้ไม่ได้แล้ว",
+  "This booking can't be moved": "ย้ายห้องของการจองนี้ไม่ได้แล้ว",
+  "This room isn't available for this stay": "ห้องนี้ไม่ว่างในช่วงวันที่เข้าพักนี้",
 };
 
 const ISO = String.raw`(\d{4}-\d{2}-\d{2})`;
 
 const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/^At most (\d+) characters$/, (m) => `ไม่เกิน ${m[1]} ตัวอักษร`],
+  [/^Use at most (\d+) characters$/, (m) => `ไม่เกิน ${m[1]} ตัวอักษร`],
   [/^At most (\d+) guests$/, (m) => `ไม่เกิน ${m[1]} คน`],
   [/^A rate period can cover at most (\d+) nights$/, (m) => `ช่วงราคาหนึ่งครอบคลุมได้ไม่เกิน ${m[1]} คืน`],
   [/^Room (.+) already exists in this hotel$/, (m) => `ห้อง ${m[1]} มีอยู่แล้วในโรงแรมนี้`],

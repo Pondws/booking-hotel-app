@@ -706,6 +706,115 @@ export type BookingListQuery = z.output<typeof bookingListQuerySchema>;
 export const bookingCodeParamsSchema = z.object({ code: z.string().regex(BOOKING_CODE_PATTERN) });
 export type BookingCodeParams = z.output<typeof bookingCodeParamsSchema>;
 
+// ---------- Admin bookings ----------
+/** `CONFIRMED` = awaiting arrival; `CHECKED_IN` = CONFIRMED with `checkedInAt` (not a DB status). */
+export const ADMIN_BOOKING_STATUS_FILTERS = [
+  "all",
+  "PENDING",
+  "CONFIRMED",
+  "CHECKED_IN",
+  "COMPLETED",
+  "CANCELLED",
+  "EXPIRED",
+] as const;
+export type AdminBookingStatusFilter = (typeof ADMIN_BOOKING_STATUS_FILTERS)[number];
+
+const blankToUndefined = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
+
+export const adminBookingListQuerySchema = z
+  .object({
+    hotelId: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+    status: z.enum(ADMIN_BOOKING_STATUS_FILTERS).default("all"),
+    from: z.preprocess(blankToUndefined, isoDate.optional()),
+    to: z.preprocess(blankToUndefined, isoDate.optional()),
+    q: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(50).default(20),
+  })
+  .superRefine((v, ctx) => {
+    if (v.from !== undefined && v.to !== undefined && v.to < v.from) {
+      ctx.addIssue({ code: "custom", path: ["to"], message: "End date must be on or after the start date" });
+    }
+  });
+export type AdminBookingListQuery = z.output<typeof adminBookingListQuerySchema>;
+
+export const adminBookingSummarySchema = z.object({
+  code: z.string(),
+  status: bookingStatusSchema,
+  /** CONFIRMED and checked in (in house). */
+  checkedIn: z.boolean(),
+  checkIn: isoDate,
+  checkOut: isoDate,
+  nights: z.number().int().min(1),
+  guests: z.number().int().min(1),
+  guestName: z.string(),
+  guestEmail: z.string(),
+  totalAmount: z.number(),
+  currency: z.string(),
+  /** Latest payment attempt, or null when none was started. */
+  paymentStatus: paymentStatusSchema.nullable(),
+  hotel: z.object({ id: z.string(), name: z.string() }),
+  roomType: z.object({ id: z.string(), name: z.string() }),
+  room: z.object({ id: z.string(), number: z.string() }),
+  createdAt: z.iso.datetime(),
+});
+export type AdminBookingSummary = z.infer<typeof adminBookingSummarySchema>;
+
+export const adminBookingListSchema = paginated(adminBookingSummarySchema);
+
+export const adminBookingSchema = adminBookingSummarySchema.extend({
+  guestPhone: z.string().nullable(),
+  customer: z.object({ name: z.string(), email: z.string() }),
+  expiresAt: z.iso.datetime().nullable(),
+  cancelledAt: z.iso.datetime().nullable(),
+  cancelReason: z.string().nullable(),
+  checkedInAt: z.iso.datetime().nullable(),
+  checkedOutAt: z.iso.datetime().nullable(),
+  payment: z
+    .object({
+      status: paymentStatusSchema,
+      amount: z.number(),
+      provider: z.string(),
+      paidAt: z.iso.datetime().nullable(),
+      refundedAt: z.iso.datetime().nullable(),
+    })
+    .nullable(),
+  hotel: z.object({ id: z.string(), name: z.string(), checkInTime: z.string(), checkOutTime: z.string() }),
+  canCheckIn: z.boolean(),
+  canCheckOut: z.boolean(),
+  canCancel: z.boolean(),
+  canMoveRoom: z.boolean(),
+});
+export type AdminBooking = z.infer<typeof adminBookingSchema>;
+
+export const adminBookingRoomOptionSchema = z.object({
+  id: z.string(),
+  number: z.string(),
+  isActive: z.boolean(),
+  /** The booking's current room. */
+  current: z.boolean(),
+  /** Active, not current, and free for the whole stay. */
+  available: z.boolean(),
+});
+export type AdminBookingRoomOption = z.infer<typeof adminBookingRoomOptionSchema>;
+
+export const adminBookingRoomOptionListSchema = z.array(adminBookingRoomOptionSchema);
+
+export const CANCEL_REASON_MAX = 500;
+
+export const cancelBookingInputSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(1, "Enter a reason")
+    .max(CANCEL_REASON_MAX, `Use at most ${CANCEL_REASON_MAX} characters`),
+});
+export type CancelBookingInput = z.input<typeof cancelBookingInputSchema>;
+export type CancelBookingData = z.output<typeof cancelBookingInputSchema>;
+
+export const moveBookingRoomInputSchema = z.object({ roomId: z.string().min(1, "Choose a room") });
+export type MoveBookingRoomInput = z.output<typeof moveBookingRoomInputSchema>;
+
 // ---------- Health ----------
 export const healthSchema = z.object({
   ok: z.boolean(),

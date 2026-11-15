@@ -8,11 +8,18 @@ export function formatMoney(amount: number, currency: string): string {
 }
 
 // `YYYY-MM-DD` wire dates are calendar dates; format them in UTC so the day never shifts.
+// One formatter for all three parts: a year formatted alone comes out as `พ.ศ. 2570`, not `2570`.
+const dayMonthYear = new Intl.DateTimeFormat("th-TH", {
+  timeZone: "UTC",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+
 const parts = (iso: string) => {
-  const date = new Date(`${iso}T00:00:00.000Z`);
-  const get = (options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat("th-TH", { timeZone: "UTC", ...options }).format(date);
-  return { day: get({ day: "numeric" }), month: get({ month: "short" }), year: get({ year: "numeric" }) };
+  const found = dayMonthYear.formatToParts(new Date(`${iso}T00:00:00.000Z`));
+  const get = (type: Intl.DateTimeFormatPartTypes) => found.find((p) => p.type === type)?.value ?? "";
+  return { day: get("day"), month: get("month"), year: get("year") };
 };
 
 /** `12 เม.ย. 2570` (Thai months, Buddhist-era year) */

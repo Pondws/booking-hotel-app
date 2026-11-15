@@ -25,6 +25,8 @@ import {
   updateHotelSchema,
   hotelImagesInputSchema,
   hotelAmenitiesInputSchema,
+  adminBookingListQuerySchema,
+  cancelBookingInputSchema,
 } from "@booking/shared";
 
 test("createHotel requires address and no longer accepts rating", () => {
@@ -313,4 +315,24 @@ test("hotelImagesInputSchema rejects > 20 images, non-http URLs and duplicate UR
 test("hotelAmenitiesInputSchema rejects duplicate ids", () => {
   assert.equal(hotelAmenitiesInputSchema.safeParse({ amenityIds: ["a", "b"] }).success, true);
   assert.equal(hotelAmenitiesInputSchema.safeParse({ amenityIds: ["a", "a"] }).success, false);
+});
+
+test("adminBookingListQuerySchema defaults, drops blanks and rejects to < from", () => {
+  const d = adminBookingListQuerySchema.parse({ q: "  ", hotelId: "", from: "" });
+  assert.equal(d.q, undefined);
+  assert.equal(d.hotelId, undefined);
+  assert.equal(d.from, undefined);
+  assert.deepEqual([d.status, d.page, d.pageSize], ["all", 1, 20]);
+  assert.equal(adminBookingListQuerySchema.safeParse({ status: "CHECKED_IN" }).success, true);
+  assert.equal(adminBookingListQuerySchema.safeParse({ status: "checked_in" }).success, false);
+  assert.equal(adminBookingListQuerySchema.safeParse({ from: "2027-01-02", to: "2027-01-02" }).success, true);
+  assert.equal(adminBookingListQuerySchema.safeParse({ from: "2027-01-02", to: "2027-01-01" }).success, false);
+  assert.equal(adminBookingListQuerySchema.safeParse({ pageSize: 51 }).success, false);
+});
+
+test("cancelBookingInputSchema trims and needs 1–500 chars", () => {
+  assert.equal(cancelBookingInputSchema.parse({ reason: "  no-show  " }).reason, "no-show");
+  assert.equal(cancelBookingInputSchema.safeParse({ reason: "   " }).success, false);
+  assert.equal(cancelBookingInputSchema.safeParse({ reason: "x".repeat(500) }).success, true);
+  assert.equal(cancelBookingInputSchema.safeParse({ reason: "x".repeat(501) }).success, false);
 });
