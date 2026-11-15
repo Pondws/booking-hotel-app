@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { Booking } from "@booking/shared";
 import { Button } from "@booking/ui/components/button";
@@ -15,15 +16,21 @@ import {
   AlertDialogTrigger,
 } from "@booking/ui/components/alert-dialog";
 import { ApiError } from "@/lib/api";
-import { useCancelBooking } from "../hooks";
+import { bookingKeys, useCancelBooking } from "../hooks";
 
 export function CancelBookingDialog({ booking }: { booking: Booking }) {
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
   const cancel = useCancelBooking(booking.hotel.slug);
 
   const onOpenChange = (next: boolean) => {
     if (cancel.isPending) return;
     if (next) cancel.reset();
+    else if (cancel.isError) {
+      // Refresh only once the message has been read: the booking is no longer cancellable and this dialog unmounts
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.detail(booking.code) });
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
+    }
     setOpen(next);
   };
 
