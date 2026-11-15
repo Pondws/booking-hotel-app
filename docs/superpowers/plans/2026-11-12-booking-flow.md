@@ -131,7 +131,7 @@ The spec's own review focus (expired hold blocks at DB level, last-room race, re
 
 - [x] **Step 1:** `ui:add`; `git diff --stat package-lock.json` → no change (stop and ask if it adds packages).
 - [x] **Step 2:** Move `Pagination`; `RequireAuth` builds `next` from `usePathname()` + `useSearchParams().toString()` (`?` only when non-empty) — callers already sit in `<Suspense>`; check each page that renders `RequireAuth` and wrap where missing. `UserNav` gets a "My bookings" link → `/account/bookings`.
-- [x] **Step 3:** `npm run lint && npm run typecheck`; browser (`next-dev-loop`): signed out, `/account?x=1` → `/login?next=%2Faccount%3Fx%3D1` → after login back on `/account?x=1`. (browser part not run — no browser in this session; see final review)
+- [x] **Step 3:** `npm run lint && npm run typecheck`; browser (`next-dev-loop`): signed out, `/account?x=1` → `/login?next=%2Faccount%3Fx%3D1` → after login back on `/account?x=1`. (browser verified 2026-11-15 — see "Browser verification" below)
 - [x] **Step 4: Commit + push** — `feat(web): alert-dialog, shared pagination, keep query in login next`.
 
 ### Task 6: Web booking page (`/book`)
@@ -151,7 +151,7 @@ The spec's own review focus (expired hold blocks at DB level, last-room race, re
 - [x] **Step 2:** `RoomTypeCard` "Book" states per spec (Link with `toSearchParams`-style query; disabled + "Add dates to book"; sold out disabled). Remove the "Booking opens soon" hint.
 - [x] **Step 3:** `/book` = `RequireAuth` › `<Suspense>` › `BookView`. Invalid params **or a `roomTypeId` not in `hotel.roomTypes`** (Review Focus 3) → "Choose your dates first" + link to `/hotels/<slug>` (or `/hotels`). `BookingSummary` loading skeleton / error retry / sold out / data (cover, names, dates, nights, guests, total, per-night list).
 - [x] **Step 4:** `GuestForm` — react-hook-form + `zodResolver(createBookingSchema)`; hidden values from params; name/email defaulted from `useMe()`; phone registered with `setValueAs: (v: string) => (v.trim() === "" ? undefined : v)` (Review Focus 1). Button disabled while pending. Error mapping and `router.replace("/account/bookings/<code>")` per spec Task 6.
-- [x] **Step 5:** `npm run lint && npm run typecheck`; browser: Riverside Bangkok `2027-04-08 → 04-12` Deluxe King → `/book` shows `฿15,400`; signed out → login → same `/book?…`; submit with phone empty → lands on `/account/bookings/<code>`; Back does not return to a submittable form for the same hold (Review Focus 2); `/book?roomTypeId=<other hotel's>` → "Choose your dates first". (browser part not run — no browser in this session; see final review)
+- [x] **Step 5:** `npm run lint && npm run typecheck`; browser: Riverside Bangkok `2027-04-08 → 04-12` Deluxe King → `/book` shows `฿15,400`; signed out → login → same `/book?…`; submit with phone empty → lands on `/account/bookings/<code>`; Back does not return to a submittable form for the same hold (Review Focus 2); `/book?roomTypeId=<other hotel's>` → "Choose your dates first". (browser verified 2026-11-15 — see "Browser verification" below)
 - [x] **Step 6: Commit + push** — `feat(web): booking page with live quote and 15-minute hold`.
 
 ### Task 7: My bookings + booking detail
@@ -166,15 +166,33 @@ The spec's own review focus (expired hold blocks at DB level, last-room race, re
 - [x] **Step 1:** `BookingStatusBadge`, `BookingCard`, `BookingList` (`?page=` via `useSearchParams`, four states, empty copy per spec).
 - [x] **Step 2:** `HoldCountdown` (spec Task 7 copy, `role="timer"`, single `aria-live` at 1:00). `BookingDetail` calls `refetch()` once when `done` flips true — guarded by a ref keyed on `expiresAt` so a still-`PENDING` reply doesn't loop (Review Focus 4).
 - [x] **Step 3:** `CancelBookingDialog` → `useCancelBooking`; 409 → inline `role="alert"` with the API message; button disabled while pending. 404 on detail → "Booking not found" + link to `/account/bookings`. "Book again" link per spec.
-- [x] **Step 4:** `npm run lint && npm run typecheck`; browser walkthrough per spec Task 7 "Done when", plus: set a hold's `expires_at` 5 s ahead in `db:studio`, watch it reach `00:00`, one network refetch, status `EXPIRED`. (browser part not run — no browser in this session; see final review)
+- [x] **Step 4:** `npm run lint && npm run typecheck`; browser walkthrough per spec Task 7 "Done when", plus: set a hold's `expires_at` 5 s ahead in `db:studio`, watch it reach `00:00`, one network refetch, status `EXPIRED`. (browser verified 2026-11-15 — see "Browser verification" below)
 - [x] **Step 5: Commit + push** — `feat(web): my bookings list and booking detail with countdown and cancel`.
 
 ### Task 8: Phase close
 
 **Files:** UI files touched by audit fixes; `PLAN.md`, `README.md`, `CLAUDE.md`.
 
-- [x] **Step 1:** `impeccable` audit + polish on `/book`, `/account/bookings`, `/account/bookings/[code]` (1280 + 360 px, keyboard, error/empty states); apply fixes. (code-level audit only, no browser)
+- [x] **Step 1:** `impeccable` audit + polish on `/book`, `/account/bookings`, `/account/bookings/[code]` (1280 + 360 px, keyboard, error/empty states); apply fixes. (code-level audit; 360 + 1280 px overflow and keyboard re-checked in the browser 2026-11-15)
 - [x] **Step 2:** Two-browser race (one free room) → one booking page, one `ROOM_UNAVAILABLE` alert. (skipped — no browser; DB race covered by Task 3 tests)
 - [x] **Step 3:** `npm run lint && npm run typecheck && npm test && npm run db:check && npm run build` — all green, output captured.
 - [x] **Step 4:** Docs per spec Task 8 (PLAN.md phase 4 boxes + decisions #4/#5, README endpoints/routes, CLAUDE.md bookings feature + `src/components/`).
 - [x] **Step 5: Commit + push** — `docs: phase 4 booking status, README and CLAUDE.md`; then `superpowers:requesting-code-review` on the whole branch.
+
+## Browser verification (2026-11-15)
+
+Run with `next-dev-loop` (agent-browser + `/_next/mcp`) against `main` after merge, seeded customer.
+
+- Task 5: signed out `/account?x=1` → `/login?next=%2Faccount%3Fx%3D1` → back on `/account?x=1` after login. ✅
+- Task 6: Riverside Bangkok `2027-04-08 → 04-12` Deluxe King → `/book` shows `฿15,400` (3,200 + 3,200 + 4,500 + 4,500). ✅
+  Signed out `/book?…` → login → same `/book?…`. ✅ Submit with phone empty → `/account/bookings/<code>`, API `guestPhone: null`,
+  button "Holding…" + disabled while pending. ✅ Back skips `/book` (`router.replace`). ✅ Another hotel's `roomTypeId` and past
+  dates → "Choose your dates first". ✅
+- Task 7: hold `expires_at` set 8 s ahead → timer reaches `00:00`, one `GET /api/bookings/<code>`, status Expired, no refetch loop. ✅
+  Cancel dialog: focus on "Keep booking", Esc closes and returns focus, confirm → Cancelled, cancel button gone. ✅
+  My bookings list shows Expired / Cancelled badges. ✅
+- Task 8: no horizontal overflow at 360 / 1280 px on `/book`, `/account/bookings`, `/account/bookings/[code]`; Tab order
+  header → form fields → submit, focus ring on each. ✅ Two-browser race still skipped (covered by Task 3 tests).
+- Found and fixed: hydration mismatch on `/book` and `/account/bookings/[code]` — `RequireAuth` inside `<Suspense>` hydrated
+  after `UserNav` had loaded `me`, so the client skipped the server's "Loading…". `RequireAuth` now renders "Loading…" until
+  hydrated (`useSyncExternalStore`). 0 hydration errors after the fix.

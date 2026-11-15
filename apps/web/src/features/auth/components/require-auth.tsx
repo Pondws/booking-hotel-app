@@ -1,12 +1,28 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "@booking/ui/components/button";
 import { useMe } from "../hooks";
 import { isExplicitLogout, resetExplicitLogout } from "../logout-intent";
 
+const noopSubscribe = () => () => {};
+
+/**
+ * False on the server and during hydration, true after. A Suspense boundary can hydrate after
+ * `me` has already resolved (UserNav fetches it first), so gating on it keeps the first client
+ * render equal to the server's "Loading…". Client-side navigations get `true` immediately.
+ */
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+}
+
 export function RequireAuth({ children }: { children: ReactNode }) {
+  const hydrated = useHydrated();
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams().toString();
@@ -24,6 +40,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     router.replace(isExplicitLogout() ? "/" : `/login?next=${encodeURIComponent(current)}`);
   }, [user, current, router]);
 
+  if (!hydrated) {
+    return <p className="py-10 text-center text-muted-foreground">Loading…</p>;
+  }
   if (isError) {
     return (
       <div className="space-y-3 py-10 text-center">
