@@ -2,9 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { AdminHotelListQuery } from "@booking/shared";
+import type { AdminHotelListQuery, AdminHotelSummary } from "@booking/shared";
 import { Badge } from "@booking/ui/components/badge";
 import { Button } from "@booking/ui/components/button";
+import {
+  DataTable,
+  DataTableSkeleton,
+  type DataTableColumn,
+} from "@booking/ui/components/data-table";
 import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
 import {
@@ -14,16 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@booking/ui/components/select";
-import { Skeleton } from "@booking/ui/components/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@booking/ui/components/table";
-import { cn } from "@booking/ui/lib/utils";
 import { Pagination } from "@/components/pagination";
 import { useMe } from "@/features/auth/hooks";
 import { useAdminHotels } from "../hooks";
@@ -49,6 +44,27 @@ function isStatus(value: string): value is AdminHotelListQuery["status"] {
 export function HotelStatusBadge({ isActive }: { isActive: boolean }) {
   return <Badge variant={isActive ? "secondary" : "outline"}>{isActive ? "Active" : "Inactive"}</Badge>;
 }
+
+const COLUMNS: DataTableColumn<AdminHotelSummary>[] = [
+  {
+    id: "name",
+    header: "Name",
+    className: "font-medium",
+    cell: (hotel) => (
+      <Link href={`/hotels/${hotel.id}`} className="hover:underline">
+        {hotel.name}
+      </Link>
+    ),
+  },
+  { id: "city", header: "City", cell: (hotel) => hotel.city },
+  { id: "status", header: "Status", cell: (hotel) => <HotelStatusBadge isActive={hotel.isActive} /> },
+  {
+    id: "updated",
+    header: "Updated",
+    className: "text-muted-foreground tabular-nums",
+    cell: (hotel) => dateFormat.format(new Date(hotel.updatedAt)),
+  },
+];
 
 export function HotelList() {
   const router = useRouter();
@@ -106,7 +122,7 @@ export function HotelList() {
       </div>
 
       {isPending ? (
-        <HotelTableSkeleton />
+        <DataTableSkeleton />
       ) : isError ? (
         <div role="alert" className="space-y-2">
           <p className="text-sm">Couldn&apos;t load hotels.</p>
@@ -134,39 +150,13 @@ export function HotelList() {
           <p className="text-sm text-muted-foreground" aria-live="polite">
             {data.total} {data.total === 1 ? "hotel" : "hotels"}
           </p>
-          <div
-            aria-busy={isPlaceholderData}
-            className={cn("rounded-lg border", isPlaceholderData && "opacity-60")}
-          >
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>City</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Updated</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.items.map((hotel) => (
-                  <TableRow key={hotel.id}>
-                    <TableCell className="font-medium">
-                      <Link href={`/hotels/${hotel.id}`} className="hover:underline">
-                        {hotel.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{hotel.city}</TableCell>
-                    <TableCell>
-                      <HotelStatusBadge isActive={hotel.isActive} />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground tabular-nums">
-                      {dateFormat.format(new Date(hotel.updatedAt))}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTable
+            caption="Hotels"
+            columns={COLUMNS}
+            rows={data.items}
+            getRowKey={(hotel) => hotel.id}
+            busy={isPlaceholderData}
+          />
           <Pagination
             page={data.page}
             totalPages={data.totalPages}
@@ -175,16 +165,6 @@ export function HotelList() {
           />
         </div>
       )}
-    </div>
-  );
-}
-
-export function HotelTableSkeleton() {
-  return (
-    <div className="space-y-2" aria-hidden>
-      {Array.from({ length: 5 }, (_, i) => (
-        <Skeleton key={i} className="h-10 w-full" />
-      ))}
     </div>
   );
 }

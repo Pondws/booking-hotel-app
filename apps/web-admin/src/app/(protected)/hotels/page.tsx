@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Button } from "@booking/ui/components/button";
 import { useMe } from "@/features/auth/hooks";
-import { HotelList, HotelTableSkeleton } from "@/features/hotels/components/hotel-list";
+import { DataTableSkeleton } from "@booking/ui/components/data-table";
+import { HotelList } from "@/features/hotels/components/hotel-list";
 
 export default function HotelsPage() {
   const { data: me } = useMe();
@@ -18,7 +19,7 @@ export default function HotelsPage() {
           </Button>
         )}
       </header>
-      <Suspense fallback={<HotelTableSkeleton />}>
+      <Suspense fallback={<DataTableSkeleton />}>
         <HotelList />
       </Suspense>
     </main>
