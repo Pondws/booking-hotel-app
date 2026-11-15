@@ -8,6 +8,7 @@ import type { PublicUser } from "@booking/shared";
 import { BookingStatus, Prisma } from "../generated/prisma/client";
 import { toDbDate } from "../lib/dates";
 import { prisma } from "../lib/prisma";
+import { generateToken, hashToken } from "../lib/session-token";
 
 export const CATALOG_PREFIX = "Cat Test ";
 
@@ -142,6 +143,15 @@ export function createFixtureUser(label: string): Promise<PublicUser> {
     },
     select: { id: true, email: true, name: true, phone: true, role: true },
   });
+}
+
+/** Creates a live session for `userId` and returns the raw token (cookie value). Sessions go with the user. */
+export async function signIn(userId: string, audience: "WEB" | "ADMIN"): Promise<string> {
+  const token = generateToken();
+  await prisma.session.create({
+    data: { tokenHash: hashToken(token), userId, audience, expiresAt: new Date(Date.now() + 86_400_000) },
+  });
+  return token;
 }
 
 /** Deletes the bookings of one fixture — its user's and any on its rooms (to reset between tests). */

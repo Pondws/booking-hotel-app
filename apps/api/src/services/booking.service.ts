@@ -5,7 +5,9 @@ import {
   nightsBetween,
   todayIn,
   type Booking,
+  type BookingListQuery,
   type CreateBookingData,
+  type Paginated,
   type PublicUser,
 } from "@booking/shared";
 import { Prisma } from "../generated/prisma/client";
@@ -180,4 +182,78 @@ export async function createBooking(
 
   // 6. Every candidate was taken.
   throw new AppError(409, "ROOM_UNAVAILABLE", "This room was just booked for these dates");
+}
+
+/** Flips this user's lapsed holds to EXPIRED so reads and cancels agree with the mapper. */
+function expireLapsedHolds(userId: string, now: Date) {
+  return prisma.booking.updateMany({
+    where: { userId, status: "PENDING", expiresAt: { lt: now } },
+    data: { status: "EXPIRED" },
+  });
+}
+
+export async function listMyBookings(
+  user: PublicUser,
+  query: BookingListQuery,
+  now: Date = new Date(),
+): Promise<Paginated<Booking>> {
+  const { page, pageSize } = query;
+  await expireLapsedHolds(user.id, now);
+  const where = { userId: user.id } satisfies Prisma.BookingWhereInput;
+  const [total, rows] = await prisma.$transaction([
+    prisma.booking.count({ where }),
+    prisma.booking.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select: bookingSelect,
+    }),
+  ]);
+  return {
+    items: rows.map((row) => toBooking(row, now)),
+    page,
+    pageSize,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+  };
+}
+
+async function findMyBooking(userId: string, code: string, now: Date): Promise<Booking> {
+  const row = await prisma.booking.findFirst({ where: { code, userId }, select: bookingSelect });
+  if (!row) throw new AppError(404, "NOT_FOUND", "Booking not found");
+  return toBooking(row, now);
+}
+
+export async function getMyBooking(user: PublicUser, code: string, now: Date = new Date()): Promise<Booking> {
+  await expireLapsedHolds(user.id, now);
+  return findMyBooking(user.id, code, now);
+}
+
+/**
+ * Cancels in a single conditional `updateMany`: the row is touched only if it still holds the
+ * room and check-in is after today in `BOOKING_TZ`, so a hold that lapses between check and
+ * write can never be cancelled.
+ */
+export async function cancelMyBooking(
+  user: PublicUser,
+  code: string,
+  now: Date = new Date(),
+): Promise<Booking> {
+  const today = toDbDate(todayIn(BOOKING_TZ, now));
+  const { count } = await prisma.booking.updateMany({
+    where: {
+      code,
+      userId: user.id,
+      checkIn: { gt: today },
+      OR: [{ status: "CONFIRMED" }, { status: "PENDING", expiresAt: { gt: now } }],
+    },
+    data: { status: "CANCELLED", cancelledAt: now },
+  });
+  if (count === 0) {
+    await expireLapsedHolds(user.id, now);
+    await findMyBooking(user.id, code, now); // 404 when it isn't theirs
+    throw new AppError(409, "CONFLICT", "This booking can't be cancelled");
+  }
+  return findMyBooking(user.id, code, now);
 }
