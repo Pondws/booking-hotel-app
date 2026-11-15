@@ -327,7 +327,7 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-dashboard-design.md`
 - [x] booking detail มี `reviewable` + `review`
 
 ### 7.2 — ฟอร์มรีวิว (web)
-- [ ] การ์ดให้ดาว + ความเห็นในหน้า `/account/bookings/[code]`; รีวิวแล้วแสดงแบบอ่านอย่างเดียว
+- [x] การ์ดให้ดาว + ความเห็นในหน้า `/account/bookings/[code]`; รีวิวแล้วแสดงแบบอ่านอย่างเดียว
 
 ### 7.3 — รีวิวในหน้าโรงแรม
 - [x] `GET /api/hotels/:slug/reviews` แบบแบ่งหน้า (ไม่รวมรีวิวที่ซ่อน, แสดงแค่ชื่อต้น)
