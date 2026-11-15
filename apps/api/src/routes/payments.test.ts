@@ -187,6 +187,34 @@ describe("payments API", () => {
       assert.equal((await paymentsOf(code))[0]!.status, "FAILED");
     });
 
+    test("sync confirms after the intent succeeded; a later webhook doesn't settle again", async () => {
+      const { code, ref } = await started();
+      mock.succeed(ref);
+      const res = await post(`/api/bookings/${code}/payments/sync`, aliceCookie);
+      assert.equal(res.status, 200);
+      assert.equal(bookingSchema.parse(res.body.data).status, "CONFIRMED");
+      const paidAt = (await paymentsOf(code))[0]!.paidAt;
+      assert.equal((await webhook({ type: "payment_intent.succeeded", providerRef: ref })).status, 200);
+      const rows = await paymentsOf(code);
+      assert.equal(rows.length, 1);
+      assert.deepEqual(rows[0]!.paidAt, paidAt);
+    });
+
+    test("sync while still pending returns the booking unchanged", async () => {
+      const { code } = await started();
+      const res = await post(`/api/bookings/${code}/payments/sync`, aliceCookie);
+      assert.equal(res.status, 200);
+      const booking = bookingSchema.parse(res.body.data);
+      assert.equal(booking.status, "PENDING");
+      assert.equal(booking.payable, true);
+      assert.equal(booking.payment?.status, "PENDING");
+    });
+
+    test("sync of another user's booking → 404", async () => {
+      const { code } = await started();
+      assert.equal((await post(`/api/bookings/${code}/payments/sync`, bobCookie)).status, 404);
+    });
+
     test("webhook for an unknown ref or an ignored event type → 200", async () => {
       assert.equal((await webhook({ type: "payment_intent.succeeded", providerRef: "mock_pi_unknown" })).status, 200);
       assert.equal((await webhook({ type: "charge.updated", providerRef: "mock_pi_unknown" })).status, 200);

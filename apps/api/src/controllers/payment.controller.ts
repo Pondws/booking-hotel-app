@@ -17,3 +17,7 @@ export async function webhook(req: Request, res: Response) {
   await paymentService.handleWebhook(req.body, req.get("stripe-signature"));
   ok(res, { received: true });
 }
+
+export async function sync(req: Request, res: Response<unknown, { params: CodeParams }>) {
+  ok(res, await paymentService.syncPayment(currentUser(req), res.locals.params.code));
+}

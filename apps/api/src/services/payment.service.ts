@@ -1,10 +1,10 @@
-import type { PublicUser, StartPayment } from "@booking/shared";
+import type { Booking, PublicUser, StartPayment } from "@booking/shared";
 import { AppError } from "../lib/app-error";
 import { toMinorUnits } from "../lib/money";
 import { getPaymentProvider, type PaymentProvider } from "../lib/payments";
 import { prisma } from "../lib/prisma";
 import { isUniqueViolationOnIndex } from "../lib/prisma-errors";
-import { expireLapsedHolds } from "./booking.service";
+import { expireLapsedHolds, getMyBooking } from "./booking.service";
 
 export type SettleOutcome = "SUCCEEDED" | "FAILED";
 export type SettleResult = "confirmed" | "refunded" | "failed" | "noop";
@@ -177,4 +177,32 @@ export async function handleWebhook(
   const event = provider.parseWebhook(rawBody, signature);
   if (event.type === "ignored" || !event.providerRef) return;
   await settlePayment(event.providerRef, event.type === "succeeded" ? "SUCCEEDED" : "FAILED", now, { provider });
+}
+
+/**
+ * Asks the provider (server-side — never the browser) whether the booking's open intent finished and
+ * settles it, so the page can confirm without waiting for the webhook. Returns the fresh booking.
+ */
+export async function syncPayment(
+  user: PublicUser,
+  code: string,
+  now: Date = new Date(),
+  opts: ProviderOpts = {},
+): Promise<Booking> {
+  const provider = opts.provider ?? getPaymentProvider();
+  await getMyBooking(user, code, now); // 404 when it isn't theirs
+  const payment = await prisma.payment.findFirst({
+    where: { booking: { code, userId: user.id }, status: "PENDING", providerRef: { not: null } },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: { providerRef: true },
+  });
+  if (payment?.providerRef) {
+    const intent = await provider.getIntent(payment.providerRef);
+    if (intent.status !== "pending") {
+      await settlePayment(payment.providerRef, intent.status === "succeeded" ? "SUCCEEDED" : "FAILED", now, {
+        provider,
+      });
+    }
+  }
+  return getMyBooking(user, code, now);
 }
