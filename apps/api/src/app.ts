@@ -8,6 +8,7 @@ import { authRouter } from "./routes/auth";
 import { bookingsRouter } from "./routes/bookings";
 import { healthRouter } from "./routes/health";
 import { hotelsRouter } from "./routes/hotels";
+import { webhooksRouter } from "./routes/webhooks";
 
 export const app = express();
 
@@ -16,6 +17,8 @@ export const app = express();
 app.set("trust proxy", env.TRUST_PROXY);
 
 app.use(corsPolicy({ web: env.WEB_ORIGINS, admin: env.ADMIN_ORIGINS }));
+// Webhooks need the raw body for signature checks — mount before the JSON parser.
+app.use("/api/webhooks", webhooksRouter);
 app.use(express.json());
 
 app.use("/api/health", healthRouter);

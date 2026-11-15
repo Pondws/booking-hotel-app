@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, test } from "node:test";
 import request from "supertest";
-import { startPaymentSchema, type PublicUser } from "@booking/shared";
+import { bookingSchema, startPaymentSchema, type PublicUser } from "@booking/shared";
 import { app } from "../app";
 import { getPaymentProvider } from "../lib/payments";
-import { MockProvider } from "../lib/payments/mock-provider";
+import { MOCK_WEBHOOK_SIGNATURE, MockProvider } from "../lib/payments/mock-provider";
 import { prisma } from "../lib/prisma";
 import { cancelMyBooking, createBooking } from "../services/booking.service";
 import {
@@ -132,6 +132,64 @@ describe("payments API", () => {
         const res = await post(`/api/bookings/${booking.code}/payments`, who);
         assert.equal(res.status, 401);
       }
+    });
+  });
+
+  describe("POST /api/webhooks/stripe", () => {
+    const webhook = (event: object, signature = MOCK_WEBHOOK_SIGNATURE) =>
+      request(app)
+        .post("/api/webhooks/stripe")
+        .set("Content-Type", "application/json")
+        .set("stripe-signature", signature)
+        .send(JSON.stringify(event));
+    /** Starts payment on a fresh hold and returns its booking code + intent ref. */
+    const started = async () => {
+      const booking = await hold();
+      await start(booking.code);
+      const [payment] = await paymentsOf(booking.code);
+      return { code: booking.code, ref: payment!.providerRef! };
+    };
+
+    test("webhook with a bad signature → 400", async () => {
+      const { code, ref } = await started();
+      mock.succeed(ref);
+      const res = await webhook({ type: "payment_intent.succeeded", providerRef: ref }, "forged");
+      assert.equal(res.status, 400);
+      assert.equal((await paymentsOf(code))[0]!.status, "PENDING");
+    });
+
+    test("signed webhook confirms the booking", async () => {
+      const { code, ref } = await started();
+      mock.succeed(ref);
+      const res = await webhook({ type: "payment_intent.succeeded", providerRef: ref });
+      assert.equal(res.status, 200);
+      assert.deepEqual(res.body, { data: { received: true } });
+      const detail = bookingSchema.parse((await request(app).get(`/api/bookings/${code}`).set("Cookie", aliceCookie)).body.data);
+      assert.equal(detail.status, "CONFIRMED");
+      assert.equal(detail.payable, false);
+      assert.equal(detail.payment?.status, "SUCCEEDED");
+    });
+
+    test("repeated webhook → 200, paidAt unchanged", async () => {
+      const { code, ref } = await started();
+      mock.succeed(ref);
+      await webhook({ type: "payment_intent.succeeded", providerRef: ref });
+      const first = (await paymentsOf(code))[0]!.paidAt;
+      const res = await webhook({ type: "payment_intent.succeeded", providerRef: ref });
+      assert.equal(res.status, 200);
+      assert.deepEqual((await paymentsOf(code))[0]!.paidAt, first);
+    });
+
+    test("canceled webhook marks the payment FAILED", async () => {
+      const { code, ref } = await started();
+      mock.cancel(ref);
+      assert.equal((await webhook({ type: "payment_intent.canceled", providerRef: ref })).status, 200);
+      assert.equal((await paymentsOf(code))[0]!.status, "FAILED");
+    });
+
+    test("webhook for an unknown ref or an ignored event type → 200", async () => {
+      assert.equal((await webhook({ type: "payment_intent.succeeded", providerRef: "mock_pi_unknown" })).status, 200);
+      assert.equal((await webhook({ type: "charge.updated", providerRef: "mock_pi_unknown" })).status, 200);
     });
   });
 });

@@ -165,3 +165,16 @@ export async function startPayment(
     await settlePayment(payment.providerRef, "FAILED", now, { provider });
   }
 }
+
+/** Verifies and applies a provider webhook. Throws (→ 5xx) on DB/provider errors so the provider retries. */
+export async function handleWebhook(
+  rawBody: Buffer,
+  signature: string | undefined,
+  now: Date = new Date(),
+  opts: ProviderOpts = {},
+): Promise<void> {
+  const provider = opts.provider ?? getPaymentProvider();
+  const event = provider.parseWebhook(rawBody, signature);
+  if (event.type === "ignored" || !event.providerRef) return;
+  await settlePayment(event.providerRef, event.type === "succeeded" ? "SUCCEEDED" : "FAILED", now, { provider });
+}
