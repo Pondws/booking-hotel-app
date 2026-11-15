@@ -10,10 +10,11 @@ const alreadyReviewed = () => new AppError(409, "CONFLICT", "This booking alread
 /**
  * Recomputes `Hotel.ratingAvg` / `reviewCount` from the visible reviews. The only code that writes those
  * columns; call it inside the same transaction as the review write. The hotel row is locked first so two
- * concurrent writes for one hotel can't interleave their aggregates.
+ * concurrent writes for one hotel can't interleave their aggregates. NO KEY UPDATE, not UPDATE: the review
+ * insert already holds a FK KEY SHARE lock on the hotel, which FOR UPDATE conflicts with (→ deadlock).
  */
 export async function recomputeHotelRating(tx: Prisma.TransactionClient, hotelId: string): Promise<void> {
-  await tx.$queryRaw`SELECT id FROM hotels WHERE id = ${hotelId} FOR UPDATE`;
+  await tx.$queryRaw`SELECT id FROM hotels WHERE id = ${hotelId} FOR NO KEY UPDATE`;
   const agg = await tx.review.aggregate({
     where: { hotelId, isHidden: false },
     _avg: { rating: true },

@@ -125,6 +125,14 @@ describe("POST /api/bookings/:code/review", () => {
     assert.equal(await prisma.review.count({ where: { bookingId: b.id } }), 1);
   });
 
+  test("concurrent reviews of two bookings at one hotel → both 201, both counted", async () => {
+    const h = await createCatalogFixture(LABEL, { roomTypes: [{ capacity: 2, basePrice: 1000, rooms: 1 }] });
+    const bookings = await Promise.all(Array.from({ length: 4 }, () => completed("COMPLETED", h)));
+    const results = await Promise.all(bookings.map((b, i) => post(b.code, aliceCookie, { rating: i + 2 })));
+    assert.deepEqual(results.map((r) => r.status), [201, 201, 201, 201]);
+    assert.deepEqual(await hotel(h.hotelId), { ratingAvg: 3.5, reviewCount: 4 });
+  });
+
   test("404 for bob on alice's booking; 400 for bad input; 401 without cookie", async () => {
     const b = await completed();
     const other = await post(b.code, bobCookie, { rating: 4 });
