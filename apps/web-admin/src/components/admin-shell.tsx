@@ -23,17 +23,17 @@ import { NavUser } from "@/features/auth/components/nav-user";
 import { ApiStatus } from "@/features/health/components/api-status";
 import { isActivePath } from "@/lib/is-active-path";
 import { AdminBreadcrumb } from "./admin-breadcrumb";
+import { AdminSubNav } from "./admin-sub-nav";
 import { NAV_ITEMS, type NavItem } from "./nav-items";
 
 const APP_NAME = "ระบบจัดการโรงแรม";
 
 /**
- * Collapsible nested sidebars (shadcn sidebar-09): an icon rail of sections + a second column with the
- * active section's panel. Collapsing (trigger, Ctrl/⌘+B) leaves just the rail; below md it's a sheet.
+ * Collapsible nested sidebars (shadcn sidebar-09): an icon rail = main menu, a second column = the
+ * active section's sub menu. Collapsing (trigger, Ctrl/⌘+B) leaves just the rail; below md it's a sheet.
  */
 function AdminSidebar({ active }: { active: NavItem }) {
   const { setOpen } = useSidebar();
-  const Panel = active.panel;
 
   return (
     <Sidebar collapsible="icon" className="overflow-hidden">
@@ -97,9 +97,20 @@ function AdminSidebar({ active }: { active: NavItem }) {
           </SidebarFooter>
         </Sidebar>
 
-        {/* Section panel — fills the rest; hidden when collapsed to the rail */}
+        {/* Sub menu of the active section — fills the rest; hidden when collapsed to the rail */}
         <Sidebar collapsible="none" className="min-w-0 flex-1">
-          <Panel />
+          <SidebarHeader className="border-b p-4">
+            <h2 className="text-base font-medium text-foreground">{active.label}</h2>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <nav aria-label={`เมนู${active.label}`}>
+                  <AdminSubNav items={active.children} />
+                </nav>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
           <SidebarFooter className="border-t p-4">
             <ApiStatus />
           </SidebarFooter>
