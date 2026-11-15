@@ -63,5 +63,10 @@ export function useCancelBooking(hotelSlug: string) {
       void queryClient.invalidateQueries({ queryKey: availabilityPrefix(hotelSlug) });
       void queryClient.invalidateQueries({ queryKey: hotelKeys.lists() });
     },
+    onError: (_error, code) => {
+      // Not cancellable any more (expired, past the cut-off): show the booking's real state
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.detail(code) });
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
+    },
   });
 }
