@@ -68,7 +68,9 @@ apps/
                          # admin-booking.service.ts — list/detail, check-in/out, cancel + refund, move room (each one
                          # conditional updateMany; checked in = CONFIRMED + checkedInAt, there is no CHECKED_IN status),
                          # admin-dashboard.service.ts — today lists, occupancy + revenue per stayed night (CONFIRMED/COMPLETED),
-                         # amenity.service.ts assertAmenityScope — the DB doesn't check amenity scope)
+                         # amenity.service.ts assertAmenityScope — the DB doesn't check amenity scope,
+                         # review.service.ts — createMyReview; recomputeHotelRating is the ONLY code that writes
+                         # Hotel.ratingAvg/reviewCount (visible reviews only, same transaction as the review write))
       lib/               # prisma.ts (single client, PrismaPg adapter, global omit of passwordHash), app-error.ts,
                          # http.ts (ok, noContent), prisma-errors.ts (isUniqueViolationOn), password.ts (scrypt),
                          # session-token.ts, cookies.ts (sid / admin_sid), cors-policy.ts, slug.ts,

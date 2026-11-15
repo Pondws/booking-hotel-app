@@ -267,6 +267,8 @@ test("bookingSchema parses a sample", () => {
     cancellable: true,
     payable: true,
     payment: { status: "PENDING", paidAt: null, refundedAt: null },
+    reviewable: false,
+    review: null,
     hotel: {
       name: "A",
       slug: "a",

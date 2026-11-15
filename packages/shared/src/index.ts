@@ -704,6 +704,33 @@ export const bookingPaymentSchema = z.object({
 export const startPaymentSchema = z.object({ clientSecret: z.string() });
 export type StartPayment = z.infer<typeof startPaymentSchema>;
 
+export const REVIEW_COMMENT_MAX = 1000;
+
+/** `POST /api/bookings/:code/review`. A blank comment is dropped (stored as null). */
+export const createReviewSchema = z.object({
+  rating: z
+    .number({ error: "Pick a rating" })
+    .int("Pick a rating")
+    .min(1, "Pick a rating")
+    .max(5, "Pick a rating"),
+  comment: z
+    .string()
+    .trim()
+    .max(REVIEW_COMMENT_MAX, `Keep it under ${REVIEW_COMMENT_MAX} characters`)
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+});
+export type CreateReviewInput = z.input<typeof createReviewSchema>;
+export type CreateReviewData = z.output<typeof createReviewSchema>;
+
+/** The caller's own review, as shown on their booking. */
+export const reviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().nullable(),
+  createdAt: z.iso.datetime(),
+});
+export type Review = z.infer<typeof reviewSchema>;
+
 export const bookingSchema = z.object({
   code: z.string(),
   status: bookingStatusSchema,
@@ -723,6 +750,9 @@ export const bookingSchema = z.object({
   /** An unexpired PENDING hold — the only state that can be paid. */
   payable: z.boolean(),
   payment: bookingPaymentSchema.nullable(),
+  /** COMPLETED and not reviewed yet. */
+  reviewable: z.boolean(),
+  review: reviewSchema.nullable(),
   hotel: z.object({
     name: z.string(),
     slug: z.string(),
