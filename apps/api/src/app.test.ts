@@ -11,6 +11,7 @@ import { prisma } from "./lib/prisma";
 const sessionTokens: string[] = [];
 
 after(async () => {
+  await prisma.auditLog.deleteMany({ where: { entityLabel: { startsWith: "App Test" } } });
   await prisma.hotel.deleteMany({
     where: { name: { startsWith: "App Test" } },
   });

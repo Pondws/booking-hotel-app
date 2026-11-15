@@ -1,5 +1,6 @@
 import type {
   AdminRoomType,
+  PublicUser,
   AdminRoomTypeSummary,
   RoomTypeData,
   UpdateRoomData,
@@ -12,6 +13,7 @@ import { prisma } from "../lib/prisma";
 import { isUniqueViolationOn } from "../lib/prisma-errors";
 import { assertHotelExists } from "./admin-hotel.service";
 import { assertAmenityScope } from "./amenity.service";
+import { recordAudit, roomLabel, roomSnapshot, roomTypeSnapshot } from "./audit.service";
 
 const adminRoomTypeSelect = {
   id: true,
@@ -101,6 +103,26 @@ export async function assertRoomTypeInHotel(hotelId: string, roomTypeId: string)
   if (!found) throw notFound();
 }
 
+/** Reads the room type as it is now, records the change from `before` (null = just created) and returns it. */
+async function auditRoomType(
+  actor: PublicUser,
+  hotelId: string,
+  roomTypeId: string,
+  before: AdminRoomType | null,
+): Promise<AdminRoomType> {
+  const after = await getRoomType(hotelId, roomTypeId);
+  await recordAudit({
+    actor,
+    entityType: "ROOM_TYPE",
+    entityId: roomTypeId,
+    entityLabel: after.name,
+    hotelId,
+    before: before && roomTypeSnapshot(before),
+    after: roomTypeSnapshot(after),
+  });
+  return after;
+}
+
 function imageRows(roomTypeId: string, images: RoomTypeData["images"]) {
   return images.map((img, index) => ({
     roomTypeId,
@@ -110,7 +132,11 @@ function imageRows(roomTypeId: string, images: RoomTypeData["images"]) {
   }));
 }
 
-export async function createRoomType(hotelId: string, data: RoomTypeData): Promise<AdminRoomType> {
+export async function createRoomType(
+  actor: PublicUser,
+  hotelId: string,
+  data: RoomTypeData,
+): Promise<AdminRoomType> {
   await assertHotelExists(hotelId);
   await assertAmenityScope(data.amenityIds, "ROOM");
   const { name, description, capacity, basePrice, images, amenityIds } = data;
@@ -125,16 +151,17 @@ export async function createRoomType(hotelId: string, data: RoomTypeData): Promi
     });
     return roomType.id;
   });
-  return getRoomType(hotelId, id);
+  return auditRoomType(actor, hotelId, id, null);
 }
 
 /** Replaces details, the ordered image list and the amenity set — all or nothing. */
 export async function saveRoomType(
+  actor: PublicUser,
   hotelId: string,
   roomTypeId: string,
   data: RoomTypeData,
 ): Promise<AdminRoomType> {
-  await assertRoomTypeInHotel(hotelId, roomTypeId);
+  const before = await getRoomType(hotelId, roomTypeId);
   await assertAmenityScope(data.amenityIds, "ROOM");
   const { name, description, capacity, basePrice, images, amenityIds } = data;
   await prisma.$transaction([
@@ -149,27 +176,24 @@ export async function saveRoomType(
       data: amenityIds.map((amenityId) => ({ roomTypeId, amenityId })),
     }),
   ]);
-  return getRoomType(hotelId, roomTypeId);
+  return auditRoomType(actor, hotelId, roomTypeId, before);
 }
 
 export async function setRoomTypeStatus(
+  actor: PublicUser,
   hotelId: string,
   roomTypeId: string,
   isActive: boolean,
 ): Promise<AdminRoomType> {
-  await assertRoomTypeInHotel(hotelId, roomTypeId);
+  const before = await getRoomType(hotelId, roomTypeId);
   await prisma.roomType.update({ where: { id: roomTypeId }, data: { isActive } });
-  return getRoomType(hotelId, roomTypeId);
+  return auditRoomType(actor, hotelId, roomTypeId, before);
 }
 
 /** Only while no rooms or rate periods depend on it (both are `onDelete: Restrict`). */
-export async function deleteRoomType(hotelId: string, roomTypeId: string): Promise<void> {
-  const roomType = await prisma.roomType.findFirst({
-    where: { id: roomTypeId, hotelId },
-    select: { _count: { select: { rooms: true, ratePeriods: true } } },
-  });
-  if (!roomType) throw notFound();
-  if (roomType._count.rooms > 0 || roomType._count.ratePeriods > 0) {
+export async function deleteRoomType(actor: PublicUser, hotelId: string, roomTypeId: string): Promise<void> {
+  const before = await getRoomType(hotelId, roomTypeId);
+  if (!before.deletable) {
     throw new AppError(
       409,
       "CONFLICT",
@@ -178,6 +202,37 @@ export async function deleteRoomType(hotelId: string, roomTypeId: string): Promi
   }
   // Images and amenity links cascade
   await prisma.roomType.delete({ where: { id: roomTypeId } });
+  await recordAudit({
+    actor,
+    entityType: "ROOM_TYPE",
+    entityId: roomTypeId,
+    entityLabel: before.name,
+    hotelId,
+    before: roomTypeSnapshot(before),
+    after: null,
+  });
+}
+
+const roomAuditSelect = {
+  id: true,
+  number: true,
+  isActive: true,
+  roomType: { select: { id: true, name: true } },
+} satisfies Prisma.RoomSelect;
+
+type RoomAuditRow = Prisma.RoomGetPayload<{ select: typeof roomAuditSelect }>;
+
+function auditRoom(actor: PublicUser, hotelId: string, before: RoomAuditRow | null, after: RoomAuditRow) {
+  return recordAudit({
+    actor,
+    entityType: "ROOM",
+    entityId: after.id,
+    entityLabel: roomLabel(after.roomType.name, after.number),
+    hotelId,
+    parentId: after.roomType.id,
+    before: before && roomSnapshot(before),
+    after: roomSnapshot(after),
+  });
 }
 
 const duplicateNumber = (number: string) =>
@@ -197,9 +252,9 @@ async function assertNumberFree(hotelId: string, number: string, exceptRoomId?: 
 }
 
 /** The DB unique index is the backstop for two concurrent adds of the same number. */
-async function withDuplicateCheck(number: string, write: () => Promise<unknown>): Promise<void> {
+async function withDuplicateCheck<T>(number: string, write: () => Promise<T>): Promise<T> {
   try {
-    await write();
+    return await write();
   } catch (err) {
     if (isUniqueViolationOn(err, "number")) throw duplicateNumber(number);
     throw err;
@@ -207,30 +262,36 @@ async function withDuplicateCheck(number: string, write: () => Promise<unknown>)
 }
 
 export async function addRoom(
+  actor: PublicUser,
   hotelId: string,
   roomTypeId: string,
   number: string,
 ): Promise<AdminRoomType> {
   await assertRoomTypeInHotel(hotelId, roomTypeId);
   await assertNumberFree(hotelId, number);
-  await withDuplicateCheck(number, () => prisma.room.create({ data: { roomTypeId, number } }));
+  const room = await withDuplicateCheck(number, () =>
+    prisma.room.create({ data: { roomTypeId, number }, select: roomAuditSelect }),
+  );
+  await auditRoom(actor, hotelId, null, room);
   return getRoomType(hotelId, roomTypeId);
 }
 
 /** Rename and/or (de)activate. Existing bookings keep the room. */
 export async function updateRoom(
+  actor: PublicUser,
   hotelId: string,
   roomTypeId: string,
   roomId: string,
   data: UpdateRoomData,
 ): Promise<AdminRoomType> {
   await assertRoomTypeInHotel(hotelId, roomTypeId);
-  const room = await prisma.room.findFirst({ where: { id: roomId, roomTypeId }, select: { id: true } });
-  if (!room) throw new AppError(404, "NOT_FOUND", "Room not found");
+  const before = await prisma.room.findFirst({ where: { id: roomId, roomTypeId }, select: roomAuditSelect });
+  if (!before) throw new AppError(404, "NOT_FOUND", "Room not found");
   const { number, isActive } = data;
   if (number !== undefined) await assertNumberFree(hotelId, number, roomId);
-  await withDuplicateCheck(number ?? "", () =>
-    prisma.room.update({ where: { id: roomId }, data: { number, isActive } }),
+  const after = await withDuplicateCheck(number ?? "", () =>
+    prisma.room.update({ where: { id: roomId }, data: { number, isActive }, select: roomAuditSelect }),
   );
+  await auditRoom(actor, hotelId, before, after);
   return getRoomType(hotelId, roomTypeId);
 }

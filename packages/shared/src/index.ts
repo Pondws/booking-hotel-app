@@ -990,6 +990,66 @@ export type StaffHotelParams = z.output<typeof staffHotelParamsSchema>;
 export const assignStaffHotelSchema = z.object({ hotelId: z.string().min(1, "Choose a hotel") });
 export type AssignStaffHotelInput = z.output<typeof assignStaffHotelSchema>;
 
+// ---------- Admin audit log ----------
+export const AUDIT_ACTIONS = ["CREATE", "UPDATE", "DELETE"] as const;
+export const auditActionSchema = z.enum(AUDIT_ACTIONS);
+export type AuditAction = z.infer<typeof auditActionSchema>;
+
+export const AUDIT_ENTITY_TYPES = [
+  "HOTEL",
+  "ROOM_TYPE",
+  "ROOM",
+  "RATE_PERIOD",
+  "AMENITY",
+  "STAFF",
+  "BOOKING",
+] as const;
+export const auditEntityTypeSchema = z.enum(AUDIT_ENTITY_TYPES);
+export type AuditEntityType = z.infer<typeof auditEntityTypeSchema>;
+
+/** A snapshot field value: scalars, or a list (image URLs, amenity / hotel names). */
+export const auditValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.string())]);
+export type AuditValue = z.infer<typeof auditValueSchema>;
+
+/** `before` is null on CREATE, `after` is null on DELETE. */
+export const auditChangeSchema = z.object({
+  field: z.string(),
+  before: auditValueSchema,
+  after: auditValueSchema,
+});
+export type AuditChange = z.infer<typeof auditChangeSchema>;
+
+export const adminAuditLogSchema = z.object({
+  id: z.string(),
+  action: auditActionSchema,
+  entityType: auditEntityTypeSchema,
+  entityId: z.string(),
+  /** The entity's name when the change was made (it may be renamed or deleted since). */
+  entityLabel: z.string(),
+  hotel: z.object({ id: z.string(), name: z.string() }).nullable(),
+  /** Null when the account was removed. */
+  actor: z.object({ id: z.string(), name: z.string(), role: roleSchema }).nullable(),
+  changes: z.array(auditChangeSchema),
+  createdAt: z.iso.datetime(),
+});
+export type AdminAuditLog = z.infer<typeof adminAuditLogSchema>;
+
+export const adminAuditLogListSchema = paginated(adminAuditLogSchema);
+
+/**
+ * Newest first. STAFF only ever see rows of their own hotels (amenity / staff rows are ADMIN only).
+ * `entityId` = one entity's history: its own rows plus its children's (a room type's rooms and rate periods).
+ */
+export const adminAuditLogListQuerySchema = z.object({
+  hotelId: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  entityType: z.preprocess(blankToUndefined, auditEntityTypeSchema.optional()),
+  entityId: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  action: z.preprocess(blankToUndefined, auditActionSchema.optional()),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type AdminAuditLogListQuery = z.output<typeof adminAuditLogListQuerySchema>;
+
 // ---------- Health ----------
 export const healthSchema = z.object({
   ok: z.boolean(),

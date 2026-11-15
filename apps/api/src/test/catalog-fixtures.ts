@@ -175,6 +175,8 @@ export async function cleanupCatalogFixtures(label: string): Promise<void> {
   const hotel = { name: { startsWith: hotelPrefix(label) } };
   const roomType = { hotel };
   const user = { email: { startsWith: userPrefix(label) } };
+  // Before the hotels / users go: both relations are SetNull, so the rows would no longer match afterwards.
+  await prisma.auditLog.deleteMany({ where: { OR: [{ hotel }, { actor: user }] } });
   await prisma.payment.deleteMany({ where: { booking: { room: { roomType } } } });
   await prisma.booking.deleteMany({ where: { room: { roomType } } });
   await prisma.payment.deleteMany({ where: { booking: { user } } });

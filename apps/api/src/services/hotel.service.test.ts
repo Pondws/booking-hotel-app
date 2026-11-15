@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { after, test } from "node:test";
+import type { PublicUser } from "@booking/shared";
+import { after, before, test } from "node:test";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../lib/prisma";
 import { toSlug } from "../lib/slug";
@@ -15,30 +16,36 @@ const input = (name: string) => ({
   amenityIds: [],
 });
 
+let admin: PublicUser;
+before(async () => {
+  admin = await prisma.user.findUniqueOrThrow({ where: { email: "admin@booking.local" } });
+});
+
 after(async () => {
+  await prisma.auditLog.deleteMany({ where: { entityLabel: { startsWith: PREFIX } } });
   await prisma.hotel.deleteMany({ where: { name: { startsWith: PREFIX } } });
   await prisma.$disconnect();
 });
 
 test("same name twice → slugs base and base-2", async () => {
   const name = `${PREFIX}${Date.now()} twice`;
-  const a = await createHotel(input(name));
-  const b = await createHotel(input(name));
+  const a = await createHotel(admin, input(name));
+  const b = await createHotel(admin, input(name));
   assert.equal(a.slug, toSlug(name));
   assert.equal(b.slug, `${toSlug(name)}-2`);
 });
 
 test("concurrent creates with the same new name both succeed with distinct slugs", async () => {
   const name = `${PREFIX}${Date.now()} race`;
-  const [a, b] = await Promise.all([createHotel(input(name)), createHotel(input(name))]);
+  const [a, b] = await Promise.all([createHotel(admin, input(name)), createHotel(admin, input(name))]);
   assert.notEqual(a.slug, b.slug);
   assert.equal(await prisma.hotel.count({ where: { name } }), 2);
 });
 
 test("searchHotels omits inactive hotels", async () => {
   const city = `${PREFIX}${Date.now()} city`;
-  const active = await createHotel({ ...input(`${PREFIX}${Date.now()} active`), city });
-  const inactive = await createHotel({ ...input(`${PREFIX}${Date.now()} inactive`), city });
+  const active = await createHotel(admin, { ...input(`${PREFIX}${Date.now()} active`), city });
+  const inactive = await createHotel(admin, { ...input(`${PREFIX}${Date.now()} inactive`), city });
   await prisma.hotel.update({ where: { id: inactive.id }, data: { isActive: false } });
   const result = await searchHotels({ city, page: 1, pageSize: 50 });
   assert.deepEqual(
@@ -62,6 +69,6 @@ test("a non-slug P2002 is not retried and propagates", async (t) => {
   const create = t.mock.fn(() => Promise.reject(err));
   const real = prisma.hotel;
   t.mock.property(prisma, "hotel", { ...real, create } as unknown as typeof real);
-  await assert.rejects(createHotel(input(`${PREFIX}${Date.now()} other`)), (e) => e === err);
+  await assert.rejects(createHotel(admin, input(`${PREFIX}${Date.now()} other`)), (e) => e === err);
   assert.equal(create.mock.callCount(), 1);
 });

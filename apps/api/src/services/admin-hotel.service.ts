@@ -14,6 +14,7 @@ import { AppError } from "../lib/app-error";
 import { prisma } from "../lib/prisma";
 import { imageOrder } from "../lib/image-order";
 import { assertAmenityScope } from "./amenity.service";
+import { hotelSnapshot, recordAudit } from "./audit.service";
 
 export const adminHotelSelect = {
   id: true,
@@ -113,22 +114,42 @@ export async function assertHotelExists(hotelId: string): Promise<void> {
   if (!found) throw new AppError(404, "NOT_FOUND", "Hotel not found");
 }
 
+/** Reads the hotel as it is now, records the change from `before` (null = just created) and returns it. */
+export async function auditHotel(actor: PublicUser, hotelId: string, before: AdminHotel | null): Promise<AdminHotel> {
+  const after = await getAdminHotel(hotelId);
+  await recordAudit({
+    actor,
+    entityType: "HOTEL",
+    entityId: hotelId,
+    entityLabel: after.name,
+    hotelId,
+    before: before && hotelSnapshot(before),
+    after: hotelSnapshot(after),
+  });
+  return after;
+}
+
 /** Updates editable details only — slug and currency are never touched. */
-export async function updateAdminHotel(hotelId: string, data: UpdateHotelData): Promise<AdminHotel> {
-  await assertHotelExists(hotelId);
+export async function updateAdminHotel(
+  actor: PublicUser,
+  hotelId: string,
+  data: UpdateHotelData,
+): Promise<AdminHotel> {
+  const before = await getAdminHotel(hotelId);
   const { name, city, address, description, checkInTime, checkOutTime } = data;
   await prisma.hotel.update({
     where: { id: hotelId },
     data: { name, city, address, description, checkInTime, checkOutTime },
   });
-  return getAdminHotel(hotelId);
+  return auditHotel(actor, hotelId, before);
 }
 
 export async function replaceHotelImages(
+  actor: PublicUser,
   hotelId: string,
   input: HotelImagesInput,
 ): Promise<AdminHotel> {
-  await assertHotelExists(hotelId);
+  const before = await getAdminHotel(hotelId);
   await prisma.$transaction([
     prisma.hotelImage.deleteMany({ where: { hotelId } }),
     prisma.hotelImage.createMany({
@@ -140,7 +161,7 @@ export async function replaceHotelImages(
       })),
     }),
   ]);
-  return getAdminHotel(hotelId);
+  return auditHotel(actor, hotelId, before);
 }
 
 /** Every id must exist and be a HOTEL-scope amenity (the DB doesn't check scope). Ids are unique (zod). */
@@ -149,10 +170,11 @@ export function assertHotelAmenityIds(amenityIds: string[]): Promise<void> {
 }
 
 export async function replaceHotelAmenities(
+  actor: PublicUser,
   hotelId: string,
   input: HotelAmenitiesInput,
 ): Promise<AdminHotel> {
-  await assertHotelExists(hotelId);
+  const before = await getAdminHotel(hotelId);
   await assertHotelAmenityIds(input.amenityIds);
   await prisma.$transaction([
     prisma.hotelAmenity.deleteMany({ where: { hotelId } }),
@@ -160,12 +182,16 @@ export async function replaceHotelAmenities(
       data: input.amenityIds.map((amenityId) => ({ hotelId, amenityId })),
     }),
   ]);
-  return getAdminHotel(hotelId);
+  return auditHotel(actor, hotelId, before);
 }
 
 /** Saves details, times, the ordered image list and the amenity set together — all or nothing. */
-export async function saveHotelContent(hotelId: string, data: HotelContentData): Promise<AdminHotel> {
-  await assertHotelExists(hotelId);
+export async function saveHotelContent(
+  actor: PublicUser,
+  hotelId: string,
+  data: HotelContentData,
+): Promise<AdminHotel> {
+  const before = await getAdminHotel(hotelId);
   await assertHotelAmenityIds(data.amenityIds);
   const { name, city, address, description, checkInTime, checkOutTime, images, amenityIds } = data;
   await prisma.$transaction([
@@ -180,11 +206,11 @@ export async function saveHotelContent(hotelId: string, data: HotelContentData):
     prisma.hotelAmenity.deleteMany({ where: { hotelId } }),
     prisma.hotelAmenity.createMany({ data: amenityIds.map((amenityId) => ({ hotelId, amenityId })) }),
   ]);
-  return getAdminHotel(hotelId);
+  return auditHotel(actor, hotelId, before);
 }
 
-export async function setHotelStatus(hotelId: string, isActive: boolean): Promise<AdminHotel> {
-  await assertHotelExists(hotelId);
+export async function setHotelStatus(actor: PublicUser, hotelId: string, isActive: boolean): Promise<AdminHotel> {
+  const before = await getAdminHotel(hotelId);
   await prisma.hotel.update({ where: { id: hotelId }, data: { isActive } });
-  return getAdminHotel(hotelId);
+  return auditHotel(actor, hotelId, before);
 }

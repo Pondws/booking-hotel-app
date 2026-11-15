@@ -9,6 +9,7 @@ import type {
 import type { Request, Response } from "express";
 import { noContent, ok } from "../lib/http";
 import * as staffService from "../services/admin-staff.service";
+import { currentUser } from "./booking.controller";
 
 // Bodies are parsed by validate() into req.body; query and params into res.locals.
 type Body<T> = Request<Record<string, string>, unknown, T>;
@@ -23,19 +24,19 @@ export async function getStaff(_req: Request, res: StaffRes) {
 }
 
 export async function createStaff(req: Body<CreateStaffData>, res: Response) {
-  ok(res, await staffService.createStaff(req.body), 201);
+  ok(res, await staffService.createStaff(currentUser(req), req.body), 201);
 }
 
 export async function updateStaff(req: Body<UpdateStaffData>, res: StaffRes) {
-  ok(res, await staffService.updateStaff(res.locals.params.userId, req.body));
+  ok(res, await staffService.updateStaff(currentUser(req), res.locals.params.userId, req.body));
 }
 
 export async function assignStaffHotel(req: Body<AssignStaffHotelInput>, res: StaffRes) {
-  ok(res, await staffService.assignHotel(res.locals.params.userId, req.body.hotelId), 201);
+  ok(res, await staffService.assignHotel(currentUser(req), res.locals.params.userId, req.body.hotelId), 201);
 }
 
-export async function removeStaffHotel(_req: Request, res: Response<unknown, { params: StaffHotelParams }>) {
+export async function removeStaffHotel(req: Request, res: Response<unknown, { params: StaffHotelParams }>) {
   const { userId, hotelId } = res.locals.params;
-  await staffService.removeHotel(userId, hotelId);
+  await staffService.removeHotel(currentUser(req), userId, hotelId);
   noContent(res);
 }

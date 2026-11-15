@@ -8,6 +8,7 @@ import {
 import {
   createAmenity,
   deleteAmenity,
+  getAmenity,
   listAmenities,
   updateAmenity,
 } from "../../controllers/amenity.controller";
@@ -20,6 +21,8 @@ export const adminAmenitiesRouter = Router();
 adminAmenitiesRouter.get("/", validate({ query: amenityListQuerySchema }), listAmenities);
 
 adminAmenitiesRouter.post("/", requireRole("ADMIN"), validate({ body: createAmenitySchema }), createAmenity);
+
+adminAmenitiesRouter.get("/:amenityId", requireRole("ADMIN"), validate({ params: amenityIdParamsSchema }), getAmenity);
 
 adminAmenitiesRouter.patch(
   "/:amenityId",
