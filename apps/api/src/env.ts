@@ -22,6 +22,30 @@ const envSchema = z.object({
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),
   // Number of reverse-proxy hops in front of the API (Express "trust proxy"). Never `true`.
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
+  // `mock` keeps intents in memory (tests / local dev without Stripe keys); never in production.
+  PAYMENT_PROVIDER: z.enum(["stripe", "mock"]).default("stripe"),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+}).superRefine((v, ctx) => {
+  if (v.PAYMENT_PROVIDER === "mock" && v.NODE_ENV === "production") {
+    ctx.addIssue({
+      code: "custom",
+      path: ["PAYMENT_PROVIDER"],
+      message: "PAYMENT_PROVIDER=mock is not allowed in production",
+    });
+  }
+  if (v.PAYMENT_PROVIDER === "stripe") {
+    if (!v.STRIPE_SECRET_KEY?.startsWith("sk_")) {
+      ctx.addIssue({ code: "custom", path: ["STRIPE_SECRET_KEY"], message: "STRIPE_SECRET_KEY (sk_…) is required" });
+    }
+    if (!v.STRIPE_WEBHOOK_SECRET?.startsWith("whsec_")) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["STRIPE_WEBHOOK_SECRET"],
+        message: "STRIPE_WEBHOOK_SECRET (whsec_…) is required",
+      });
+    }
+  }
 });
 
 const parsed = envSchema.safeParse(process.env);
