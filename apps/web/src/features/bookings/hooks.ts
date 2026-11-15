@@ -1,9 +1,10 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { CreateReviewData } from "@booking/shared";
 import { ApiError } from "@/lib/api";
 import { hotelKeys } from "@/features/hotels/hooks";
-import { cancelBooking, createBooking, fetchBooking, fetchMyBookings } from "./api";
+import { cancelBooking, createBooking, createReview, fetchBooking, fetchMyBookings } from "./api";
 
 export const bookingKeys = {
   all: ["bookings"] as const,
@@ -47,6 +48,27 @@ export function useCreateBooking(hotelSlug: string) {
       // The last room may be gone: show fresh availability
       if (error instanceof ApiError && error.code === "ROOM_UNAVAILABLE") {
         void queryClient.invalidateQueries({ queryKey: availabilityPrefix(hotelSlug) });
+      }
+    },
+  });
+}
+
+export function useCreateReview(code: string, hotelSlug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: [...bookingKeys.all, "review"],
+    mutationFn: (input: CreateReviewData) => createReview(code, input),
+    onSuccess: (booking) => {
+      queryClient.setQueryData(bookingKeys.detail(booking.code), booking);
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
+      // The hotel's rating average + review count changed
+      void queryClient.invalidateQueries({ queryKey: hotelKeys.detail(hotelSlug), exact: true });
+      void queryClient.invalidateQueries({ queryKey: hotelKeys.lists() });
+    },
+    onError: (error) => {
+      // Already reviewed / not reviewable any more: show the booking as the server has it
+      if (error instanceof ApiError && error.code === "CONFLICT") {
+        void queryClient.invalidateQueries({ queryKey: bookingKeys.detail(code) });
       }
     },
   });

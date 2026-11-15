@@ -3,6 +3,7 @@ import {
   bookingSchema,
   type Booking,
   type CreateBookingInput,
+  type CreateReviewData,
   type Paginated,
 } from "@booking/shared";
 import { request } from "@/lib/api";
@@ -26,5 +27,13 @@ export function cancelBooking(code: string): Promise<Booking> {
   return request(bookingSchema, {
     method: "POST",
     url: `/api/bookings/${encodeURIComponent(code)}/cancel`,
+  });
+}
+
+export function createReview(code: string, input: CreateReviewData): Promise<Booking> {
+  return request(bookingSchema, {
+    method: "POST",
+    url: `/api/bookings/${encodeURIComponent(code)}/review`,
+    data: input,
   });
 }
