@@ -40,6 +40,12 @@ export const bookingSelect = {
   expiresAt: true,
   cancelledAt: true,
   createdAt: true,
+  /** Latest payment attempt only. */
+  payments: {
+    select: { status: true, paidAt: true, refundedAt: true },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 1,
+  },
   room: {
     select: {
       roomType: {
@@ -71,6 +77,7 @@ export function toBooking(row: BookingRow, now: Date): Booking {
   const holdsRoom =
     status === "CONFIRMED" || (status === "PENDING" && (row.expiresAt === null || row.expiresAt > now));
   const { roomType } = row.room;
+  const payment = row.payments[0];
 
   return {
     code: row.code,
@@ -88,6 +95,14 @@ export function toBooking(row: BookingRow, now: Date): Booking {
     cancelledAt: row.cancelledAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     cancellable: holdsRoom && todayIn(BOOKING_TZ, now) < checkIn,
+    payable: status === "PENDING" && row.expiresAt !== null && row.expiresAt > now,
+    payment: payment
+      ? {
+          status: payment.status,
+          paidAt: payment.paidAt?.toISOString() ?? null,
+          refundedAt: payment.refundedAt?.toISOString() ?? null,
+        }
+      : null,
     hotel: {
       name: roomType.hotel.name,
       slug: roomType.hotel.slug,
@@ -185,7 +200,7 @@ export async function createBooking(
 }
 
 /** Flips this user's lapsed holds to EXPIRED so reads and cancels agree with the mapper. */
-function expireLapsedHolds(userId: string, now: Date) {
+export function expireLapsedHolds(userId: string, now: Date) {
   return prisma.booking.updateMany({
     where: { userId, status: "PENDING", expiresAt: { lte: now } },
     data: { status: "EXPIRED" },

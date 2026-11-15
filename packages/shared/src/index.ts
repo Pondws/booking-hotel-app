@@ -332,6 +332,9 @@ export const bookingSchema = z.object({
   cancelledAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
   cancellable: z.boolean(),
+  /** An unexpired PENDING hold — the only state that can be paid. */
+  payable: z.boolean(),
+  payment: bookingPaymentSchema.nullable(),
   hotel: z.object({
     name: z.string(),
     slug: z.string(),
