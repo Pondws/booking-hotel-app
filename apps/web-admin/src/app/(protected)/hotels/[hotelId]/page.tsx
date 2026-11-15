@@ -10,6 +10,7 @@ import {
   HotelAdminActions,
   HotelHeading,
 } from "@/features/hotels/components/hotel-header";
+import { RoomTypeList } from "@/features/room-types/components/room-type-list";
 import { ApiError } from "@/lib/api";
 
 export default function HotelPage() {
@@ -29,13 +30,16 @@ export default function HotelPage() {
       ) : isError ? (
         <HotelPageError error={error} onRetry={() => void refetch()} />
       ) : (
-        // Remount the form when another hotel is opened so its defaults follow
-        <HotelForm
-          key={hotel.id}
-          hotel={hotel}
-          heading={<HotelHeading hotel={hotel} />}
-          actions={<HotelAdminActions hotel={hotel} />}
-        />
+        <>
+          {/* Remount the form when another hotel is opened so its defaults follow */}
+          <HotelForm
+            key={hotel.id}
+            hotel={hotel}
+            heading={<HotelHeading hotel={hotel} />}
+            actions={<HotelAdminActions hotel={hotel} />}
+          />
+          <RoomTypeList hotelId={hotel.id} currency={hotel.currency} />
+        </>
       )}
     </main>
   );

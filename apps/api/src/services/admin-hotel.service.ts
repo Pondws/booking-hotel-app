@@ -13,6 +13,7 @@ import type { Prisma } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
 import { prisma } from "../lib/prisma";
 import { imageOrder } from "../lib/image-order";
+import { assertAmenityScope } from "./amenity.service";
 
 export const adminHotelSelect = {
   id: true,
@@ -107,7 +108,7 @@ export async function getAdminHotel(hotelId: string): Promise<AdminHotel> {
 }
 
 // Explicit existence check so a missing hotel is a clean 404 (not a Prisma error) before any write.
-async function assertHotelExists(hotelId: string): Promise<void> {
+export async function assertHotelExists(hotelId: string): Promise<void> {
   const found = await prisma.hotel.findUnique({ where: { id: hotelId }, select: { id: true } });
   if (!found) throw new AppError(404, "NOT_FOUND", "Hotel not found");
 }
@@ -143,17 +144,8 @@ export async function replaceHotelImages(
 }
 
 /** Every id must exist and be a HOTEL-scope amenity (the DB doesn't check scope). Ids are unique (zod). */
-export async function assertHotelAmenityIds(amenityIds: string[]): Promise<void> {
-  const amenities = await prisma.amenity.findMany({
-    where: { id: { in: amenityIds } },
-    select: { id: true, scope: true },
-  });
-  if (amenities.length !== amenityIds.length || amenities.some((a) => a.scope !== "HOTEL")) {
-    throw new AppError(400, "VALIDATION_FAILED", "Only hotel amenities can be added", {
-      formErrors: [],
-      fieldErrors: { amenityIds: ["Only hotel amenities can be added"] },
-    });
-  }
+export function assertHotelAmenityIds(amenityIds: string[]): Promise<void> {
+  return assertAmenityScope(amenityIds, "HOTEL");
 }
 
 export async function replaceHotelAmenities(

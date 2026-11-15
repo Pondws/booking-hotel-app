@@ -242,7 +242,7 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 | # | งาน | Branch | สถานะ |
 | --- | --- | --- | --- |
 | 6.1 | Admin shell + Hotels | `feat/admin-hotels` | ✅ |
-| 6.2 | Room types + Rooms | `feat/admin-room-types` | ⬜ |
+| 6.2 | Room types + Rooms | `feat/admin-room-types` | ✅ |
 | 6.3 | Rate periods | `feat/admin-rate-periods` | ⬜ |
 | 6.4 | Bookings | `feat/admin-bookings` | ⬜ |
 | 6.5 | Staff + Amenity catalog (เฉพาะ ADMIN) | `feat/admin-staff` | ⬜ |
@@ -259,11 +259,12 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 - [x] เรื่องที่ต้องตัดสินใจ #7: เวลา check-in/check-out ของโรงแรม
 
 ### 6.2 — Room types + Rooms
-- [ ] Room types:
+- [x] Room types (ADMIN + STAFF ที่ดูแลโรงแรม; ลบได้เฉพาะตอนยังไม่มีห้อง/rate period):
   - CRUD และปิดใช้งาน
   - รูป
   - amenities (เฉพาะ scope ROOM โดยตรวจใน service)
-- [ ] Rooms: เพิ่มห้อง, แก้เลขห้อง, ปิดใช้งาน
+- [x] Rooms: เพิ่มห้อง, แก้เลขห้อง, ปิดใช้งาน (เลขห้องไม่ซ้ำภายในโรงแรม)
+- [ ] ยังไม่ได้ตรวจหน้า room types ในเบราว์เซอร์
 
 ### 6.3 — Rate periods
 - [ ] มุมมองปฏิทินหรือรายการ, สร้าง/แก้ไข/ลบ และถ้าช่วงทับกันตอบ `409` (มาจาก `rate_periods_no_overlap`)
@@ -346,5 +347,5 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 ## ช่องโหว่ที่ค้างมาจาก schema v1
 
 - `Review.userId` / `hotelId` ซ้ำกับข้อมูลใน booking ดังนั้น service ต้องดึงค่าจาก booking เอง → Phase 7
-- DB ไม่ได้ตรวจ scope ของ amenity (HOTEL/ROOM) ดังนั้น service ต้องตรวจเอง → ตรวจแล้วสำหรับ hotel (6.1); room types → 6.2
+- DB ไม่ได้ตรวจ scope ของ amenity (HOTEL/ROOM) ดังนั้น service ต้องตรวจเอง → ตรวจแล้วทั้ง hotel (6.1) และ room types (6.2) ผ่าน `assertAmenityScope`
 - Expired sessions ถูกลบเมื่อมีคนใช้เท่านั้น — ต้องมี job ลบ → Phase 8

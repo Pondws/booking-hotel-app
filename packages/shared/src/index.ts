@@ -219,6 +219,72 @@ export type HotelStatusInput = z.output<typeof hotelStatusInputSchema>;
 export const hotelIdParamsSchema = z.object({ hotelId: z.string().min(1) });
 export type HotelIdParams = z.output<typeof hotelIdParamsSchema>;
 
+// ---------- Admin room types + rooms (input) ----------
+export const ROOM_TYPE_MAX_CAPACITY = 20;
+const MAX_PRICE = 99_999_999.99;
+
+/** Whole cents only (`Decimal(10,2)` in the DB). */
+const hasAtMostTwoDecimals = (v: number) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6;
+
+/**
+ * `POST /api/admin/hotels/:hotelId/room-types` and `PUT …/room-types/:roomTypeId` — the whole room type
+ * (details, ordered images, ROOM amenities) saved in one transaction. `description: ""` clears it.
+ */
+export const roomTypeInputSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required").max(120),
+    description: z
+      .string()
+      .trim()
+      .max(2000)
+      .nullable()
+      .optional()
+      .transform((v) => (v === "" || v === undefined ? null : v)),
+    capacity: z
+      .number({ error: "Enter how many guests" })
+      .int("Use a whole number")
+      .min(1, "At least 1 guest")
+      .max(ROOM_TYPE_MAX_CAPACITY, `At most ${ROOM_TYPE_MAX_CAPACITY} guests`),
+    basePrice: z
+      .number({ error: "Enter a price" })
+      .min(0, "Price can't be negative")
+      .max(MAX_PRICE, "Price is too high")
+      .refine(hasAtMostTwoDecimals, "Use at most 2 decimal places"),
+    images: hotelImagesField,
+    amenityIds: hotelAmenityIdsField,
+  })
+  .superRefine((v, ctx) => {
+    refineUniqueImageUrls(v, ctx);
+    refineUniqueAmenityIds(v, ctx);
+  });
+export type RoomTypeInput = z.input<typeof roomTypeInputSchema>;
+export type RoomTypeData = z.output<typeof roomTypeInputSchema>;
+
+export const roomNumberSchema = z
+  .string()
+  .trim()
+  .min(1, "Room number is required")
+  .max(20, "At most 20 characters")
+  .regex(/^[A-Za-z0-9-]+$/, "Use letters, digits and - only");
+
+export const createRoomSchema = z.object({ number: roomNumberSchema });
+export type CreateRoomInput = z.input<typeof createRoomSchema>;
+
+export const updateRoomSchema = z
+  .object({ number: roomNumberSchema.optional(), isActive: z.boolean().optional() })
+  .refine((v) => v.number !== undefined || v.isActive !== undefined, { message: "Nothing to update" });
+export type UpdateRoomInput = z.input<typeof updateRoomSchema>;
+export type UpdateRoomData = z.output<typeof updateRoomSchema>;
+
+export const roomTypeParamsSchema = z.object({
+  hotelId: z.string().min(1),
+  roomTypeId: z.string().min(1),
+});
+export type RoomTypeParams = z.output<typeof roomTypeParamsSchema>;
+
+export const roomParamsSchema = roomTypeParamsSchema.extend({ roomId: z.string().min(1) });
+export type RoomParams = z.output<typeof roomParamsSchema>;
+
 // ---------- Catalog ----------
 export const BOOKING_TZ = "Asia/Bangkok";
 export const MAX_NIGHTS = 30;
@@ -410,6 +476,47 @@ export const amenityOptionListSchema = z.array(amenityOptionSchema);
 
 export const amenityListQuerySchema = z.object({ scope: amenityScopeSchema.optional() });
 export type AmenityListQuery = z.output<typeof amenityListQuerySchema>;
+
+// ---------- Admin room types + rooms (output) ----------
+export const adminRoomTypeSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  capacity: z.number().int(),
+  basePrice: z.number(),
+  isActive: z.boolean(),
+  roomCount: z.number().int(),
+  activeRoomCount: z.number().int(),
+  coverImage: imageSchema.nullable(),
+  updatedAt: z.iso.datetime(),
+});
+export type AdminRoomTypeSummary = z.infer<typeof adminRoomTypeSummarySchema>;
+
+export const adminRoomTypeListSchema = z.array(adminRoomTypeSummarySchema);
+
+export const adminRoomSchema = z.object({
+  id: z.string(),
+  number: z.string(),
+  isActive: z.boolean(),
+});
+export type AdminRoom = z.infer<typeof adminRoomSchema>;
+
+export const adminRoomTypeSchema = z.object({
+  id: z.string(),
+  hotel: z.object({ id: z.string(), name: z.string(), currency: z.string() }),
+  name: z.string(),
+  description: z.string().nullable(),
+  capacity: z.number().int(),
+  basePrice: z.number(),
+  isActive: z.boolean(),
+  images: z.array(adminHotelImageSchema),
+  amenities: z.array(z.object({ id: z.string(), code: z.string(), name: z.string() })),
+  rooms: z.array(adminRoomSchema),
+  /** True while no rooms or rate periods depend on it. */
+  deletable: z.boolean(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+export type AdminRoomType = z.infer<typeof adminRoomTypeSchema>;
 
 export const roomTypeSchema = z.object({
   id: z.string(),
