@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { Button } from "@booking/ui/components/button";
 import { useMe } from "../hooks";
@@ -9,6 +9,8 @@ import { isExplicitLogout, resetExplicitLogout } from "../logout-intent";
 export function RequireAuth({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const search = useSearchParams().toString();
+  const current = search ? `${pathname}?${search}` : pathname;
   const { data: user, isPending, isError, refetch } = useMe();
 
   // A fresh mount starts clean (a stale flag from a logout elsewhere must not skip the redirect)
@@ -19,8 +21,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user !== null) return;
     // Explicit logout always lands home; any other session loss keeps the path in ?next
-    router.replace(isExplicitLogout() ? "/" : `/login?next=${encodeURIComponent(pathname)}`);
-  }, [user, pathname, router]);
+    router.replace(isExplicitLogout() ? "/" : `/login?next=${encodeURIComponent(current)}`);
+  }, [user, current, router]);
 
   if (isError) {
     return (

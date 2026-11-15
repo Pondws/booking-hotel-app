@@ -7,7 +7,7 @@ import { cn } from "@booking/ui/lib/utils";
 import { useHotelSearch } from "../hooks";
 import { searchHref } from "../search-params";
 import { HotelCard, HotelCardSkeleton } from "./hotel-card";
-import { Pagination } from "./pagination";
+import { Pagination } from "@/components/pagination";
 
 const GRID = "grid gap-4 sm:grid-cols-2 lg:grid-cols-3";
 

@@ -1,8 +1,9 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ChevronDown, Users } from "lucide-react";
-import type { Availability, RoomType } from "@booking/shared";
+import type { Availability, RoomType, StayRange } from "@booking/shared";
 import { Badge } from "@booking/ui/components/badge";
-import { Button } from "@booking/ui/components/button";
+import { Button, buttonVariants } from "@booking/ui/components/button";
 import {
   Card,
   CardContent,
@@ -12,6 +13,7 @@ import {
   CardTitle,
 } from "@booking/ui/components/card";
 import { Skeleton } from "@booking/ui/components/skeleton";
+import { bookHref } from "@/features/bookings/book-params";
 import { formatDate, formatMoney } from "../format";
 import { amenityIcon } from "./amenity-list";
 
@@ -27,9 +29,12 @@ type Props = {
   roomType: RoomType;
   currency: string;
   pricing: RoomPricing;
+  hotelSlug: string;
+  /** The chosen stay, or null when no dates are picked. */
+  range: StayRange | null;
 };
 
-export function RoomTypeCard({ roomType, currency, pricing }: Props) {
+export function RoomTypeCard({ roomType, currency, pricing, hotelSlug, range }: Props) {
   const image = roomType.images[0];
   const soldOut = pricing.kind === "quote" && !pricing.availability.available;
   const hintId = `book-hint-${roomType.id}`;
@@ -80,19 +85,32 @@ export function RoomTypeCard({ roomType, currency, pricing }: Props) {
           <Price roomType={roomType} currency={currency} pricing={pricing} />
         </CardContent>
         <CardFooter className="mt-auto flex-col items-stretch gap-1 px-4 pt-3 pb-4 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-          <p id={hintId} className="text-sm text-muted-foreground sm:order-first">
-            Booking opens soon
-          </p>
-          <Button disabled aria-describedby={hintId}>
-            Book
-          </Button>
+          {range && pricing.kind === "quote" && pricing.availability.available ? (
+            <Link
+              href={bookHref(hotelSlug, { roomTypeId: roomType.id, ...range })}
+              className={buttonVariants()}
+            >
+              Book
+            </Link>
+          ) : (
+            <>
+              {!range && (
+                <p id={hintId} className="text-sm text-muted-foreground sm:order-first">
+                  Add dates to book
+                </p>
+              )}
+              <Button disabled aria-describedby={range ? undefined : hintId}>
+                Book
+              </Button>
+            </>
+          )}
         </CardFooter>
       </div>
     </Card>
   );
 }
 
-function Price({ roomType, currency, pricing }: Props) {
+function Price({ roomType, currency, pricing }: Pick<Props, "roomType" | "currency" | "pricing">) {
   if (pricing.kind === "base") {
     return (
       <p>

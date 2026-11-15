@@ -12,12 +12,12 @@ function isUnder(path: string, prefix: string): boolean {
  * Browser origins allowed to make credentialed requests to `path`.
  * - admin API + admin auth → web-admin only, so script on the customer site can never
  *   read admin responses with a staff member's `admin_sid`
- * - customer auth → web only
+ * - customer auth and bookings → web only
  * - everything else (public catalog, health) → both apps
  */
 export function allowedOriginsFor(path: string, origins: CorsOrigins): string[] {
   if (isUnder(path, "/api/admin") || isUnder(path, "/api/auth/admin")) return [...origins.admin];
-  if (isUnder(path, "/api/auth")) return [...origins.web];
+  if (isUnder(path, "/api/auth") || isUnder(path, "/api/bookings")) return [...origins.web];
   return [...origins.web, ...origins.admin];
 }
 

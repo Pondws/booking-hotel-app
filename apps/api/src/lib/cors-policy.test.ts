@@ -20,6 +20,13 @@ test("customer auth only allows web origins", () => {
   }
 });
 
+test("bookings only allow web origins", () => {
+  for (const path of ["/api/bookings", "/api/bookings/me", "/api/bookings/BK7QX2MA/cancel"]) {
+    assert.deepEqual(allowedOriginsFor(path, origins), [WEB], path);
+  }
+  assert.deepEqual(allowedOriginsFor("/api/bookingsx", origins), [WEB, ADMIN]);
+});
+
 test("public routes allow both apps", () => {
   for (const path of ["/api/hotels", "/api/health", "/api/nope"]) {
     assert.deepEqual(allowedOriginsFor(path, origins), [WEB, ADMIN], path);

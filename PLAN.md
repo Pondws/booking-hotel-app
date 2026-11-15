@@ -47,8 +47,8 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 1 | API foundation | ✅ เสร็จแล้ว |
 | 2 | Auth และ roles | ✅ เสร็จแล้ว |
 | 3 | Catalog สาธารณะ + ห้องว่าง | ✅ เสร็จแล้ว |
-| 4 | Booking flow | ⬜ ถัดไป |
-| 5 | Payments (เริ่มจาก mock provider) | ⬜ |
+| 4 | Booking flow | ✅ เสร็จแล้ว |
+| 5 | Payments (เริ่มจาก mock provider) | ⬜ ถัดไป |
 | 6 | Back-office (web-admin) | ⬜ |
 | 7 | Reviews | ⬜ |
 | 8 | Hardening และ deployment | ⬜ |
@@ -159,7 +159,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 - [x] web: แถบค้นหา (เมือง, วันที่, จำนวนแขก), หน้าผลค้นหา, หน้ารายละเอียดโรงแรมที่มีการ์ด room type พร้อมราคาจริง, ไอคอน amenities และแกลเลอรีรูป
 - [x] กฎวันที่: `checkIn` ต้องเป็นวันนี้หรือหลังจากนี้ และพักได้ไม่เกิน 30 คืน (ยืนยันแล้ว: `MAX_NIGHTS = 30`, "วันนี้" นับตามเวลา Asia/Bangkok)
 
-## Phase 4 — Booking flow
+## Phase 4 — Booking flow ✅
 
 เป้าหมาย: ลูกค้าที่ login แล้วจอง room type ได้ และจองซ้อนไม่ได้เด็ดขาด
 
@@ -172,25 +172,25 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 - `impeccable`: ขั้นตอนการจองทั้ง flow
 - `next-dev-loop`: ตรวจ flow จองตั้งแต่ต้นจนจบ
 
-- [ ] `POST /api/bookings` รับ `createBookingSchema` (`roomTypeId`, วันที่, `guests` และข้อมูลแขกที่ไม่บังคับ)
-      ทำทุกขั้นใน `$transaction` เดียว:
+- [x] `POST /api/bookings` รับ `createBookingSchema` (`roomTypeId`, วันที่, `guests` และข้อมูลแขกที่ไม่บังคับ)
+      ไม่ใช้ `$transaction` ครอบ — แต่ละ insert เป็นคำสั่งเดียว และให้ DB exclusion constraint `bookings_no_overlap` ตัดสิน (Postgres จะ abort transaction ทันทีที่เกิด error แรก ทำให้ retry ห้องถัดไปไม่ได้):
   1. เปลี่ยน booking PENDING ของ room type นี้ที่ `expiresAt < now()` ให้เป็น `EXPIRED`
   2. ตรวจว่า `guests ≤ capacity` และคำนวณราคาด้วย `quoteStay`
   3. หาห้องจริงที่ active และไม่มี booking active คืนทับกัน
   4. insert ลงห้องแรกที่ว่าง ถ้าเจอ `23P01` ให้ลองห้องถัดไป ถ้าไม่เหลือห้องเลย throw `409 ROOM_UNAVAILABLE`
 
   booking ที่สร้างได้:
-  - status เป็น `PENDING` และ `expiresAt = now + 15 นาที` (เวลานี้ต้องยืนยัน)
+  - status เป็น `PENDING` และ `expiresAt = now + 15 นาที` (ยืนยันแล้ว: `HOLD_MINUTES = 15`)
   - มี `code` ไม่ซ้ำ รูปแบบ `BK` + 6 ตัวอักษร ถ้าชนให้สุ่มใหม่
   - `guestName` / `guestEmail` ใช้ค่าของ user ถ้าไม่ได้ส่งมา
-- [ ] `GET /api/bookings/me` และ `GET /api/bookings/:code` (เฉพาะเจ้าของ)
-- [ ] `POST /api/bookings/:code/cancel`
+- [x] `GET /api/bookings/me` และ `GET /api/bookings/:code` (เฉพาะเจ้าของ)
+- [x] `POST /api/bookings/:code/cancel`
   - เฉพาะเจ้าของ booking
-  - ยกเลิกได้ตอนที่เป็น PENDING/CONFIRMED และยังไม่ถึงวันเข้าพัก (นโยบายยกเลิกค่อยตัดสินใจทีหลัง)
+  - ยกเลิกได้ตอนที่เป็น PENDING/CONFIRMED และยังไม่ถึงวันเข้าพัก (ยืนยันแล้ว: ยกเลิกได้ก่อนวัน check-in; การคืนเงินรอ Phase 5)
   - บันทึก `cancelledAt`
-- [ ] Concurrency test: ส่ง 2 คำขอจองพร้อมกันสำหรับห้องว่างห้องสุดท้าย ต้องสำเร็จเพียง 1 คำขอ
-- [ ] เพิ่มกรณีใน `prisma/checks/constraints.sql`: booking ที่ EXPIRED และ COMPLETED ต้องไม่บล็อกห้อง
-- [ ] web:
+- [x] Concurrency test: ส่ง 2 คำขอจองพร้อมกันสำหรับห้องว่างห้องสุดท้าย ต้องสำเร็จเพียง 1 คำขอ
+- [x] เพิ่มกรณีใน `prisma/checks/constraints.sql`: booking ที่ EXPIRED และ COMPLETED ต้องไม่บล็อกห้อง
+- [x] web:
   - หน้าจอง (สรุปรายการ + ฟอร์มข้อมูลแขกด้วย react-hook-form + zod)
   - ตัวนับถอยหลัง "เหลือเวลาจองอีก"
   - หน้ายืนยัน, รายการ "การจองของฉัน" พร้อมหน้ารายละเอียด และปุ่มยกเลิก
@@ -304,8 +304,8 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 1 | เปลี่ยน response shape เป็น `{ data }` / `{ error }` (กระทบ FE ทั้งสองแอป) | Phase 1 — ✅ ตัดสินแล้ว: ใช้ { data }/{ error } ทุก endpoint + axios |
 | 2 | เพิ่ม dependency สำหรับ HTTP tests (เช่น supertest) | Phase 1 — ✅ ตัดสินแล้ว: supertest |
 | 3 | Session cookie หรือ JWT | Phase 2 — ✅ ตัดสินแล้ว: session cookie + ตาราง Session (แยก sid / admin_sid) |
-| 4 | เวลา hold รอจ่ายเงิน (ค่าเริ่มต้น 15 นาที) และจำนวนคืนสูงสุด (ค่าเริ่มต้น 30 คืน) | Phase 4 — จำนวนคืนสูงสุด ✅ ยืนยันแล้วใน Phase 3: 30 คืน (`MAX_NIGHTS` ใน `@booking/shared`); เวลา hold ยังรอตัดสินใน Phase 4 |
-| 5 | นโยบายยกเลิก (ยกเลิกฟรีก่อนเข้าพัก X วัน? คืนเงินบางส่วน?) | Phase 4–5 |
+| 4 | เวลา hold รอจ่ายเงิน (ค่าเริ่มต้น 15 นาที) และจำนวนคืนสูงสุด (ค่าเริ่มต้น 30 คืน) | Phase 4 — จำนวนคืนสูงสุด ✅ ยืนยันแล้วใน Phase 3: 30 คืน (`MAX_NIGHTS` ใน `@booking/shared`); เวลา hold ✅ ยืนยันแล้วใน Phase 4: 15 นาที (`HOLD_MINUTES` ใน `@booking/shared`) |
+| 5 | นโยบายยกเลิก (ยกเลิกฟรีก่อนเข้าพัก X วัน? คืนเงินบางส่วน?) | Phase 4–5 — ✅ ตัดสินแล้วใน Phase 4: ยกเลิกได้ก่อนวัน check-in (PENDING/CONFIRMED); การคืนเงินตามนโยบายรอ Phase 5 |
 | 6 | Payment gateway จริง | Phase 5 |
 | 7 | เวลา check-in/check-out ของโรงแรม (ต้องเพิ่ม field ใน `Hotel`) | Phase 6 |
 | 8 | ผู้ให้บริการเก็บรูปและส่งอีเมล | Phase 8 |

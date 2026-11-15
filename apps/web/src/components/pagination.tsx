@@ -5,15 +5,16 @@ type Props = {
   page: number;
   totalPages: number;
   hrefFor: (page: number) => string;
+  label?: string;
 };
 
-export function Pagination({ page, totalPages, hrefFor }: Props) {
+export function Pagination({ page, totalPages, hrefFor, label = "Results pages" }: Props) {
   if (totalPages <= 1 && page <= 1) return null;
   const hasPrev = page > 1;
   const hasNext = page < totalPages;
 
   return (
-    <nav aria-label="Results pages" className="flex items-center justify-between gap-4">
+    <nav aria-label={label} className="flex items-center justify-between gap-4">
       {hasPrev ? (
         <Button asChild variant="outline">
           <Link href={hrefFor(Math.min(page - 1, totalPages))} rel="prev">

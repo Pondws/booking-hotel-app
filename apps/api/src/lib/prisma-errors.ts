@@ -27,3 +27,20 @@ export function isUniqueViolationOn(err: unknown, field: string): boolean {
   if (Array.isArray(constraint.fields) && constraint.fields.includes(field)) return true;
   return typeof constraint.index === "string" && constraint.index.endsWith(`_${field}_key`);
 }
+
+/**
+ * True when `err` is a Postgres exclusion violation (23P01) on `constraint`.
+ * With PrismaPg it surfaces as a known request error (generic code P2039) whose
+ * `meta.driverAdapterError.cause` has `originalCode: "23P01"`. The cause has no
+ * structured constraint field, so the name is matched in its quoted message:
+ * `… violates exclusion constraint "bookings_no_overlap"`.
+ */
+export function isExclusionViolation(err: unknown, constraint = "bookings_no_overlap"): boolean {
+  if (!(err instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  const meta: unknown = err.meta;
+  const adapterError = isRecord(meta) ? meta.driverAdapterError : undefined;
+  const cause = isRecord(adapterError) ? adapterError.cause : undefined;
+  if (!isRecord(cause) || cause.originalCode !== "23P01") return false;
+  const message = typeof cause.originalMessage === "string" ? cause.originalMessage : cause.message;
+  return typeof message === "string" && message.includes(`"${constraint}"`);
+}

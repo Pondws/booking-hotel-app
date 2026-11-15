@@ -30,6 +30,14 @@ INSERT INTO bookings (id, code, user_id, room_id, guest_name, guest_email, guest
 -- same dates on a different room is allowed
 INSERT INTO bookings (id, code, user_id, room_id, guest_name, guest_email, guests, check_in, check_out, status, total_amount, currency, updated_at)
   VALUES ('t_b5', 'T5', 't_user', 't_r2', 'G', 'g@test.local', 1, '2027-01-10', '2027-01-13', 'PENDING', 3000, 'THB', now());
+-- EXPIRED and COMPLETED bookings overlapping an active one are allowed
+INSERT INTO bookings (id, code, user_id, room_id, guest_name, guest_email, guests, check_in, check_out, status, total_amount, currency, updated_at)
+  VALUES ('t_b8', 'T8', 't_user', 't_r1', 'G', 'g@test.local', 1, '2027-01-10', '2027-01-13', 'EXPIRED', 3000, 'THB', now());
+INSERT INTO bookings (id, code, user_id, room_id, guest_name, guest_email, guests, check_in, check_out, status, total_amount, currency, updated_at)
+  VALUES ('t_b9', 'T9', 't_user', 't_r1', 'G', 'g@test.local', 1, '2027-01-10', '2027-01-13', 'COMPLETED', 3000, 'THB', now());
+-- a second overlapping PENDING is still rejected (t_b5 is PENDING on r2, 2027-01-10..13)
+SELECT pg_temp.expect_fail($q$INSERT INTO bookings (id, code, user_id, room_id, guest_name, guest_email, guests, check_in, check_out, status, total_amount, currency, updated_at)
+  VALUES ('t_b10', 'T10', 't_user', 't_r2', 'G', 'g@test.local', 1, '2027-01-11', '2027-01-12', 'PENDING', 1000, 'THB', now())$q$, '23P01');
 -- zero nights and zero guests are rejected
 SELECT pg_temp.expect_fail($q$INSERT INTO bookings (id, code, user_id, room_id, guest_name, guest_email, guests, check_in, check_out, status, total_amount, currency, updated_at)
   VALUES ('t_b6', 'T6', 't_user', 't_r2', 'G', 'g@test.local', 1, '2027-02-01', '2027-02-01', 'PENDING', 0, 'THB', now())$q$, '23514');
