@@ -11,13 +11,14 @@ import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
 import { ApiError } from "@/lib/api";
 import { applyServerFieldErrors, formErrorMessage } from "@/lib/form-errors";
+import { thaiResolver } from "@/lib/messages-th";
 import { useLogin, useMe } from "../hooks";
 
 type FormInput = z.input<typeof loginSchema>;
 type FormOutput = z.output<typeof loginSchema>;
 
 function loginErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.status === 403) return "Staff access only";
+  if (error instanceof ApiError && error.status === 403) return "สำหรับพนักงานและผู้ดูแลระบบเท่านั้น";
   return formErrorMessage(error);
 }
 
@@ -32,7 +33,7 @@ export function LoginForm() {
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<FormInput, unknown, FormOutput>({ resolver: zodResolver(loginSchema) });
+  } = useForm<FormInput, unknown, FormOutput>({ resolver: thaiResolver(zodResolver(loginSchema)) });
 
   // Signed in (already, or just now): leave the login page
   useEffect(() => {
@@ -53,12 +54,12 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">อีเมล</Label>
         <Input id="email" type="email" autoComplete="email" aria-invalid={!!errors.email} {...register("email")} />
         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">รหัสผ่าน</Label>
         <Input
           id="password"
           type="password"
@@ -74,7 +75,7 @@ export function LoginForm() {
         </p>
       )}
       <Button type="submit" className="w-full" disabled={login.isPending}>
-        {login.isPending ? "Logging in…" : "Log in"}
+        {login.isPending ? "กำลังเข้าสู่ระบบ…" : "เข้าสู่ระบบ"}
       </Button>
     </form>
   );

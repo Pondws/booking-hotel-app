@@ -14,6 +14,7 @@ import { FormHeader } from "@/components/form-header";
 import { AmenitiesSection } from "@/features/amenities/components/amenities-field";
 import { ImagesSection } from "@/features/uploads/components/images-field";
 import { applyServerFieldErrors } from "@/lib/form-errors";
+import { thaiResolver } from "@/lib/messages-th";
 import { useCreateRoomType, useSaveRoomType } from "../hooks";
 
 type FormInput = z.input<typeof roomTypeInputSchema>;
@@ -21,7 +22,7 @@ type FormOutput = z.output<typeof roomTypeInputSchema>;
 
 const FIELDS = ["name", "description", "capacity", "basePrice", "images", "amenityIds"] as const;
 
-// No price yet: the empty number input fails validation with "Enter a price"
+// No price yet: the empty number input fails validation with "Enter a price" (shown in Thai)
 const EMPTY_VALUES: DefaultValues<FormInput> = {
   name: "",
   description: "",
@@ -59,7 +60,7 @@ export function RoomTypeForm({ hotelId, currency, roomType, heading, actions }: 
   const isCreate = roomType === undefined;
   const mutation = isCreate ? create : save;
   const form = useForm<FormInput, unknown, FormOutput>({
-    resolver: zodResolver(roomTypeInputSchema),
+    resolver: thaiResolver(zodResolver(roomTypeInputSchema)),
     defaultValues: roomType ? toFormValues(roomType) : EMPTY_VALUES,
   });
   const {
@@ -97,7 +98,7 @@ export function RoomTypeForm({ hotelId, currency, roomType, heading, actions }: 
           actions={actions}
           backHref={`/hotels/${hotelId}`}
           isCreate={isCreate}
-          createLabel="Create room type"
+          createLabel="สร้างประเภทห้อง"
           isDirty={isDirty}
           isPending={mutation.isPending}
           isSuccess={mutation.isSuccess}
@@ -121,13 +122,13 @@ function DetailsSection({ currency }: { currency: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Details</CardTitle>
+        <CardTitle>รายละเอียด</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">
-        <Field id="name" label="Name" error={errors.name?.message} className="sm:col-span-2">
+        <Field id="name" label="ชื่อ" error={errors.name?.message} className="sm:col-span-2">
           <Input id="name" aria-invalid={!!errors.name} {...register("name")} />
         </Field>
-        <Field id="capacity" label="Max guests" error={errors.capacity?.message}>
+        <Field id="capacity" label="จำนวนผู้เข้าพักสูงสุด" error={errors.capacity?.message}>
           <Input
             id="capacity"
             type="number"
@@ -139,7 +140,7 @@ function DetailsSection({ currency }: { currency: string }) {
             {...register("capacity", { valueAsNumber: true })}
           />
         </Field>
-        <Field id="basePrice" label={`Base price per night (${currency})`} error={errors.basePrice?.message}>
+        <Field id="basePrice" label={`ราคาพื้นฐานต่อคืน (${currency})`} error={errors.basePrice?.message}>
           <Input
             id="basePrice"
             type="number"
@@ -152,7 +153,7 @@ function DetailsSection({ currency }: { currency: string }) {
         </Field>
         <Field
           id="description"
-          label="Description"
+          label="คำอธิบาย"
           error={errors.description?.message}
           className="sm:col-span-2"
         >

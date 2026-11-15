@@ -14,6 +14,7 @@ import { FormHeader } from "@/components/form-header";
 import { AmenitiesSection } from "@/features/amenities/components/amenities-field";
 import { ImagesSection } from "@/features/uploads/components/images-field";
 import { applyServerFieldErrors } from "@/lib/form-errors";
+import { thaiResolver } from "@/lib/messages-th";
 import { useCreateHotel, useSaveHotel } from "../hooks";
 
 type FormInput = z.input<typeof hotelContentInputSchema>;
@@ -72,7 +73,7 @@ export function HotelForm({ hotel, heading, actions }: HotelFormProps) {
   const isCreate = hotel === undefined;
   const mutation = isCreate ? create : save;
   const form = useForm<FormInput, unknown, FormOutput>({
-    resolver: zodResolver(hotelContentInputSchema),
+    resolver: thaiResolver(zodResolver(hotelContentInputSchema)),
     defaultValues: hotel ? toFormValues(hotel) : EMPTY_VALUES,
   });
   const {
@@ -107,7 +108,7 @@ export function HotelForm({ hotel, heading, actions }: HotelFormProps) {
           actions={actions}
           backHref="/hotels"
           isCreate={isCreate}
-          createLabel="Create hotel"
+          createLabel="สร้างโรงแรม"
           isDirty={isDirty}
           isPending={mutation.isPending}
           isSuccess={mutation.isSuccess}
@@ -131,27 +132,27 @@ function DetailsSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Details</CardTitle>
+        <CardTitle>รายละเอียด</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">
-        <Field id="name" label="Name" error={errors.name?.message}>
+        <Field id="name" label="ชื่อ" error={errors.name?.message}>
           <Input id="name" aria-invalid={!!errors.name} {...register("name")} />
         </Field>
-        <Field id="city" label="City" error={errors.city?.message}>
+        <Field id="city" label="เมือง" error={errors.city?.message}>
           <Input id="city" aria-invalid={!!errors.city} {...register("city")} />
         </Field>
-        <Field id="address" label="Address" error={errors.address?.message} className="sm:col-span-2">
+        <Field id="address" label="ที่อยู่" error={errors.address?.message} className="sm:col-span-2">
           <Input id="address" aria-invalid={!!errors.address} {...register("address")} />
         </Field>
         <Field
           id="description"
-          label="Description"
+          label="คำอธิบาย"
           error={errors.description?.message}
           className="sm:col-span-2"
         >
           <Textarea id="description" aria-invalid={!!errors.description} {...register("description")} />
         </Field>
-        <Field id="checkInTime" label="Check-in from" error={errors.checkInTime?.message}>
+        <Field id="checkInTime" label="เช็คอินได้ตั้งแต่" error={errors.checkInTime?.message}>
           <Input
             id="checkInTime"
             type="time"
@@ -159,7 +160,7 @@ function DetailsSection() {
             {...register("checkInTime")}
           />
         </Field>
-        <Field id="checkOutTime" label="Check-out until" error={errors.checkOutTime?.message}>
+        <Field id="checkOutTime" label="เช็คเอาท์ได้ถึง" error={errors.checkOutTime?.message}>
           <Input
             id="checkOutTime"
             type="time"

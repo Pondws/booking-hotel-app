@@ -13,8 +13,8 @@ import { useAmenities } from "../hooks";
 type AmenitiesForm = { amenityIds: string[] };
 
 const LABELS: Record<AmenityScope, { legend: string; empty: string }> = {
-  HOTEL: { legend: "Hotel amenities", empty: "No hotel amenities in the catalog" },
-  ROOM: { legend: "Room amenities", empty: "No room amenities in the catalog" },
+  HOTEL: { legend: "สิ่งอำนวยความสะดวกของโรงแรม", empty: "ยังไม่มีสิ่งอำนวยความสะดวกของโรงแรมในระบบ" },
+  ROOM: { legend: "สิ่งอำนวยความสะดวกของห้อง", empty: "ยังไม่มีสิ่งอำนวยความสะดวกของห้องในระบบ" },
 };
 
 /** Checkboxes of the catalog amenities in `scope` — must be rendered inside a `FormProvider`. */
@@ -26,7 +26,7 @@ export function AmenitiesSection({ scope }: { scope: AmenityScope }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Amenities</CardTitle>
+        <CardTitle>สิ่งอำนวยความสะดวก</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {options.isPending ? (
@@ -37,9 +37,9 @@ export function AmenitiesSection({ scope }: { scope: AmenityScope }) {
           </div>
         ) : options.isError ? (
           <div role="alert" className="space-y-2">
-            <p className="text-sm">Couldn&apos;t load amenities.</p>
+            <p className="text-sm">โหลดรายการสิ่งอำนวยความสะดวกไม่สำเร็จ</p>
             <Button type="button" variant="outline" onClick={() => void options.refetch()}>
-              Try again
+              ลองอีกครั้ง
             </Button>
           </div>
         ) : options.data.length === 0 ? (

@@ -4,6 +4,7 @@ import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@ta
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState, type ReactNode } from "react";
 import { ApiError } from "@/lib/api";
+import "@/lib/zod-locale";
 import { authKeys } from "@/features/auth/hooks";
 
 function makeQueryClient(): QueryClient {

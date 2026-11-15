@@ -58,16 +58,16 @@ function HotelPageError({
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">
           {status === 403
-            ? "You don't have access to this hotel"
-            : "Hotel not found"}
+            ? "คุณไม่มีสิทธิ์เข้าถึงโรงแรมนี้"
+            : "ไม่พบโรงแรม"}
         </h1>
         <p className="text-sm text-muted-foreground">
           {status === 403
-            ? "Ask an admin to assign you to it."
-            : "It may have been removed, or the link is wrong."}
+            ? "ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์เข้าถึง"
+            : "โรงแรมอาจถูกลบไปแล้ว หรือลิงก์ไม่ถูกต้อง"}
         </p>
         <Button asChild variant="link" className="px-0">
-          <Link href="/hotels">Back to hotels</Link>
+          <Link href="/hotels">กลับไปที่รายการโรงแรม</Link>
         </Button>
       </div>
     );
@@ -75,10 +75,10 @@ function HotelPageError({
   return (
     <div role="alert" className="space-y-2">
       <h1 className="text-2xl font-semibold tracking-tight">
-        Couldn&apos;t load this hotel
+        โหลดข้อมูลโรงแรมไม่สำเร็จ
       </h1>
       <Button variant="outline" onClick={onRetry}>
-        Try again
+        ลองอีกครั้ง
       </Button>
     </div>
   );

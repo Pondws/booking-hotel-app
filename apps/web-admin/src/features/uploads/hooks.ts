@@ -2,10 +2,11 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { IMAGE_UPLOAD_MAX_BYTES, IMAGE_UPLOAD_TYPES } from "@booking/shared";
+import { toThai } from "@/lib/messages-th";
 import { uploadImage } from "./api";
 
 export const IMAGE_ACCEPT = IMAGE_UPLOAD_TYPES.join(",");
-export const IMAGE_UPLOAD_HINT = `JPEG, PNG or WebP, up to ${IMAGE_UPLOAD_MAX_BYTES / 1024 / 1024} MB each`;
+export const IMAGE_UPLOAD_HINT = `JPEG, PNG หรือ WebP ไม่เกินไฟล์ละ ${IMAGE_UPLOAD_MAX_BYTES / 1024 / 1024} MB`;
 
 export type UploadResult = {
   urls: string[];
@@ -14,8 +15,8 @@ export type UploadResult = {
 
 function checkFile(file: File): string | null {
   if (!(IMAGE_UPLOAD_TYPES as readonly string[]).includes(file.type))
-    return "not a JPEG, PNG or WebP";
-  if (file.size > IMAGE_UPLOAD_MAX_BYTES) return "larger than 5 MB";
+    return "ไม่ใช่ไฟล์ JPEG, PNG หรือ WebP";
+  if (file.size > IMAGE_UPLOAD_MAX_BYTES) return `ใหญ่เกิน ${IMAGE_UPLOAD_MAX_BYTES / 1024 / 1024} MB`;
   return null;
 }
 
@@ -39,9 +40,9 @@ export function useUploadImages() {
         if (r.status === "fulfilled") urls.push(r.value);
         else
           failed.push({
-            name: files[i]?.name ?? "file",
+            name: files[i]?.name ?? "ไฟล์",
             reason:
-              r.reason instanceof Error ? r.reason.message : "upload failed",
+              r.reason instanceof Error ? toThai(r.reason.message) : "อัปโหลดไม่สำเร็จ",
           });
       });
       return { urls, failed };
