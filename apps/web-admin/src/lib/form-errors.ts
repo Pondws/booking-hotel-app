@@ -5,13 +5,16 @@ import { toThai } from "@/lib/messages-th";
 
 const detailsSchema = z.object({ fieldErrors: z.record(z.string(), z.array(z.string())) });
 
-/** Maps a server VALIDATION_FAILED `details.fieldErrors` onto form fields. Returns true if any were mapped. */
+/**
+ * Maps a server `details.fieldErrors` onto form fields — VALIDATION_FAILED, or a CONFLICT tied to one
+ * field (a duplicate email / amenity code). Returns true if any were mapped.
+ */
 export function applyServerFieldErrors<T extends FieldValues>(
   error: unknown,
   setError: UseFormSetError<T>,
   fields: readonly FieldPath<T>[],
 ): boolean {
-  if (!(error instanceof ApiError) || error.code !== "VALIDATION_FAILED") return false;
+  if (!(error instanceof ApiError)) return false;
   const parsed = detailsSchema.safeParse(error.details);
   if (!parsed.success) return false;
   let mapped = false;

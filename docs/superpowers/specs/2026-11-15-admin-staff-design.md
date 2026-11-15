@@ -49,9 +49,13 @@ hotel / room type forms pick from. Both are ADMIN-only; STAFF keep read access t
 - `/staff`: search + table (name, email, hotel badges) + pagination, loading / error / empty states, "เพิ่มพนักงาน".
 - `/staff/new`: form (name, email, password, phone) → redirects to the detail page.
 - `/staff/[userId]`: profile card (edit name/phone) + hotels card (list with remove → `AlertDialog`,
-  "เพิ่มโรงแรม" dialog with hotel search from `GET /api/admin/hotels?q=`, already-assigned hotels disabled).
-- `/amenities`: scope tabs (ทั้งหมด / โรงแรม / ห้องพัก), table (name, code, scope, usage), create / edit in a
-  dialog, delete in an `AlertDialog` that names the usage count.
+  "เพิ่มโรงแรม" opens an inline picker with hotel search from `GET /api/admin/hotels?q=`, already-assigned
+  hotels disabled).
+- `/amenities`: scope filter (ทั้งหมด / โรงแรม / ห้องพัก), table (name, code, scope, usage), create / edit in an
+  inline form above the table (the rate-periods pattern — `packages/ui` has no `Dialog`), delete in an
+  `AlertDialog` that names the usage count.
+- `applyServerFieldErrors` now maps `fieldErrors` from any API error, so the 409 duplicate email / code shows
+  under its field.
 - `features/staff/` (`adminStaffKeys`), `features/amenities/` extended (writes invalidate `amenityKeys.all` and
   the admin hotel / room type details that embed amenities).
 

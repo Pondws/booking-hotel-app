@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@booking/ui/components/button";
 import { cn } from "@booking/ui/lib/utils";
 import { AdminUserBlock } from "@/features/auth/components/admin-header";
+import { useMe } from "@/features/auth/hooks";
 import { ApiStatus } from "@/features/health/components/api-status";
 import { NAV_ITEMS } from "./nav-items";
 
@@ -16,9 +17,11 @@ function isActive(pathname: string, href: string): boolean {
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { data: me } = useMe();
+  const items = NAV_ITEMS.filter((item) => !item.roles || (me != null && item.roles.includes(me.role)));
   return (
     <ul className="space-y-1">
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+      {items.map(({ href, label, icon: Icon }) => {
         const active = isActive(pathname, href);
         return (
           <li key={href}>

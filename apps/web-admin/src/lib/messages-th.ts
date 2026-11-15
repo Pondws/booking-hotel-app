@@ -27,6 +27,9 @@ const EXACT: Record<string, string> = {
   "Use letters, digits and - only": "ใช้ได้เฉพาะตัวอักษรภาษาอังกฤษ ตัวเลข และ -",
   "Pick the dates": "กรุณาเลือกวันที่",
   "The end date must be after the start date": "วันสิ้นสุดต้องอยู่หลังวันเริ่มต้น",
+  "Code is required": "กรุณากรอกรหัส",
+  "Use lowercase letters, digits, - and _ only": "ใช้ได้เฉพาะตัวพิมพ์เล็กภาษาอังกฤษ ตัวเลข - และ _",
+  "Choose a hotel": "กรุณาเลือกโรงแรม",
   // API
   "Authentication required": "กรุณาเข้าสู่ระบบ",
   "Invalid email or password": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
@@ -62,6 +65,11 @@ const EXACT: Record<string, string> = {
   "This booking can't be cancelled": "ยกเลิกการจองนี้ไม่ได้แล้ว",
   "This booking can't be moved": "ย้ายห้องของการจองนี้ไม่ได้แล้ว",
   "This room isn't available for this stay": "ห้องนี้ไม่ว่างในช่วงวันที่เข้าพักนี้",
+  "Email already registered": "อีเมลนี้มีบัญชีอยู่แล้ว",
+  "Staff member not found": "ไม่พบพนักงาน",
+  "This staff member already works at this hotel": "พนักงานคนนี้ดูแลโรงแรมนี้อยู่แล้ว",
+  "This staff member doesn't work at this hotel": "พนักงานคนนี้ไม่ได้ดูแลโรงแรมนี้",
+  "Amenity not found": "ไม่พบสิ่งอำนวยความสะดวก",
 };
 
 const ISO = String.raw`(\d{4}-\d{2}-\d{2})`;
@@ -72,6 +80,7 @@ const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/^At most (\d+) guests$/, (m) => `ไม่เกิน ${m[1]} คน`],
   [/^A rate period can cover at most (\d+) nights$/, (m) => `ช่วงราคาหนึ่งครอบคลุมได้ไม่เกิน ${m[1]} คืน`],
   [/^Room (.+) already exists in this hotel$/, (m) => `ห้อง ${m[1]} มีอยู่แล้วในโรงแรมนี้`],
+  [/^The code "(.+)" is already used$/, (m) => `รหัส "${m[1]}" ถูกใช้แล้ว`],
   [
     new RegExp(`^These dates overlap (?:"(.+)"|another rate period) \\(${ISO} to ${ISO}\\)$`),
     (m) =>
