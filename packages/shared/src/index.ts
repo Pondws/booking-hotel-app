@@ -204,6 +204,15 @@ export const createHotelSchema = z
 export type CreateHotelInput = z.input<typeof createHotelSchema>;
 export type CreateHotelData = z.output<typeof createHotelSchema>;
 
+// ---------- Uploads ----------
+/** `POST /api/admin/uploads/images` takes the raw file as the body with one of these `Content-Type`s. */
+export const IMAGE_UPLOAD_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export type ImageUploadType = (typeof IMAGE_UPLOAD_TYPES)[number];
+export const IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+
+export const uploadedImageSchema = z.object({ url: z.string() });
+export type UploadedImage = z.infer<typeof uploadedImageSchema>;
+
 export const hotelStatusInputSchema = z.object({ isActive: z.boolean() });
 export type HotelStatusInput = z.output<typeof hotelStatusInputSchema>;
 

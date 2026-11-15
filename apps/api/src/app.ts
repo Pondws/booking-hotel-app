@@ -21,6 +21,19 @@ app.use(corsPolicy({ web: env.WEB_ORIGINS, admin: env.ADMIN_ORIGINS }));
 app.use("/api/webhooks", webhooksRouter);
 app.use(express.json());
 
+// Uploaded images (see routes/admin/uploads.ts). Never executed or sniffed as anything but the stored type.
+app.use(
+  "/uploads",
+  express.static(env.UPLOAD_DIR, {
+    index: false,
+    setHeaders: (res) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Content-Security-Policy", "default-src 'none'");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    },
+  }),
+);
+
 app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/hotels", hotelsRouter);

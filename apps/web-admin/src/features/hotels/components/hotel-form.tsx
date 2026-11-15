@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import {
   Controller,
   useFieldArray,
@@ -30,7 +32,13 @@ import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
 import { Skeleton } from "@booking/ui/components/skeleton";
 import { Textarea } from "@booking/ui/components/textarea";
+import { ImageUpload } from "@booking/ui/components/image-upload";
 import { useAmenities } from "@/features/amenities/hooks";
+import {
+  IMAGE_ACCEPT,
+  IMAGE_UPLOAD_HINT,
+  useUploadImages,
+} from "@/features/uploads/hooks";
 import { applyServerFieldErrors, formErrorMessage } from "@/lib/form-errors";
 import { useCreateHotel, useSaveHotel } from "../hooks";
 
@@ -75,11 +83,17 @@ function toFormValues(hotel: AdminHotel): FormInput {
   };
 }
 
-/**
- * Details, times, images and amenities of one hotel — one form, one submit, saved atomically by the API.
- * Without `hotel` it creates a new one (ADMIN) and opens its page.
- */
-export function HotelForm({ hotel }: { hotel?: AdminHotel }) {
+type HotelFormProps = {
+  /** Edit this hotel; without it the form creates a new one (ADMIN) and opens its page. */
+  hotel?: AdminHotel;
+  /** Left side of the header (page title, status…). */
+  heading: ReactNode;
+  /** Extra buttons placed before Back / Save (e.g. Deactivate). */
+  actions?: ReactNode;
+};
+
+/** Details, times, images and amenities of one hotel — one form, one submit, saved atomically by the API. */
+export function HotelForm({ hotel, heading, actions }: HotelFormProps) {
   const router = useRouter();
   const create = useCreateHotel();
   const save = useSaveHotel(hotel?.id ?? "");
@@ -125,11 +139,41 @@ export function HotelForm({ hotel }: { hotel?: AdminHotel }) {
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-6">
-      <DetailsSection register={register} errors={errors} />
-      <ImagesSection register={register} control={control} errors={errors} />
-      <AmenitiesSection control={control} errors={errors} />
-
-      <div className="sticky bottom-0 -mx-4 space-y-2 border-t bg-background px-4 py-3">
+      <header className="sticky top-0 z-10 -mx-4 space-y-2 border-b bg-background px-4 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">{heading}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <p role="status" className="text-sm text-muted-foreground">
+              {!isCreate && mutation.isSuccess && !isDirty ? "Saved" : ""}
+            </p>
+            {actions}
+            <Button asChild variant="outline">
+              <Link href="/hotels">Back</Link>
+            </Button>
+            {!isCreate && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!isDirty || mutation.isPending}
+                onClick={() => reset()}
+              >
+                Discard
+              </Button>
+            )}
+            <Button
+              type="submit"
+              disabled={(!isCreate && !isDirty) || mutation.isPending}
+            >
+              {isCreate
+                ? mutation.isPending
+                  ? "Creating…"
+                  : "Create hotel"
+                : mutation.isPending
+                  ? "Saving…"
+                  : "Save changes"}
+            </Button>
+          </div>
+        </div>
         {mutation.isError && !hasFieldError && (
           <p role="alert" className="text-sm text-destructive">
             {formErrorMessage(mutation.error)}
@@ -140,32 +184,11 @@ export function HotelForm({ hotel }: { hotel?: AdminHotel }) {
             Some fields need attention. Nothing was saved.
           </p>
         )}
-        <div className="flex items-center gap-3">
-          <Button
-            type="submit"
-            disabled={(!isCreate && !isDirty) || mutation.isPending}
-          >
-            {isCreate
-              ? mutation.isPending
-                ? "Creating…"
-                : "Create hotel"
-              : mutation.isPending
-                ? "Saving…"
-                : "Save changes"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!isDirty || mutation.isPending}
-            onClick={() => reset()}
-          >
-            Discard
-          </Button>
-          <p role="status" className="text-sm text-muted-foreground">
-            {!isCreate && mutation.isSuccess && !isDirty ? "Saved" : ""}
-          </p>
-        </div>
-      </div>
+      </header>
+
+      <DetailsSection register={register} errors={errors} />
+      <ImagesSection register={register} control={control} errors={errors} />
+      <AmenitiesSection control={control} errors={errors} />
     </form>
   );
 }
@@ -252,6 +275,8 @@ function ImagesSection({ register, control, errors }: SectionProps) {
   });
   const images = useWatch({ control, name: "images" });
   const listError = errors.images?.message ?? errors.images?.root?.message;
+  const upload = useUploadImages();
+  const remaining = MAX_IMAGES - fields.length;
 
   return (
     <Card>
@@ -345,14 +370,45 @@ function ImagesSection({ register, control, errors }: SectionProps) {
           </ol>
         )}
         {listError && <p className="text-sm text-destructive">{listError}</p>}
+        <ImageUpload
+          multiple
+          maxFiles={remaining}
+          accept={IMAGE_ACCEPT}
+          hint={
+            remaining > 0
+              ? `${IMAGE_UPLOAD_HINT} · ${remaining} left`
+              : `Limit of ${MAX_IMAGES} reached`
+          }
+          disabled={remaining <= 0}
+          uploading={upload.isPending}
+          onSelect={(files) =>
+            upload.mutate(files, {
+              onSuccess: ({ urls }) =>
+                append(urls.map((url) => ({ url, alt: "" }))),
+            })
+          }
+        />
+        {upload.data && upload.data.failed.length > 0 && (
+          <p role="alert" className="text-sm text-destructive">
+            Not uploaded:{" "}
+            {upload.data.failed
+              .map((f) => `${f.name} (${f.reason})`)
+              .join(", ")}
+          </p>
+        )}
+        {upload.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {formErrorMessage(upload.error)}
+          </p>
+        )}
         <Button
           type="button"
           variant="outline"
-          disabled={fields.length >= MAX_IMAGES}
+          disabled={remaining <= 0}
           onClick={() => append({ url: "", alt: "" })}
         >
           <Plus className="size-4" aria-hidden />
-          Add image
+          Add image URL
         </Button>
       </CardContent>
     </Card>

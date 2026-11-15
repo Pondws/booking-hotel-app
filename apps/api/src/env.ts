@@ -1,3 +1,4 @@
+import path from "node:path";
 import { z } from "zod";
 
 const originList = z
@@ -26,6 +27,12 @@ const envSchema = z.object({
   PAYMENT_PROVIDER: z.enum(["stripe", "mock"]).default("stripe"),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  // Where uploaded images are written (served at /uploads/*). Relative to the API's working directory.
+  UPLOAD_DIR: z
+    .string()
+    .min(1)
+    .default("uploads")
+    .transform((v) => path.resolve(v)),
 }).superRefine((v, ctx) => {
   if (v.PAYMENT_PROVIDER === "mock" && v.NODE_ENV === "production") {
     ctx.addIssue({

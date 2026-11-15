@@ -126,6 +126,7 @@ Response สำเร็จ: `{ "data": ... }` · Error: `{ "error": { "code": "
 | PUT | `/api/admin/hotels/:hotelId/amenities` | เหมือนข้างบน — แทน amenity ทั้งชุด `{ amenityIds }` (เฉพาะ scope HOTEL) |
 | PATCH | `/api/admin/hotels/:hotelId/status` | `admin_sid` + ADMIN — `{ isActive }` ปิด/เปิดใช้งาน |
 | GET | `/api/admin/amenities?scope=HOTEL|ROOM` | `admin_sid` — ตัวเลือก amenity |
+| POST | `/api/admin/uploads/images` | `admin_sid` — body = ไฟล์รูปดิบ (`Content-Type: image/jpeg|png|webp`, ≤ 5 MB, ตรวจ magic bytes) → 201 `{ url }`; ไฟล์เก็บที่ `UPLOAD_DIR` และเสิร์ฟที่ `/uploads/*` (dev เท่านั้น — object storage → Phase 8) |
 
 กฎวันที่ (ใช้ร่วม FE/BE จาก `@booking/shared`): วันที่ส่งเป็น `YYYY-MM-DD`, คืนที่พักคือ `[checkIn, checkOut)`,
 `checkIn` ต้องไม่ก่อน "วันนี้" ตามเวลา Asia/Bangkok และพักได้ไม่เกิน 30 คืน (`MAX_NIGHTS`)

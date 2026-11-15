@@ -48,7 +48,7 @@ apps/
       routes/            # express routers (public, e.g. hotels.ts, health.ts; auth.ts = /api/auth/* incl. /admin/*;
                          # webhooks.ts = /api/webhooks/stripe, mounted in app.ts BEFORE express.json() — raw body)
         admin/           # index.ts = adminRouter, guarded once by loadSession('ADMIN') + requireRole('ADMIN','STAFF');
-                         # sub-routers per resource (hotels.ts, amenities.ts)
+                         # sub-routers per resource (hotels.ts, amenities.ts, uploads.ts = raw-body image upload)
       controllers/       # parse req, call service, respond with ok()/noContent() — never import prisma
       services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts,
                          # pricing.service.ts quoteStay(s), availability.service.ts availableRoomCounts,
@@ -82,6 +82,7 @@ DESIGN.md                # FE design rules: tokens, component usage, loading/err
   origins per app; defaults localhost:3000 / localhost:3001), `AUTH_RATE_LIMIT_MAX` (10) and
   `AUTH_RATE_LIMIT_WINDOW_MS` (900000), `TRUST_PROXY` (reverse-proxy hop count, 0 locally — never `true`),
   `PAYMENT_PROVIDER` (`stripe` default | `mock` — rejected in production; use `mock` locally without keys),
+  `UPLOAD_DIR` (`uploads`, git-ignored; uploaded images, served at `/uploads/*`),
   `STRIPE_SECRET_KEY` (`sk_…`) + `STRIPE_WEBHOOK_SECRET` (`whsec_…`, from `stripe listen`) required for `stripe`
 - `apps/api/.env.test` (committed, no secrets): overrides loaded after `.env` by `npm test` (e.g. a high rate limit,
   `PAYMENT_PROVIDER=mock` — tests never call Stripe)

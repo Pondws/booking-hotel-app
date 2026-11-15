@@ -6,12 +6,21 @@ import { Button } from "@booking/ui/components/button";
 import { Skeleton } from "@booking/ui/components/skeleton";
 import { useAdminHotel } from "@/features/hotels/hooks";
 import { HotelForm } from "@/features/hotels/components/hotel-form";
-import { HotelHeader } from "@/features/hotels/components/hotel-header";
+import {
+  HotelAdminActions,
+  HotelHeading,
+} from "@/features/hotels/components/hotel-header";
 import { ApiError } from "@/lib/api";
 
 export default function HotelPage() {
   const { hotelId } = useParams<{ hotelId: string }>();
-  const { data: hotel, isPending, isError, error, refetch } = useAdminHotel(hotelId);
+  const {
+    data: hotel,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useAdminHotel(hotelId);
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8">
@@ -20,23 +29,33 @@ export default function HotelPage() {
       ) : isError ? (
         <HotelPageError error={error} onRetry={() => void refetch()} />
       ) : (
-        <>
-          <HotelHeader hotel={hotel} />
-          {/* Remount the form when another hotel is opened so its defaults follow */}
-          <HotelForm key={hotel.id} hotel={hotel} />
-        </>
+        // Remount the form when another hotel is opened so its defaults follow
+        <HotelForm
+          key={hotel.id}
+          hotel={hotel}
+          heading={<HotelHeading hotel={hotel} />}
+          actions={<HotelAdminActions hotel={hotel} />}
+        />
       )}
     </main>
   );
 }
 
-function HotelPageError({ error, onRetry }: { error: Error; onRetry: () => void }) {
+function HotelPageError({
+  error,
+  onRetry,
+}: {
+  error: Error;
+  onRetry: () => void;
+}) {
   const status = error instanceof ApiError ? error.status : 0;
   if (status === 403 || status === 404) {
     return (
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">
-          {status === 403 ? "You don't have access to this hotel" : "Hotel not found"}
+          {status === 403
+            ? "You don't have access to this hotel"
+            : "Hotel not found"}
         </h1>
         <p className="text-sm text-muted-foreground">
           {status === 403
@@ -51,7 +70,9 @@ function HotelPageError({ error, onRetry }: { error: Error; onRetry: () => void 
   }
   return (
     <div role="alert" className="space-y-2">
-      <h1 className="text-2xl font-semibold tracking-tight">Couldn&apos;t load this hotel</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        Couldn&apos;t load this hotel
+      </h1>
       <Button variant="outline" onClick={onRetry}>
         Try again
       </Button>
