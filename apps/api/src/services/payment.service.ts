@@ -68,9 +68,9 @@ export async function settlePayment(
       where: { id: payment.id },
       select: { status: true, booking: { select: { status: true } } },
     });
-    if (outcome !== "SUCCEEDED" || current.status !== "SUCCEEDED" || current.booking.status === "CONFIRMED") {
-      return "noop";
-    }
+    // CONFIRMED or COMPLETED means the charge paid for a stay — never refund it from a repeated event.
+    const paidFor = current.booking.status === "CONFIRMED" || current.booking.status === "COMPLETED";
+    if (outcome !== "SUCCEEDED" || current.status !== "SUCCEEDED" || paidFor) return "noop";
   }
 
   try {

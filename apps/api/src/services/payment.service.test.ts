@@ -132,6 +132,17 @@ describe("settlePayment", () => {
     assert.equal((await bookingOf(bookingId)).status, "PENDING");
   });
 
+  test("a repeated success after the stay COMPLETED does not refund", async () => {
+    const now = new Date();
+    const { bookingId, paymentId, ref } = await holdWithPayment(new Date(now.getTime() + 10 * MIN));
+    mock.succeed(ref);
+    await settlePayment(ref, "SUCCEEDED", now, { provider: mock });
+    await prisma.booking.update({ where: { id: bookingId }, data: { status: "COMPLETED" } });
+    assert.equal(await settlePayment(ref, "SUCCEEDED", now, { provider: mock }), "noop");
+    assert.deepEqual(mock.refunds, []);
+    assert.equal((await paymentOf(paymentId)).status, "SUCCEEDED");
+  });
+
   test("unknown ref is a no-op", async () => {
     assert.equal(await settlePayment("mock_pi_nope", "SUCCEEDED", new Date(), { provider: mock }), "noop");
   });
