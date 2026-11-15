@@ -7,6 +7,7 @@ import {
   type HotelSearchQuery,
   type HotelSummary,
   type Paginated,
+  type PublicUser,
   type StayRange,
 } from "@booking/shared";
 import { Prisma, type Hotel } from "../generated/prisma/client";
@@ -15,7 +16,7 @@ import { imageOrder } from "../lib/image-order";
 import { isUniqueViolationOn } from "../lib/prisma-errors";
 import { prisma } from "../lib/prisma";
 import { toSlug, withSuffix } from "../lib/slug";
-import { assertHotelAmenityIds, getAdminHotel } from "./admin-hotel.service";
+import { assertHotelAmenityIds, auditHotel } from "./admin-hotel.service";
 import { availableRoomCounts, blockingBookingWhere } from "./availability.service";
 import { quoteStays } from "./pricing.service";
 
@@ -248,7 +249,7 @@ async function nextSlug(name: string): Promise<string> {
 }
 
 /** Creates the hotel with its ordered images and hotel amenities in one statement (all or nothing). */
-export async function createHotel(input: CreateHotelData): Promise<AdminHotel> {
+export async function createHotel(actor: PublicUser, input: CreateHotelData): Promise<AdminHotel> {
   const { images, amenityIds, ...details } = input;
   await assertHotelAmenityIds(amenityIds);
   const create = async () =>
@@ -274,5 +275,5 @@ export async function createHotel(input: CreateHotelData): Promise<AdminHotel> {
     if (!isUniqueViolationOn(err, "slug")) throw err;
     created = await create();
   }
-  return getAdminHotel(created.id);
+  return auditHotel(actor, created.id, null);
 }

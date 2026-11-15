@@ -110,6 +110,15 @@ describe("admin amenities API", () => {
     assert.equal(unknown.body.error.message, "Amenity not found");
   });
 
+  test("get one → 200 with counts (ADMIN only); unknown → 404", async () => {
+    const created = await create({ code: newCode(), name: "Sauna", scope: "ROOM" });
+    const res = await as(adminCookie).get(`/api/admin/amenities/${created.id}`);
+    assert.equal(res.status, 200);
+    assert.deepEqual(adminAmenitySchema.parse(res.body.data), created);
+    assert.equal((await as(staffCookie).get(`/api/admin/amenities/${created.id}`)).status, 403);
+    assert.equal((await as(adminCookie).get("/api/admin/amenities/does-not-exist")).status, 404);
+  });
+
   test("list counts usage; delete → 204 removes the hotel link; again → 404", async () => {
     const a = await create({ code: newCode(), name: "Shuttle", scope: "HOTEL" });
     await prisma.hotelAmenity.create({ data: { hotelId: hotel.hotelId, amenityId: a.id } });

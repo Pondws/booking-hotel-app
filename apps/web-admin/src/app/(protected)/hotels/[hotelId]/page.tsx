@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Button } from "@booking/ui/components/button";
 import { Skeleton } from "@booking/ui/components/skeleton";
+import { DetailTabs, DetailTabsList, HistoryPanel } from "@/components/detail-tabs";
+import { HistoryCard } from "@/components/history-card";
 import { useAdminHotel } from "@/features/hotels/hooks";
 import { HotelForm } from "@/features/hotels/components/hotel-form";
 import {
-  HotelAdminActions,
   HotelHeading,
+  HotelStatusCard,
 } from "@/features/hotels/components/hotel-header";
 import { RoomTypeList } from "@/features/room-types/components/room-type-list";
 import { ApiError } from "@/lib/api";
@@ -24,22 +26,27 @@ export default function HotelPage() {
   } = useAdminHotel(hotelId);
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8">
+    <main className="w-full space-y-6 px-4 py-8">
       {isPending ? (
         <HotelPageSkeleton />
       ) : isError ? (
         <HotelPageError error={error} onRetry={() => void refetch()} />
       ) : (
-        <>
+        <DetailTabs>
           {/* Remount the form when another hotel is opened so its defaults follow */}
           <HotelForm
             key={hotel.id}
             hotel={hotel}
             heading={<HotelHeading hotel={hotel} />}
-            actions={<HotelAdminActions hotel={hotel} />}
-          />
-          <RoomTypeList hotelId={hotel.id} currency={hotel.currency} />
-        </>
+            tabs={<DetailTabsList />}
+          >
+            <RoomTypeList hotelId={hotel.id} currency={hotel.currency} />
+            <HotelStatusCard hotel={hotel} />
+          </HotelForm>
+          <HistoryPanel>
+            <HistoryCard filter={{ entityType: "HOTEL", entityId: hotel.id }} />
+          </HistoryPanel>
+        </DetailTabs>
       )}
     </main>
   );

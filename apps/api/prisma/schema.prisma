@@ -47,6 +47,7 @@ model User {
   bookings Booking[]
   reviews  Review[]
   sessions Session[]
+  auditLogs AuditLog[]
 
   @@map("users")
 }
@@ -110,6 +111,7 @@ model Hotel {
   amenities HotelAmenity[]
   roomTypes RoomType[]
   reviews   Review[]
+  auditLogs AuditLog[]
 
   @@index([city])
   @@map("hotels")
@@ -321,4 +323,49 @@ model Review {
   @@index([hotelId])
   @@index([userId])
   @@map("reviews")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum AuditEntityType {
+  HOTEL
+  ROOM_TYPE
+  ROOM
+  RATE_PERIOD
+  AMENITY
+  STAFF
+  BOOKING
+}
+
+/// One back-office write (create / update / delete). `changes` = [{ field, before, after }]: only the changed
+/// fields for an UPDATE, every set field for a CREATE (before null) or DELETE (after null). `entityId` has no FK
+/// so the row outlives the entity; `entityLabel` is the entity's name at the time.
+model AuditLog {
+  id          String          @id @default(cuid())
+  actorId     String?         @map("actor_id")
+  action      AuditAction
+  entityType  AuditEntityType @map("entity_type")
+  entityId    String          @map("entity_id")
+  entityLabel String          @map("entity_label")
+  /// Hotel the entity belongs to (null for amenities and staff) — STAFF see only their hotels' rows.
+  hotelId     String?         @map("hotel_id")
+  /// The entity whose page shows this row too: the room type for ROOM / RATE_PERIOD rows. No FK, like entityId.
+  parentId    String?         @map("parent_id")
+  changes     Json
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  actor User?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  hotel Hotel? @relation(fields: [hotelId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([hotelId, createdAt])
+  @@index([parentId, createdAt])
+  @@index([actorId])
+  @@map("audit_logs")
 }

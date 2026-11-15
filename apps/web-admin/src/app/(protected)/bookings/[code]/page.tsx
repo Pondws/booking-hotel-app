@@ -13,7 +13,7 @@ export default function BookingPage() {
   const { data: booking, isPending, isError, error, refetch } = useAdminBooking(code);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8">
+    <main className="w-full px-4 py-8">
       {isPending ? (
         <BookingPageSkeleton />
       ) : isError ? (

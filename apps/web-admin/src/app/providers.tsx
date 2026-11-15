@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState, type ReactNode } from "react";
 import { ApiError } from "@/lib/api";
 import "@/lib/zod-locale";
+import { adminAuditLogKeys } from "@/features/audit-logs/hooks";
 import { authKeys } from "@/features/auth/hooks";
 
 function makeQueryClient(): QueryClient {
@@ -22,6 +23,10 @@ function makeQueryClient(): QueryClient {
       },
     }),
     mutationCache: new MutationCache({
+      // Every admin write adds a history row; the history list can't know which, so refresh it after any.
+      onSuccess: () => {
+        void client.invalidateQueries({ queryKey: adminAuditLogKeys.all });
+      },
       // A 401 from any non-auth mutation means the session is gone. Auth mutations
       // (keyed under authKeys.all) handle their own 401s, e.g. a wrong password on login.
       onError: (error, _variables, _context, mutation) => {

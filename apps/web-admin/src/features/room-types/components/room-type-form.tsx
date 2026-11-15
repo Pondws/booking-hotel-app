@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { FormProvider, useForm, useFormContext, type DefaultValues } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@booking/ui/components
 import { Input } from "@booking/ui/components/input";
 import { Textarea } from "@booking/ui/components/textarea";
 import { Field } from "@/components/form-field";
+import { DetailsPanel } from "@/components/detail-tabs";
 import { FormHeader } from "@/components/form-header";
 import { AmenitiesSection } from "@/features/amenities/components/amenities-field";
 import { ImagesSection } from "@/features/uploads/components/images-field";
@@ -49,12 +50,16 @@ type RoomTypeFormProps = {
   /** Edit this room type; without it the form creates one and opens its page. */
   roomType?: AdminRoomType;
   heading: ReactNode;
-  actions?: ReactNode;
+  /** `DetailTabsList` for the header — the page wraps everything in `DetailTabs`. Create mode has none. */
+  tabs?: ReactNode;
+  /** More details-tab content after the form (cards with their own forms, so outside this `<form>`). */
+  children?: ReactNode;
 };
 
 /** Details, images and room amenities of one room type — one submit, saved atomically by the API. */
-export function RoomTypeForm({ hotelId, currency, roomType, heading, actions }: RoomTypeFormProps) {
+export function RoomTypeForm({ hotelId, currency, roomType, heading, tabs, children }: RoomTypeFormProps) {
   const router = useRouter();
+  const formId = useId();
   const create = useCreateRoomType(hotelId);
   const save = useSaveRoomType(hotelId, roomType?.id ?? "");
   const isCreate = roomType === undefined;
@@ -90,26 +95,42 @@ export function RoomTypeForm({ hotelId, currency, roomType, heading, actions }: 
     }
   });
 
+  const fields = (
+    <form id={formId} onSubmit={onSubmit} noValidate className="space-y-6">
+      <DetailsSection currency={currency} />
+      <ImagesSection />
+      <AmenitiesSection scope="ROOM" />
+    </form>
+  );
+
   return (
     <FormProvider {...form}>
-      <form onSubmit={onSubmit} noValidate className="space-y-6">
-        <FormHeader
-          heading={heading}
-          actions={actions}
-          backHref={`/hotels/${hotelId}`}
-          isCreate={isCreate}
-          createLabel="สร้างประเภทห้อง"
-          isDirty={isDirty}
-          isPending={mutation.isPending}
-          isSuccess={mutation.isSuccess}
-          error={mutation.error}
-          hasFieldError={hasFieldError}
-          onDiscard={() => reset()}
-        />
-        <DetailsSection currency={currency} />
-        <ImagesSection />
-        <AmenitiesSection scope="ROOM" />
-      </form>
+      {/* Outside the <form>: the header holds the tabs, and the details cards after it have forms of their own */}
+      <FormHeader
+        formId={formId}
+        tabs={tabs}
+        heading={heading}
+        backHref={`/hotels/${hotelId}`}
+        isCreate={isCreate}
+        createLabel="สร้างประเภทห้อง"
+        isDirty={isDirty}
+        isPending={mutation.isPending}
+        isSuccess={mutation.isSuccess}
+        error={mutation.error}
+        hasFieldError={hasFieldError}
+        onDiscard={() => reset()}
+      />
+      {tabs ? (
+        <DetailsPanel>
+          {fields}
+          {children}
+        </DetailsPanel>
+      ) : (
+        <div className="space-y-6">
+          {fields}
+          {children}
+        </div>
+      )}
     </FormProvider>
   );
 }

@@ -2,6 +2,7 @@ import type { CreateHotelData, HotelSearchQuery, StayRange } from "@booking/shar
 import type { Request, Response } from "express";
 import { ok } from "../lib/http";
 import * as hotelService from "../services/hotel.service";
+import { currentUser } from "./booking.controller";
 
 // Query and params are parsed by validate() into res.locals.
 type SlugParams = { slug: string };
@@ -29,5 +30,5 @@ export async function createHotel(
   req: Request<Record<string, string>, unknown, CreateHotelData>,
   res: Response,
 ) {
-  ok(res, await hotelService.createHotel(req.body), 201);
+  ok(res, await hotelService.createHotel(currentUser(req), req.body), 201);
 }

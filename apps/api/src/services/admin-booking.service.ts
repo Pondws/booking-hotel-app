@@ -15,6 +15,7 @@ import { fromDbDate, toDbDate } from "../lib/dates";
 import { getPaymentProvider, type PaymentProvider } from "../lib/payments";
 import { prisma } from "../lib/prisma";
 import { isExclusionViolation, isWriteConflict } from "../lib/prisma-errors";
+import { bookingSnapshot, recordAudit } from "./audit.service";
 import { blockingBookingWhere } from "./availability.service";
 import { canAccessHotel } from "./hotel-access.service";
 import { releaseBookingPayment } from "./payment.service";
@@ -275,6 +276,21 @@ export async function listBookingRoomOptions(
 
 // ---------- Actions ----------
 
+/** Reads the booking as it is now and records the change from `before`. Bookings are keyed by their code, as in the admin URLs. */
+async function auditBooking(user: PublicUser, code: string, now: Date, before: AdminBooking): Promise<AdminBooking> {
+  const after = await getAdminBooking(user, code, now);
+  await recordAudit({
+    actor: user,
+    entityType: "BOOKING",
+    entityId: after.code,
+    entityLabel: after.code,
+    hotelId: after.hotel.id,
+    before: bookingSnapshot(before),
+    after: bookingSnapshot(after),
+  });
+  return after;
+}
+
 /**
  * One conditional write per action: `rule` + visibility go in the `where`. Nothing changed → 404 when the
  * booking isn't visible, else 409 with `refusal`.
@@ -297,11 +313,13 @@ async function applyAction(
 
 export async function checkInBooking(user: PublicUser, code: string, now: Date = new Date()): Promise<AdminBooking> {
   const today = todayIn(BOOKING_TZ, now);
+  const before = await getAdminBooking(user, code, now);
   await applyAction(user, code, now, checkInWhere(today), { checkedInAt: now }, "This booking can't be checked in");
-  return getAdminBooking(user, code, now);
+  return auditBooking(user, code, now, before);
 }
 
 export async function checkOutBooking(user: PublicUser, code: string, now: Date = new Date()): Promise<AdminBooking> {
+  const before = await getAdminBooking(user, code, now);
   await applyAction(
     user,
     code,
@@ -310,7 +328,7 @@ export async function checkOutBooking(user: PublicUser, code: string, now: Date 
     { status: "COMPLETED", checkedOutAt: now },
     "This booking can't be checked out",
   );
-  return getAdminBooking(user, code, now);
+  return auditBooking(user, code, now, before);
 }
 
 /** Cancels with a staff reason, then refunds a paid booking in full (or drops the open payment intent). */
@@ -321,6 +339,7 @@ export async function cancelAdminBooking(
   now: Date = new Date(),
   opts: { provider?: PaymentProvider } = {},
 ): Promise<AdminBooking> {
+  const before = await getAdminBooking(user, code, now);
   await applyAction(
     user,
     code,
@@ -330,7 +349,7 @@ export async function cancelAdminBooking(
     "This booking can't be cancelled",
   );
   await releaseBookingPayment(code, now, opts.provider ?? getPaymentProvider());
-  return getAdminBooking(user, code, now);
+  return auditBooking(user, code, now, before);
 }
 
 const roomUnavailable = () => new AppError(409, "ROOM_UNAVAILABLE", "This room isn't available for this stay");
@@ -374,5 +393,5 @@ export async function moveBookingRoom(
     if (isExclusionViolation(err) || isWriteConflict(err)) throw roomUnavailable();
     throw err;
   }
-  return getAdminBooking(user, code, now);
+  return auditBooking(user, code, now, toAdminBooking(row, now));
 }

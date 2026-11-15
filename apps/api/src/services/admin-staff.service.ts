@@ -4,6 +4,7 @@ import type {
   AdminStaffSummary,
   CreateStaffData,
   Paginated,
+  PublicUser,
   UpdateStaffData,
 } from "@booking/shared";
 import type { Prisma } from "../generated/prisma/client";
@@ -11,6 +12,7 @@ import { AppError } from "../lib/app-error";
 import { hashPassword } from "../lib/password";
 import { isUniqueViolationOn } from "../lib/prisma-errors";
 import { prisma } from "../lib/prisma";
+import { recordAudit, staffSnapshot } from "./audit.service";
 
 const hotelOrder = [{ hotel: { name: "asc" } }, { hotelId: "asc" }] as const satisfies
   Prisma.HotelStaffOrderByWithRelationInput[];
@@ -95,19 +97,30 @@ export async function getStaff(userId: string): Promise<AdminStaff> {
   return toAdminStaff(user);
 }
 
-async function assertStaff(userId: string): Promise<void> {
-  const count = await prisma.user.count({ where: { id: userId, role: "STAFF" } });
-  if (count === 0) throw notFound();
+/** Reads the staff member as they are now, records the change from `before` (null = just created). Staff rows are ADMIN only, so no hotel. */
+async function auditStaff(actor: PublicUser, userId: string, before: AdminStaff | null): Promise<AdminStaff> {
+  const after = await getStaff(userId);
+  await recordAudit({
+    actor,
+    entityType: "STAFF",
+    entityId: userId,
+    entityLabel: after.name,
+    hotelId: null,
+    before: before && staffSnapshot(before),
+    after: staffSnapshot(after),
+  });
+  return after;
 }
 
-export async function createStaff(data: CreateStaffData): Promise<AdminStaff> {
+export async function createStaff(actor: PublicUser, data: CreateStaffData): Promise<AdminStaff> {
   const passwordHash = await hashPassword(data.password);
+  let userId: string;
   try {
     const user = await prisma.user.create({
       data: { name: data.name, email: data.email, phone: data.phone, passwordHash, role: "STAFF" },
-      select: staffSelect,
+      select: { id: true },
     });
-    return toAdminStaff(user);
+    userId = user.id;
   } catch (err) {
     if (isUniqueViolationOn(err, "email")) {
       const message = "Email already registered";
@@ -115,31 +128,34 @@ export async function createStaff(data: CreateStaffData): Promise<AdminStaff> {
     }
     throw err;
   }
+  return auditStaff(actor, userId, null);
 }
 
-export async function updateStaff(userId: string, data: UpdateStaffData): Promise<AdminStaff> {
+export async function updateStaff(actor: PublicUser, userId: string, data: UpdateStaffData): Promise<AdminStaff> {
+  const before = await getStaff(userId);
   const { count } = await prisma.user.updateMany({
     where: { id: userId, role: "STAFF" },
     data: { name: data.name, phone: data.phone },
   });
   if (count === 0) throw notFound();
-  return getStaff(userId);
+  return auditStaff(actor, userId, before);
 }
 
-export async function assignHotel(userId: string, hotelId: string): Promise<AdminStaff> {
-  await assertStaff(userId);
+export async function assignHotel(actor: PublicUser, userId: string, hotelId: string): Promise<AdminStaff> {
+  const before = await getStaff(userId);
   const hotel = await prisma.hotel.count({ where: { id: hotelId } });
   if (hotel === 0) throw new AppError(404, "NOT_FOUND", "Hotel not found");
   const existing = await prisma.hotelStaff.count({ where: { userId, hotelId } });
   if (existing > 0) throw new AppError(409, "CONFLICT", "This staff member already works at this hotel");
   // A concurrent duplicate hits @@unique([userId, hotelId]) → P2002 → 409 from the error handler.
   await prisma.hotelStaff.create({ data: { userId, hotelId }, select: { id: true } });
-  return getStaff(userId);
+  return auditStaff(actor, userId, before);
 }
 
 /** Access ends on the next request — `canAccessHotel` reads `HotelStaff` every time. */
-export async function removeHotel(userId: string, hotelId: string): Promise<void> {
-  await assertStaff(userId);
+export async function removeHotel(actor: PublicUser, userId: string, hotelId: string): Promise<void> {
+  const before = await getStaff(userId);
   const { count } = await prisma.hotelStaff.deleteMany({ where: { userId, hotelId } });
   if (count === 0) throw new AppError(404, "NOT_FOUND", "This staff member doesn't work at this hotel");
+  await auditStaff(actor, userId, before);
 }
