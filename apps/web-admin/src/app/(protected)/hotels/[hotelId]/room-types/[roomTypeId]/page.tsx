@@ -6,6 +6,7 @@ import { RoomTypeForm } from "@/features/room-types/components/room-type-form";
 import { RoomTypeActions, RoomTypeHeading } from "@/features/room-types/components/room-type-header";
 import { RoomTypePageError, RoomTypePageSkeleton } from "@/features/room-types/components/room-type-page-states";
 import { RoomsCard } from "@/features/room-types/components/rooms-card";
+import { RatesCard } from "@/features/rate-periods/components/rates-card";
 
 export default function RoomTypePage() {
   const { hotelId, roomTypeId } = useParams<{ hotelId: string; roomTypeId: string }>();
@@ -29,6 +30,7 @@ export default function RoomTypePage() {
             actions={<RoomTypeActions roomType={roomType} />}
           />
           <RoomsCard roomType={roomType} />
+          <RatesCard roomType={roomType} />
         </>
       )}
     </main>
