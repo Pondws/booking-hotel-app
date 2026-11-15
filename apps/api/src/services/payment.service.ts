@@ -1,5 +1,6 @@
-import { prisma } from "../lib/prisma";
+import { toMinorUnits } from "../lib/money";
 import { getPaymentProvider, type PaymentProvider } from "../lib/payments";
+import { prisma } from "../lib/prisma";
 
 export type SettleOutcome = "SUCCEEDED" | "FAILED";
 export type SettleResult = "confirmed" | "refunded" | "failed" | "noop";
@@ -10,6 +11,8 @@ type ProviderOpts = { provider?: PaymentProvider };
  * The only function that moves a payment out of PENDING (booking cancel excepted) and owns the
  * booking side of it. It claims the payment row first (`updateMany … WHERE status PENDING`), so two
  * settlers — the webhook and the sync endpoint — can never both act on one intent.
+ * A success whose hold already lapsed (or was cancelled) is refunded after the transaction commits;
+ * a later call retries a refund that failed, and the refund itself is idempotent at the provider.
  */
 export async function settlePayment(
   providerRef: string,
@@ -20,25 +23,61 @@ export async function settlePayment(
   const provider = opts.provider ?? getPaymentProvider();
   const payment = await prisma.payment.findUnique({
     where: { providerRef },
-    select: { id: true, bookingId: true },
+    select: { id: true, bookingId: true, amount: true, currency: true, booking: { select: { code: true } } },
   });
   if (!payment) {
     console.warn(`settlePayment: no payment for ${provider.name} ref ${providerRef}`);
     return "noop";
   }
+  const bookingCode = payment.booking.code;
 
-  return prisma.$transaction(async (tx) => {
+  if (outcome === "SUCCEEDED") {
+    const intent = await provider.getIntent(providerRef);
+    if (intent.amountMinor !== toMinorUnits(payment.amount) || intent.currency !== payment.currency) {
+      console.error(
+        `settlePayment: amount mismatch for booking ${bookingCode} (intent ${intent.amountMinor} ${intent.currency}, ` +
+          `payment ${payment.amount.toString()} ${payment.currency}) — left PENDING`,
+      );
+      return "noop";
+    }
+  }
+
+  const settled = await prisma.$transaction(async (tx) => {
     const claimed = await tx.payment.updateMany({
       where: { id: payment.id, status: "PENDING" },
       data: { status: outcome, paidAt: outcome === "SUCCEEDED" ? now : null },
     });
-    if (claimed.count === 0) return "noop";
-    if (outcome === "FAILED") return "failed";
+    if (claimed.count === 0) return "lost" as const;
+    if (outcome === "FAILED") return "failed" as const;
 
     const confirmed = await tx.booking.updateMany({
       where: { id: payment.bookingId, status: "PENDING", expiresAt: { gt: now } },
       data: { status: "CONFIRMED", expiresAt: null },
     });
-    return confirmed.count === 1 ? "confirmed" : "noop";
+    return confirmed.count === 1 ? ("confirmed" as const) : ("refund" as const);
   });
+  if (settled === "failed" || settled === "confirmed") return settled;
+
+  if (settled === "lost") {
+    // Someone else settled it. Only act if that left a charge on an unconfirmed booking (a refund that failed).
+    const current = await prisma.payment.findUniqueOrThrow({
+      where: { id: payment.id },
+      select: { status: true, booking: { select: { status: true } } },
+    });
+    if (outcome !== "SUCCEEDED" || current.status !== "SUCCEEDED" || current.booking.status === "CONFIRMED") {
+      return "noop";
+    }
+  }
+
+  try {
+    await provider.refund(providerRef, { idempotencyKey: `refund-${payment.id}` });
+  } catch (err) {
+    console.error(`settlePayment: refund failed for booking ${bookingCode}`, err);
+    throw err;
+  }
+  await prisma.payment.updateMany({
+    where: { id: payment.id, status: "SUCCEEDED" },
+    data: { status: "REFUNDED", refundedAt: now },
+  });
+  return "refunded";
 }

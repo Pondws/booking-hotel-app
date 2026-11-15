@@ -97,6 +97,41 @@ describe("settlePayment", () => {
     assert.equal((await bookingOf(bookingId)).status, "PENDING");
   });
 
+  test("refunds a success after the hold lapsed", async () => {
+    const now = new Date();
+    const { bookingId, paymentId, ref } = await holdWithPayment(new Date(now.getTime() - MIN));
+    mock.succeed(ref);
+    assert.equal(await settlePayment(ref, "SUCCEEDED", now, { provider: mock }), "refunded");
+    assert.notEqual((await bookingOf(bookingId)).status, "CONFIRMED");
+    const payment = await paymentOf(paymentId);
+    assert.equal(payment.status, "REFUNDED");
+    assert.deepEqual(payment.refundedAt, now);
+    assert.deepEqual(mock.refunds, [ref]);
+  });
+
+  test("refund retry is idempotent", async () => {
+    const now = new Date();
+    const { paymentId, ref } = await holdWithPayment(new Date(now.getTime() - MIN));
+    mock.succeed(ref);
+    mock.failNextRefund = true;
+    await assert.rejects(settlePayment(ref, "SUCCEEDED", now, { provider: mock }));
+    assert.equal((await paymentOf(paymentId)).status, "SUCCEEDED");
+    assert.equal(await settlePayment(ref, "SUCCEEDED", now, { provider: mock }), "refunded");
+    assert.equal(await settlePayment(ref, "SUCCEEDED", now, { provider: mock }), "noop");
+    assert.equal(mock.refunds.length, 1);
+    assert.equal((await paymentOf(paymentId)).status, "REFUNDED");
+  });
+
+  test("leaves an amount mismatch pending", async () => {
+    const now = new Date();
+    const { bookingId, paymentId, ref } = await holdWithPayment(new Date(now.getTime() + 10 * MIN));
+    mock.succeed(ref);
+    mock.setAmount(ref, 1);
+    assert.equal(await settlePayment(ref, "SUCCEEDED", now, { provider: mock }), "noop");
+    assert.equal((await paymentOf(paymentId)).status, "PENDING");
+    assert.equal((await bookingOf(bookingId)).status, "PENDING");
+  });
+
   test("unknown ref is a no-op", async () => {
     assert.equal(await settlePayment("mock_pi_nope", "SUCCEEDED", new Date(), { provider: mock }), "noop");
   });
