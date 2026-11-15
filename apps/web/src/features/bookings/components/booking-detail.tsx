@@ -150,9 +150,13 @@ function BookingView({ booking, refetch, onStillPending }: ViewProps) {
         </div>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
           <dt className="text-muted-foreground">Check-in</dt>
-          <dd>{formatDate(booking.checkIn)}</dd>
+          <dd className="tabular-nums">
+            {formatDate(booking.checkIn)} from {hotel.checkInTime}
+          </dd>
           <dt className="text-muted-foreground">Check-out</dt>
-          <dd>{formatDate(booking.checkOut)}</dd>
+          <dd className="tabular-nums">
+            {formatDate(booking.checkOut)} until {hotel.checkOutTime}
+          </dd>
           <dt className="text-muted-foreground">Nights</dt>
           <dd>{booking.nights}</dd>
           <dt className="text-muted-foreground">Guests</dt>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, Clock, MapPin } from "lucide-react";
 import type { HotelDetail as HotelDetailData, StayRange } from "@booking/shared";
 import { Badge } from "@booking/ui/components/badge";
 import { Button } from "@booking/ui/components/button";
@@ -75,6 +75,12 @@ export function HotelDetail({ slug }: { slug: string }) {
         <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <MapPin aria-hidden className="size-4 shrink-0" />
           {hotel.address}
+        </p>
+        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Clock aria-hidden className="size-4 shrink-0" />
+          <span className="tabular-nums">
+            Check-in from {hotel.checkInTime} · Check-out until {hotel.checkOutTime}
+          </span>
         </p>
       </header>
 
