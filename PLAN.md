@@ -49,7 +49,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 3 | Catalog สาธารณะ + ห้องว่าง | ✅ เสร็จแล้ว |
 | 4 | Booking flow | ✅ เสร็จแล้ว |
 | 5 | Payments (Stripe, test mode) | ✅ เสร็จแล้ว (ยังไม่ได้ทดสอบ Stripe จริงในเบราว์เซอร์) |
-| 6 | Back-office (web-admin) | 🔄 กำลังทำ (6.1 Hotels) |
+| 6 | Back-office (web-admin) | 🔄 กำลังทำ (6.1 ✅, ถัดไป 6.2 Room types + Rooms) |
 | 7 | Reviews | ⬜ |
 | 8 | Hardening และ deployment | ⬜ |
 
@@ -241,7 +241,7 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 
 | # | งาน | Branch | สถานะ |
 | --- | --- | --- | --- |
-| 6.1 | Admin shell + Hotels | `feat/admin-hotels` | 🔄 กำลังทำ |
+| 6.1 | Admin shell + Hotels | `feat/admin-hotels` | ✅ |
 | 6.2 | Room types + Rooms | `feat/admin-room-types` | ⬜ |
 | 6.3 | Rate periods | `feat/admin-rate-periods` | ⬜ |
 | 6.4 | Bookings | `feat/admin-bookings` | ⬜ |
@@ -249,14 +249,14 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 | 6.6 | Dashboard | `feat/admin-dashboard` | ⬜ |
 
 ### 6.1 — Admin shell + Hotels
-- [ ] Layout และเมนูข้างของ web-admin
-- [ ] `GET /api/admin/hotels`: staff เห็นเฉพาะโรงแรมที่ตัวเองดูแล ส่วน admin เห็นทุกโรงแรม (รวมที่ปิดใช้งาน)
-- [ ] Hotels:
+- [x] Layout และเมนูข้างของ web-admin
+- [x] `GET /api/admin/hotels`: staff เห็นเฉพาะโรงแรมที่ตัวเองดูแล ส่วน admin เห็นทุกโรงแรม (รวมที่ปิดใช้งาน)
+- [x] Hotels:
   - ดูรายการ, หน้ารายละเอียด, สร้าง, แก้ไข
   - ปิดใช้งานด้วย `isActive = false` (ไม่ลบจริง)
   - รูป (รายการ URL + ลำดับ)
   - amenities (เฉพาะ scope HOTEL โดยตรวจใน service)
-- [ ] เรื่องที่ต้องตัดสินใจ #7: เวลา check-in/check-out ของโรงแรม
+- [x] เรื่องที่ต้องตัดสินใจ #7: เวลา check-in/check-out ของโรงแรม
 
 ### 6.2 — Room types + Rooms
 - [ ] Room types:
@@ -340,11 +340,11 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 | 4 | เวลา hold รอจ่ายเงิน (ค่าเริ่มต้น 15 นาที) และจำนวนคืนสูงสุด (ค่าเริ่มต้น 30 คืน) | Phase 4 — จำนวนคืนสูงสุด ✅ ยืนยันแล้วใน Phase 3: 30 คืน (`MAX_NIGHTS` ใน `@booking/shared`); เวลา hold ✅ ยืนยันแล้วใน Phase 4: 15 นาที (`HOLD_MINUTES` ใน `@booking/shared`) |
 | 5 | นโยบายยกเลิก (ยกเลิกฟรีก่อนเข้าพัก X วัน? คืนเงินบางส่วน?) | Phase 4–5 — ✅ ตัดสินแล้ว: ยกเลิกได้ก่อนวัน check-in (PENDING/CONFIRMED); คืนเงินเต็มจำนวน (Phase 5) |
 | 6 | Payment gateway จริง | Phase 5 — ✅ Stripe (Payment Element), บัตรเท่านั้น, THB, test mode; live mode → Phase 8 |
-| 7 | เวลา check-in/check-out ของโรงแรม (ต้องเพิ่ม field ใน `Hotel`) | Phase 6 |
+| 7 | เวลา check-in/check-out ของโรงแรม (ต้องเพิ่ม field ใน `Hotel`) | Phase 6 — ✅ `checkInTime`/`checkOutTime` บน Hotel (HH:mm, 14:00/12:00), แสดงอย่างเดียว ไม่บังคับใน booking |
 | 8 | ผู้ให้บริการเก็บรูปและส่งอีเมล | Phase 8 |
 
 ## ช่องโหว่ที่ค้างมาจาก schema v1
 
 - `Review.userId` / `hotelId` ซ้ำกับข้อมูลใน booking ดังนั้น service ต้องดึงค่าจาก booking เอง → Phase 7
-- DB ไม่ได้ตรวจ scope ของ amenity (HOTEL/ROOM) ดังนั้น service ต้องตรวจเอง → Phase 6
+- DB ไม่ได้ตรวจ scope ของ amenity (HOTEL/ROOM) ดังนั้น service ต้องตรวจเอง → ตรวจแล้วสำหรับ hotel (6.1); room types → 6.2
 - Expired sessions ถูกลบเมื่อมีคนใช้เท่านั้น — ต้องมี job ลบ → Phase 8

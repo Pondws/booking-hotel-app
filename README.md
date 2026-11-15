@@ -117,7 +117,14 @@ Response สำเร็จ: `{ "data": ... }` · Error: `{ "error": { "code": "
 | GET | `/api/auth/me` | `sid` |
 | POST | `/api/auth/admin/login` / `admin/logout` | public / `admin_sid` |
 | GET | `/api/auth/admin/me` | `admin_sid` + ADMIN/STAFF |
-| POST | `/api/admin/hotels` | `admin_sid` + ADMIN |
+| GET | `/api/admin/hotels?q=&status=active|inactive|all&page=&pageSize=` | `admin_sid` — STAFF เห็นเฉพาะโรงแรมที่ดูแล, ADMIN เห็นทั้งหมด (รวมที่ปิดใช้งาน) |
+| POST | `/api/admin/hotels` | `admin_sid` + ADMIN — 201 รายละเอียดโรงแรม (shape admin) |
+| GET | `/api/admin/hotels/:hotelId` | `admin_sid` + เข้าถึงโรงแรมได้ (STAFF ที่ไม่ได้ดูแล = 403) — รายละเอียด, รูป, amenities |
+| PATCH | `/api/admin/hotels/:hotelId` | เหมือนข้างบน — แก้ name/city/address/description/checkInTime/checkOutTime (slug ไม่เปลี่ยน) |
+| PUT | `/api/admin/hotels/:hotelId/images` | เหมือนข้างบน — แทนรายการรูปทั้งชุด `{ images: [{ url, alt? }] }` (สูงสุด 20, ลำดับ = ลำดับใน array) |
+| PUT | `/api/admin/hotels/:hotelId/amenities` | เหมือนข้างบน — แทน amenity ทั้งชุด `{ amenityIds }` (เฉพาะ scope HOTEL) |
+| PATCH | `/api/admin/hotels/:hotelId/status` | `admin_sid` + ADMIN — `{ isActive }` ปิด/เปิดใช้งาน |
+| GET | `/api/admin/amenities?scope=HOTEL|ROOM` | `admin_sid` — ตัวเลือก amenity |
 
 กฎวันที่ (ใช้ร่วม FE/BE จาก `@booking/shared`): วันที่ส่งเป็น `YYYY-MM-DD`, คืนที่พักคือ `[checkIn, checkOut)`,
 `checkIn` ต้องไม่ก่อน "วันนี้" ตามเวลา Asia/Bangkok และพักได้ไม่เกิน 30 คืน (`MAX_NIGHTS`)
@@ -164,7 +171,9 @@ import { Button } from "@booking/ui/components/button";
 - `src/app/` routes (App Router); `providers.tsx` = QueryClient (ไม่ retry 4xx, 401 → ล้างสถานะ `me`)
 - `src/features/<name>/` แยกตาม feature: `api.ts` (fetcher), `hooks.ts` (TanStack Query + key factory), `components/`
 - `src/lib/api.ts` axios client — `request(schema, config)` แกะ `{ data }` และ throw `ApiError`
-- web-admin: `app/login/` เป็น public, หน้าอื่นอยู่ใน `app/(protected)/` (layout = `RequireAuth` + `AdminHeader`)
+- web-admin: `app/login/` เป็น public, หน้าอื่นอยู่ใน `app/(protected)/` (layout = `RequireAuth` + `AdminShell` เมนูข้าง
+  จาก `components/nav-items.ts`); routes: `/` → `/hotels`, `/hotels` (ค้นหา/กรองสถานะ/แบ่งหน้าผ่าน URL),
+  `/hotels/new` (ADMIN), `/hotels/[hotelId]` (Details / Images / Amenities, ADMIN ปิด-เปิดใช้งาน)
 - web: `features/hotels/search-params.ts` — URL search params คือ state ของการค้นหา/วันที่ (ค่าที่ไม่ถูกต้องถูกตัดทิ้ง ไม่ throw)
 - web กับ web-admin ห้าม import กันเอง — ของที่ใช้ร่วมไปไว้ใน `packages/ui` หรือ `packages/shared`
 - UI ทำตาม `DESIGN.md` (tokens, การใช้ component, สถานะ loading/error/empty)

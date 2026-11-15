@@ -36,7 +36,9 @@ apps/
                          # form-errors.ts — applyServerFieldErrors (server fieldErrors → react-hook-form setError)
     components.json      # shadcn config — aliases point to @booking/ui
   web-admin/             # back-office — same layout as web, except: app/login/ is public and every other page
-                         # lives in app/(protected)/ (layout = RequireAuth + AdminHeader); no register page
+                         # lives in app/(protected)/ (layout = RequireAuth + AdminShell); no register page;
+                         # components/admin-shell.tsx (sidebar, mobile top bar) + nav-items.ts (NAV_ITEMS — append
+                         # per phase); features/hotels/ (adminHotelKeys, list-params.ts), features/amenities/
   api/
     src/
       index.ts           # starts server (env.PORT)
@@ -46,16 +48,17 @@ apps/
       routes/            # express routers (public, e.g. hotels.ts, health.ts; auth.ts = /api/auth/* incl. /admin/*;
                          # webhooks.ts = /api/webhooks/stripe, mounted in app.ts BEFORE express.json() — raw body)
         admin/           # index.ts = adminRouter, guarded once by loadSession('ADMIN') + requireRole('ADMIN','STAFF');
-                         # sub-routers per resource
+                         # sub-routers per resource (hotels.ts, amenities.ts)
       controllers/       # parse req, call service, respond with ok()/noContent() — never import prisma
       services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts,
                          # pricing.service.ts quoteStay(s), availability.service.ts availableRoomCounts,
-                         # payment.service.ts — settlePayment is the ONLY code that moves a Payment out of PENDING)
+                         # payment.service.ts — settlePayment is the ONLY code that moves a Payment out of PENDING,
+                         # admin-hotel.service.ts — admin hotel list/detail/writes, all writes return AdminHotel)
       lib/               # prisma.ts (single client, PrismaPg adapter, global omit of passwordHash), app-error.ts,
                          # http.ts (ok, noContent), prisma-errors.ts (isUniqueViolationOn), password.ts (scrypt),
                          # session-token.ts, cookies.ts (sid / admin_sid), cors-policy.ts, slug.ts,
                          # dates.ts (@db.Date ↔ YYYY-MM-DD — only way to convert), stay-pricing.ts (priceNights, Decimal),
-                         # money.ts (toMinorUnits), payments/ (PaymentProvider; StripeProvider, MockProvider; getPaymentProvider())
+                         # money.ts (toMinorUnits), image-order.ts (imageOrder), payments/ (PaymentProvider; StripeProvider, MockProvider; getPaymentProvider())
       middleware/        # validate.ts, error-handler.ts, not-found.ts, load-session.ts, require-auth.ts,
                          # require-role.ts, require-hotel-access.ts, rate-limit.ts
       generated/prisma/  # Prisma client output (git-ignored, from `prisma generate`)
