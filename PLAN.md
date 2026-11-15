@@ -49,8 +49,8 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 3 | Catalog สาธารณะ + ห้องว่าง | ✅ เสร็จแล้ว |
 | 4 | Booking flow | ✅ เสร็จแล้ว |
 | 5 | Payments (Stripe, test mode) | ✅ เสร็จแล้ว (ยังไม่ได้ทดสอบ Stripe จริงในเบราว์เซอร์) |
-| 6 | Back-office (web-admin) | ✅ เสร็จแล้ว (6.1–6.7; 6.6 + 6.7 รอ merge จาก `feat/admin-audit-log`) |
-| 7 | Reviews | ⬜ ถัดไป |
+| 6 | Back-office (web-admin) | ✅ เสร็จแล้ว (6.1–6.7) |
+| 7 | Reviews | 🟡 กำลังทำ (7.1–7.4) |
 | 8 | บัญชีผู้ใช้ + ความปลอดภัยของ staff | ⬜ |
 | 9 | ตรวจและแก้ UI ทั้งหมด | ⬜ |
 | 10 | Hardening และ deployment | ⬜ |
@@ -316,13 +316,27 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-dashboard-design.md`
 - `tanstack-query-best-practices`: infinite/paginated reviews
 - `impeccable`: ส่วนรีวิวในหน้าโรงแรม
 
+แบ่งเป็น 4 งานย่อย งานละ 1 PR (รายละเอียดใน spec `docs/superpowers/specs/2026-11-16-reviews-design.md`)
+
+### 7.1 — เขียนรีวิว (API)
+- [ ] Migration: `Review.isHidden` + `hiddenAt`, index `(hotelId, isHidden, createdAt)` (CHECK rating 1–5 มีอยู่แล้ว)
 - [ ] `POST /api/bookings/:code/review`
   - เฉพาะเจ้าของ, booking ต้องเป็น `COMPLETED` และรีวิวได้ booking ละครั้ง
   - `userId` และ `hotelId` ดึงจาก booking (ห้ามรับจาก request body)
-  - คำนวณ `Hotel.ratingAvg` / `reviewCount` ใหม่ใน `$transaction` เดียวกัน
-- [ ] `GET /api/hotels/:slug/reviews` แบบแบ่งหน้า
-- [ ] web: ฟอร์มรีวิวในหน้าการจองที่เสร็จสิ้นแล้ว และส่วนรีวิวในหน้าโรงแรม
-- [ ] Admin: ซ่อนรีวิวที่ไม่เหมาะสม (ต้องเพิ่ม field `isHidden` + migration) แล้วคำนวณคะแนนใหม่
+  - คำนวณ `Hotel.ratingAvg` / `reviewCount` ใหม่ใน `$transaction` เดียวกัน (นับเฉพาะรีวิวที่ไม่ได้ซ่อน)
+- [ ] booking detail มี `reviewable` + `review`
+
+### 7.2 — ฟอร์มรีวิว (web)
+- [ ] การ์ดให้ดาว + ความเห็นในหน้า `/account/bookings/[code]`; รีวิวแล้วแสดงแบบอ่านอย่างเดียว
+
+### 7.3 — รีวิวในหน้าโรงแรม
+- [ ] `GET /api/hotels/:slug/reviews` แบบแบ่งหน้า (ไม่รวมรีวิวที่ซ่อน, แสดงแค่ชื่อต้น)
+- [ ] web: ส่วนรีวิวในหน้าโรงแรม (คะแนนเฉลี่ย + รายการ + "ดูเพิ่มเติม")
+
+### 7.4 — ซ่อนรีวิว (Admin)
+- [ ] Migration: `AuditEntityType.REVIEW`
+- [ ] `GET /api/admin/reviews` + `PATCH /api/admin/reviews/:id { isHidden }` แล้วคำนวณคะแนนใหม่; STAFF เฉพาะโรงแรมตัวเอง; บันทึก audit log
+- [ ] web-admin: เมนู "รีวิว" ตาราง + ตัวกรองโรงแรม/สถานะ + ปุ่มซ่อน/แสดง
 
 ## Phase 8 — บัญชีผู้ใช้ + ความปลอดภัยของ staff
 
