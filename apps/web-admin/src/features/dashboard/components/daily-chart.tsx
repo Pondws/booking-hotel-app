@@ -77,23 +77,26 @@ export function DailyChart({
             <Bar dataKey="value" fill="var(--color-value)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ChartContainer>
-        <table className="sr-only">
-          <caption>{title}</caption>
-          <thead>
-            <tr>
-              <th scope="col">วันที่</th>
-              <th scope="col">{seriesLabel}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((d) => (
-              <tr key={d.date}>
-                <td>{formatDate(d.date)}</td>
-                <td>{d.value === null ? "–" : formatValue(d.value)}</td>
+        {/* sr-only on a wrapper: a <table> ignores the 1px height / overflow clip and would still stretch the page */}
+        <div className="sr-only">
+          <table>
+            <caption>{title}</caption>
+            <thead>
+              <tr>
+                <th scope="col">วันที่</th>
+                <th scope="col">{seriesLabel}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {data.map((d) => (
+                <tr key={d.date}>
+                  <td>{formatDate(d.date)}</td>
+                  <td>{d.value === null ? "–" : formatValue(d.value)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );
