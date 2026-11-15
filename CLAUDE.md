@@ -39,7 +39,8 @@ apps/
                          # lives in app/(protected)/ (layout = RequireAuth + AdminShell); no register page;
                          # components/admin-shell.tsx (sidebar, mobile top bar) + nav-items.ts (NAV_ITEMS — append
                          # per phase); features/hotels/ (adminHotelKeys, list-params.ts), features/amenities/,
-                         # features/room-types/ (adminRoomTypeKeys), features/rate-periods/ (adminRatePeriodKeys, RatesCard on
+                         # features/room-types/ (adminRoomTypeKeys), features/bookings/ (adminBookingKeys, list-params.ts; actions shown from the API's can* flags),
+                         # features/rate-periods/ (adminRatePeriodKeys, RatesCard on
                          # the room type page); components/form-header.tsx + form-field.tsx and
                          # ImagesSection / AmenitiesSection (useFormContext) are shared by the hotel + room type forms;
                          # UI copy is Thai (hardcoded, no i18n lib): lib/messages-th.ts toThai() translates shared-schema
@@ -63,6 +64,8 @@ apps/
                          # admin-hotel.service.ts — admin hotel list/detail/writes, all writes return AdminHotel,
                          # admin-room-type.service.ts — room types + rooms, all writes return AdminRoomType,
                          # admin-rate-period.service.ts — overlap pre-check → 409, rate_periods_no_overlap backstop,
+                         # admin-booking.service.ts — list/detail, check-in/out, cancel + refund, move room (each one
+                         # conditional updateMany; checked in = CONFIRMED + checkedInAt, there is no CHECKED_IN status),
                          # amenity.service.ts assertAmenityScope — the DB doesn't check amenity scope)
       lib/               # prisma.ts (single client, PrismaPg adapter, global omit of passwordHash), app-error.ts,
                          # http.ts (ok, noContent), prisma-errors.ts (isUniqueViolationOn), password.ts (scrypt),

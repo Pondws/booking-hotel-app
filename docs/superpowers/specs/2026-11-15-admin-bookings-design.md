@@ -48,7 +48,7 @@ counts `PENDING/CONFIRMED`). That's what we want.
 | Check in | `CONFIRMED`, not checked in, `checkIn ≤ today < checkOut` | `checkedInAt = now` |
 | Check out | `CONFIRMED` and checked in | `COMPLETED`, `checkedOutAt = now` (early check-out allowed) |
 | Cancel | `CONFIRMED` not checked in (any date, so no-shows can be cancelled too), or an unexpired `PENDING` hold | `CANCELLED`, `cancelledAt`, `cancelReason`. Then release the payment: refund a `SUCCEEDED` one in full, or cancel the open intent of a `PENDING` one |
-| Move room | `CONFIRMED` (checked in or not) or an unexpired `PENDING` hold | `roomId` = target room. The target must be in the same room type, active, not the current room and free for `[checkIn, checkOut)` |
+| Move room | `CONFIRMED` (checked in or not) or an unexpired `PENDING` hold, and `checkOut > today` (my call: a finished stay can't move) | `roomId` = target room. The target must be in the same room type, active, not the current room and free for `[checkIn, checkOut)` |
 
 - Each write is one conditional `updateMany` (state checked in the `where`), the same as `cancelMyBooking`, so
   races can't break a rule. `count === 0` → re-read: 404 if not visible, else `409 CONFLICT`.
