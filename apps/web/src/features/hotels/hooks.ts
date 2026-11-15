@@ -1,9 +1,17 @@
 "use client";
 
-import { keepPreviousData, queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  queryOptions,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useCallback } from "react";
 import type { HotelSearchQuery, StayRange } from "@booking/shared";
-import { fetchAvailability, fetchHotel, searchHotels } from "./api";
+import { fetchAvailability, fetchHotel, fetchHotelReviews, searchHotels } from "./api";
+
+const REVIEWS_PAGE_SIZE = 10;
 
 export const hotelKeys = {
   all: ["hotels"] as const,
@@ -13,6 +21,8 @@ export const hotelKeys = {
   detail: (slug: string) => [...hotelKeys.details(), slug] as const,
   availability: (slug: string, range: StayRange) =>
     [...hotelKeys.detail(slug), "availability", range] as const,
+  // Under the detail key, so invalidating a hotel (e.g. after writing a review) refreshes its reviews too.
+  reviews: (slug: string) => [...hotelKeys.detail(slug), "reviews"] as const,
 };
 
 const hotelDetailOptions = (slug: string) =>
@@ -40,6 +50,16 @@ export function useAvailability(slug: string, range: StayRange | null) {
     },
     enabled: range !== null,
     staleTime: 30_000,
+  });
+}
+
+/** Visible reviews, newest first, one page at a time ("Show more"). */
+export function useHotelReviews(slug: string) {
+  return useInfiniteQuery({
+    queryKey: hotelKeys.reviews(slug),
+    queryFn: ({ pageParam }) => fetchHotelReviews(slug, { page: pageParam, pageSize: REVIEWS_PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
   });
 }
 

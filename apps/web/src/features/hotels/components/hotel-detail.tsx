@@ -14,6 +14,7 @@ import { useAvailability, useHotel } from "../hooks";
 import { parseSearchParams, searchHref } from "../search-params";
 import { AmenityList } from "./amenity-list";
 import { HotelGallery } from "./hotel-gallery";
+import { ReviewsSection } from "./reviews-section";
 import { RoomTypeCard, RoomTypeCardSkeleton, type RoomPricing } from "./room-type-card";
 import { StayPicker, type Stay } from "./stay-picker";
 
@@ -67,8 +68,10 @@ export function HotelDetail({ slug }: { slug: string }) {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{hotel.name}</h1>
           {hotel.reviewCount > 0 && (
-            <Badge variant="outline" className="tabular-nums">
-              ★ {hotel.ratingAvg.toFixed(1)} · {hotel.reviewCount === 1 ? "1 review" : `${hotel.reviewCount} reviews`}
+            <Badge variant="outline" className="tabular-nums" asChild>
+              <a href="#reviews">
+                ★ {hotel.ratingAvg.toFixed(1)} · {hotel.reviewCount === 1 ? "1 review" : `${hotel.reviewCount} reviews`}
+              </a>
             </Badge>
           )}
         </div>
@@ -103,6 +106,8 @@ export function HotelDetail({ slug }: { slug: string }) {
         <StayPicker value={stay} />
         <RoomList hotel={hotel} slug={slug} range={range} guests={guests} />
       </section>
+
+      <ReviewsSection slug={slug} ratingAvg={hotel.ratingAvg} reviewCount={hotel.reviewCount} />
     </article>
   );
 }

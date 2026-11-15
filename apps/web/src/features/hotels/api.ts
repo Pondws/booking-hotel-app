@@ -1,9 +1,12 @@
 import {
   availabilitySchema,
   hotelDetailSchema,
+  hotelReviewListSchema,
   hotelSearchResultSchema,
   type Availability,
   type HotelDetail,
+  type HotelReviewList,
+  type HotelReviewsQuery,
   type HotelSearchQuery,
   type HotelSummary,
   type Paginated,
@@ -19,6 +22,14 @@ export function fetchHotel(slug: string): Promise<HotelDetail> {
   return request(hotelDetailSchema, {
     method: "GET",
     url: `/api/hotels/${encodeURIComponent(slug)}`,
+  });
+}
+
+export function fetchHotelReviews(slug: string, q: HotelReviewsQuery): Promise<HotelReviewList> {
+  return request(hotelReviewListSchema, {
+    method: "GET",
+    url: `/api/hotels/${encodeURIComponent(slug)}/reviews`,
+    params: q,
   });
 }
 

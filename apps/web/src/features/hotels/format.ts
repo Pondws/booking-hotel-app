@@ -22,6 +22,12 @@ export function formatDate(iso: string): string {
   return `${day} ${month} ${year}`;
 }
 
+/** `Apr 2027` */
+export function formatMonthYear(iso: string): string {
+  const { month, year } = parts(iso);
+  return `${month} ${year}`;
+}
+
 /** `12 – 15 Apr 2027`, `28 Apr – 2 May 2027`, `30 Dec 2026 – 2 Jan 2027` */
 export function formatDateRange(checkIn: string, checkOut: string): string {
   const a = parts(checkIn);
