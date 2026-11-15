@@ -84,3 +84,10 @@ test("mock refs are unique across provider instances (providerRef is unique in t
   const b = await new MockProvider().createIntent(input("k"));
   assert.notEqual(a.providerRef, b.providerRef);
 });
+
+test("mock parseWebhook rejects a signed body that isn't JSON with AppError 400", () => {
+  assert.throws(
+    () => new MockProvider().parseWebhook(Buffer.from("not json"), MOCK_WEBHOOK_SIGNATURE),
+    (err: unknown) => err instanceof AppError && err.status === 400,
+  );
+});

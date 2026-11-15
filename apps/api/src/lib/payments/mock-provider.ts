@@ -59,7 +59,12 @@ export class MockProvider implements PaymentProvider {
     if (signature !== MOCK_WEBHOOK_SIGNATURE) {
       throw new AppError(400, "VALIDATION_FAILED", "Invalid webhook signature");
     }
-    const event: unknown = JSON.parse(rawBody.toString("utf8"));
+    let event: unknown;
+    try {
+      event = JSON.parse(rawBody.toString("utf8"));
+    } catch {
+      throw new AppError(400, "VALIDATION_FAILED", "Webhook body is not JSON");
+    }
     if (!isRecord(event) || typeof event.providerRef !== "string") return { type: "ignored" };
     if (event.type === "payment_intent.succeeded") return { type: "succeeded", providerRef: event.providerRef };
     if (event.type === "payment_intent.canceled") return { type: "canceled", providerRef: event.providerRef };
