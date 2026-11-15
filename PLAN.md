@@ -319,12 +319,12 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-dashboard-design.md`
 แบ่งเป็น 4 งานย่อย งานละ 1 PR (รายละเอียดใน spec `docs/superpowers/specs/2026-11-16-reviews-design.md`)
 
 ### 7.1 — เขียนรีวิว (API)
-- [ ] Migration: `Review.isHidden` + `hiddenAt`, index `(hotelId, isHidden, createdAt)` (CHECK rating 1–5 มีอยู่แล้ว)
-- [ ] `POST /api/bookings/:code/review`
+- [x] Migration: `Review.isHidden` + `hiddenAt`, index `(hotelId, isHidden, createdAt)` (CHECK rating 1–5 มีอยู่แล้ว)
+- [x] `POST /api/bookings/:code/review`
   - เฉพาะเจ้าของ, booking ต้องเป็น `COMPLETED` และรีวิวได้ booking ละครั้ง
   - `userId` และ `hotelId` ดึงจาก booking (ห้ามรับจาก request body)
   - คำนวณ `Hotel.ratingAvg` / `reviewCount` ใหม่ใน `$transaction` เดียวกัน (นับเฉพาะรีวิวที่ไม่ได้ซ่อน)
-- [ ] booking detail มี `reviewable` + `review`
+- [x] booking detail มี `reviewable` + `review`
 
 ### 7.2 — ฟอร์มรีวิว (web)
 - [ ] การ์ดให้ดาว + ความเห็นในหน้า `/account/bookings/[code]`; รีวิวแล้วแสดงแบบอ่านอย่างเดียว
