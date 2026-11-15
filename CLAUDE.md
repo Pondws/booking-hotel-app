@@ -40,6 +40,7 @@ apps/
                          # components/admin-shell.tsx (sidebar, mobile top bar) + nav-items.ts (NAV_ITEMS — append
                          # per phase); features/hotels/ (adminHotelKeys, list-params.ts), features/amenities/,
                          # features/room-types/ (adminRoomTypeKeys), features/bookings/ (adminBookingKeys, list-params.ts; actions shown from the API's can* flags),
+                         # features/dashboard/ (adminDashboardKeys, dashboard-params.ts; `/` home = dashboard, DailyChart = shadcn chart),
                          # features/rate-periods/ (adminRatePeriodKeys, RatesCard on
                          # the room type page); components/form-header.tsx + form-field.tsx and
                          # ImagesSection / AmenitiesSection (useFormContext) are shared by the hotel + room type forms;
@@ -56,7 +57,7 @@ apps/
         admin/           # index.ts = adminRouter, guarded once by loadSession('ADMIN') + requireRole('ADMIN','STAFF');
                          # sub-routers per resource (hotels.ts, amenities.ts, uploads.ts = raw-body image upload;
                          # room-types.ts mounted at hotels/:hotelId/room-types behind requireHotelAccess, mergeParams;
-                         # rate-periods.ts mounted inside it at :roomTypeId/rate-periods)
+                         # rate-periods.ts mounted inside it at :roomTypeId/rate-periods; dashboard.ts = GET /dashboard)
       controllers/       # parse req, call service, respond with ok()/noContent() — never import prisma
       services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts,
                          # pricing.service.ts quoteStay(s), availability.service.ts availableRoomCounts,
@@ -66,12 +67,13 @@ apps/
                          # admin-rate-period.service.ts — overlap pre-check → 409, rate_periods_no_overlap backstop,
                          # admin-booking.service.ts — list/detail, check-in/out, cancel + refund, move room (each one
                          # conditional updateMany; checked in = CONFIRMED + checkedInAt, there is no CHECKED_IN status),
+                         # admin-dashboard.service.ts — today lists, occupancy + revenue per stayed night (CONFIRMED/COMPLETED),
                          # amenity.service.ts assertAmenityScope — the DB doesn't check amenity scope)
       lib/               # prisma.ts (single client, PrismaPg adapter, global omit of passwordHash), app-error.ts,
                          # http.ts (ok, noContent), prisma-errors.ts (isUniqueViolationOn), password.ts (scrypt),
                          # session-token.ts, cookies.ts (sid / admin_sid), cors-policy.ts, slug.ts,
                          # dates.ts (@db.Date ↔ YYYY-MM-DD — only way to convert), stay-pricing.ts (priceNights, Decimal),
-                         # money.ts (toMinorUnits, toPrice), image-order.ts (imageOrder), payments/ (PaymentProvider; StripeProvider, MockProvider; getPaymentProvider())
+                         # money.ts (toMinorUnits, toPrice), night-split.ts (splitAcrossNights), image-order.ts (imageOrder), payments/ (PaymentProvider; StripeProvider, MockProvider; getPaymentProvider())
       middleware/        # validate.ts, error-handler.ts, not-found.ts, load-session.ts, require-auth.ts,
                          # require-role.ts, require-hotel-access.ts, rate-limit.ts
       generated/prisma/  # Prisma client output (git-ignored, from `prisma generate`)

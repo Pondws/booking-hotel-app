@@ -246,7 +246,7 @@ Phase 6 แบ่งเป็นงานย่อย แต่ละงาน�
 | 6.3 | Rate periods | `feat/admin-rate-periods` | ✅ |
 | 6.4 | Bookings | `feat/admin-bookings` | ✅ |
 | 6.5 | Staff + Amenity catalog (เฉพาะ ADMIN) | `feat/admin-staff` | ✅ |
-| 6.6 | Dashboard | `feat/admin-dashboard` | ⬜ |
+| 6.6 | Dashboard | `feat/admin-dashboard` | ✅ |
 
 ### 6.1 — Admin shell + Hotels
 - [x] Layout และเมนูข้างของ web-admin
@@ -291,7 +291,10 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-staff-design.md`
       เพิ่ม/แก้/ลบสิ่งอำนวยความสะดวก (รหัสซ้ำแสดง error, dialog ลบบอกจำนวนที่ใช้), STAFF ไม่เห็นเมนูและเปิดหน้าไม่ได้
 
 ### 6.6 — Dashboard
-- [ ] แขกเข้า/ออกวันนี้, อัตราการเข้าพัก และรายได้ตามช่วงวันที่ (stat tiles + กราฟ)
+Spec: `docs/superpowers/specs/2026-11-15-admin-dashboard-design.md`
+- [x] แขกเข้า/ออกวันนี้, อัตราการเข้าพัก และรายได้ตามช่วงวันที่ (stat tiles + กราฟ shadcn chart; รายได้นับตามคืนที่เข้าพัก)
+- [x] ตรวจในเบราว์เซอร์แล้ว (2026-11-15): ADMIN ทุกโรงแรม/เลือกโรงแรม, STAFF เห็นเฉพาะโรงแรมของตัวเอง,
+      URL ที่ผิด (ช่วงกลับด้าน/เกิน 92 คืน/วันที่ผิด) กลับไปค่าเริ่มต้น, เช็คอินแล้วตัวเลขบน dashboard อัปเดต, จอมือถือไม่ล้น
 
 ## Phase 7 — Reviews
 
