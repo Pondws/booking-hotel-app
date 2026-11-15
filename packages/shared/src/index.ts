@@ -731,6 +731,28 @@ export const reviewSchema = z.object({
 });
 export type Review = z.infer<typeof reviewSchema>;
 
+/** A visible review on the public hotel page. Only the reviewer's first name is exposed. */
+export const publicReviewSchema = z.object({
+  id: z.string(),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().nullable(),
+  authorName: z.string(),
+  /** The booking's check-out date (YYYY-MM-DD); the FE shows month + year. */
+  stayedAt: isoDate,
+  createdAt: z.iso.datetime(),
+});
+export type PublicReview = z.infer<typeof publicReviewSchema>;
+
+/** `GET /api/hotels/:slug/reviews`. Newest first. */
+export const hotelReviewsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(10),
+});
+export type HotelReviewsQuery = z.output<typeof hotelReviewsQuerySchema>;
+
+export const hotelReviewListSchema = paginated(publicReviewSchema);
+export type HotelReviewList = z.infer<typeof hotelReviewListSchema>;
+
 export const bookingSchema = z.object({
   code: z.string(),
   status: bookingStatusSchema,
