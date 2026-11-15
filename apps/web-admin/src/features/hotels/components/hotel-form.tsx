@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   Controller,
   useFieldArray,
@@ -31,7 +32,7 @@ import { Skeleton } from "@booking/ui/components/skeleton";
 import { Textarea } from "@booking/ui/components/textarea";
 import { useAmenities } from "@/features/amenities/hooks";
 import { applyServerFieldErrors, formErrorMessage } from "@/lib/form-errors";
-import { useSaveHotel } from "../hooks";
+import { useCreateHotel, useSaveHotel } from "../hooks";
 
 const MAX_IMAGES = 20;
 
@@ -49,6 +50,17 @@ const FIELDS = [
   "amenityIds",
 ] as const;
 
+const EMPTY_VALUES: FormInput = {
+  name: "",
+  city: "",
+  address: "",
+  description: "",
+  checkInTime: "14:00",
+  checkOutTime: "12:00",
+  images: [],
+  amenityIds: [],
+};
+
 function toFormValues(hotel: AdminHotel): FormInput {
   return {
     name: hotel.name,
@@ -63,9 +75,16 @@ function toFormValues(hotel: AdminHotel): FormInput {
   };
 }
 
-/** Details, times, images and amenities of one hotel — one form, one Save, saved atomically by the API. */
-export function HotelForm({ hotel }: { hotel: AdminHotel }) {
-  const mutation = useSaveHotel(hotel.id);
+/**
+ * Details, times, images and amenities of one hotel — one form, one submit, saved atomically by the API.
+ * Without `hotel` it creates a new one (ADMIN) and opens its page.
+ */
+export function HotelForm({ hotel }: { hotel?: AdminHotel }) {
+  const router = useRouter();
+  const create = useCreateHotel();
+  const save = useSaveHotel(hotel?.id ?? "");
+  const isCreate = hotel === undefined;
+  const mutation = isCreate ? create : save;
   const {
     register,
     control,
@@ -75,7 +94,7 @@ export function HotelForm({ hotel }: { hotel: AdminHotel }) {
     formState: { errors, isDirty },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(hotelContentInputSchema),
-    defaultValues: toFormValues(hotel),
+    defaultValues: hotel ? toFormValues(hotel) : EMPTY_VALUES,
   });
   const hasFieldError = FIELDS.some((f) => errors[f]?.type === "server");
 
@@ -88,12 +107,20 @@ export function HotelForm({ hotel }: { hotel: AdminHotel }) {
         ...(alt ? { alt } : {}),
       })),
     };
-    mutation.mutate(input, {
-      onSuccess: (updated) => reset(toFormValues(updated)),
-      onError: (error) => {
-        applyServerFieldErrors(error, setError, FIELDS);
-      },
-    });
+    const onError = (error: unknown) => {
+      applyServerFieldErrors(error, setError, FIELDS);
+    };
+    if (isCreate) {
+      create.mutate(input, {
+        onSuccess: (created) => router.push(`/hotels/${created.id}`),
+        onError,
+      });
+    } else {
+      save.mutate(input, {
+        onSuccess: (updated) => reset(toFormValues(updated)),
+        onError,
+      });
+    }
   });
 
   return (
@@ -114,8 +141,17 @@ export function HotelForm({ hotel }: { hotel: AdminHotel }) {
           </p>
         )}
         <div className="flex items-center gap-3">
-          <Button type="submit" disabled={!isDirty || mutation.isPending}>
-            {mutation.isPending ? "Saving…" : "Save changes"}
+          <Button
+            type="submit"
+            disabled={(!isCreate && !isDirty) || mutation.isPending}
+          >
+            {isCreate
+              ? mutation.isPending
+                ? "Creating…"
+                : "Create hotel"
+              : mutation.isPending
+                ? "Saving…"
+                : "Save changes"}
           </Button>
           <Button
             type="button"
@@ -126,7 +162,7 @@ export function HotelForm({ hotel }: { hotel: AdminHotel }) {
             Discard
           </Button>
           <p role="status" className="text-sm text-muted-foreground">
-            {mutation.isSuccess && !isDirty ? "Saved" : ""}
+            {!isCreate && mutation.isSuccess && !isDirty ? "Saved" : ""}
           </p>
         </div>
       </div>

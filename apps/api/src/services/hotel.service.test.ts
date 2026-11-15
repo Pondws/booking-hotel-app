@@ -11,6 +11,8 @@ const input = (name: string) => ({
   city: "Testville",
   address: "1 Test Street",
   description: "Created by a test",
+  images: [],
+  amenityIds: [],
 });
 
 after(async () => {

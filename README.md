@@ -118,7 +118,7 @@ Response สำเร็จ: `{ "data": ... }` · Error: `{ "error": { "code": "
 | POST | `/api/auth/admin/login` / `admin/logout` | public / `admin_sid` |
 | GET | `/api/auth/admin/me` | `admin_sid` + ADMIN/STAFF |
 | GET | `/api/admin/hotels?q=&status=active|inactive|all&page=&pageSize=` | `admin_sid` — STAFF เห็นเฉพาะโรงแรมที่ดูแล, ADMIN เห็นทั้งหมด (รวมที่ปิดใช้งาน) |
-| POST | `/api/admin/hotels` | `admin_sid` + ADMIN — 201 รายละเอียดโรงแรม (shape admin) |
+| POST | `/api/admin/hotels` | `admin_sid` + ADMIN — 201 รายละเอียดโรงแรม (shape admin); รับ `images` / `amenityIds` ได้ด้วย (สร้างพร้อมกันแบบ all-or-nothing) |
 | GET | `/api/admin/hotels/:hotelId` | `admin_sid` + เข้าถึงโรงแรมได้ (STAFF ที่ไม่ได้ดูแล = 403) — รายละเอียด, รูป, amenities |
 | PUT | `/api/admin/hotels/:hotelId` | เหมือนข้างบน — บันทึกทั้งโรงแรมในครั้งเดียว (details + เวลา + รูปเรียงลำดับ + amenities) ใน transaction เดียว; หน้า admin ใช้อันนี้ |
 | PATCH | `/api/admin/hotels/:hotelId` | เหมือนข้างบน — แก้ name/city/address/description/checkInTime/checkOutTime (slug ไม่เปลี่ยน) |

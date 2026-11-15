@@ -143,7 +143,7 @@ export async function replaceHotelImages(
 }
 
 /** Every id must exist and be a HOTEL-scope amenity (the DB doesn't check scope). Ids are unique (zod). */
-async function assertHotelAmenityIds(amenityIds: string[]): Promise<void> {
+export async function assertHotelAmenityIds(amenityIds: string[]): Promise<void> {
   const amenities = await prisma.amenity.findMany({
     where: { id: { in: amenityIds } },
     select: { id: true, scope: true },

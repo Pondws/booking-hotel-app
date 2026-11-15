@@ -357,6 +357,43 @@ describe("admin hotels read API", () => {
       });
     });
 
+    describe("POST /api/admin/hotels (create with images and amenities)", () => {
+      const post = (body: unknown) =>
+        request(app).post("/api/admin/hotels").set("Cookie", adminCookie).send(body as object);
+
+      test("creates the hotel with ordered images and hotel amenities", async () => {
+        const res = await post({
+          name: `Cat Test ${LABEL} Created`,
+          city: w.city,
+          address: "1 New Road",
+          images: [{ url: B, alt: "B" }, { url: A }],
+          amenityIds: [await amenityId("wifi")],
+        });
+        assert.equal(res.status, 201);
+        const hotel = adminHotelSchema.parse(res.body.data);
+        assert.equal(hotel.checkInTime, "14:00");
+        assert.deepEqual(hotel.images.map((i) => [i.url, i.sortOrder]), [
+          [B, 0],
+          [A, 1],
+        ]);
+        assert.deepEqual(hotel.amenities.map((a) => a.code), ["wifi"]);
+      });
+
+      test("a ROOM amenity → 400 and no hotel is created", async () => {
+        const name = `Cat Test ${LABEL} Rejected`;
+        const res = await post({
+          name,
+          city: w.city,
+          address: "1 New Road",
+          images: [{ url: A }],
+          amenityIds: [await amenityId("aircon")],
+        });
+        assert.equal(res.status, 400);
+        assert.ok(res.body.error.details.fieldErrors.amenityIds);
+        assert.equal(await prisma.hotel.count({ where: { name } }), 0);
+      });
+    });
+
     test("web session cookie → 401 on the list and on writes", async () => {
       assert.equal((await get("/api/admin/hotels", webCookie)).status, 401);
       const res = await send("patch", `/api/admin/hotels/${w.hotelId}`, { city: "Nope" }, webCookie);

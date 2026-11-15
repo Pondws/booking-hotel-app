@@ -101,17 +101,6 @@ const hotelNameField = z.string().trim().min(1, "Name is required").max(120);
 const hotelCityField = z.string().trim().min(1, "City is required").max(80);
 const hotelAddressField = z.string().trim().min(1, "Address is required").max(255);
 
-export const createHotelSchema = z.object({
-  name: hotelNameField,
-  city: hotelCityField,
-  address: hotelAddressField,
-  description: z.string().trim().max(2000).optional(),
-  checkInTime: hotelTimeSchema.optional(),
-  checkOutTime: hotelTimeSchema.optional(),
-});
-export type CreateHotelInput = z.input<typeof createHotelSchema>;
-export type CreateHotelData = z.output<typeof createHotelSchema>;
-
 /** Slug and currency never change on edit. `description: ""` or `null` clears it. */
 export const updateHotelSchema = z
   .object({
@@ -189,6 +178,31 @@ export const hotelContentInputSchema = z
   });
 export type HotelContentInput = z.input<typeof hotelContentInputSchema>;
 export type HotelContentData = z.output<typeof hotelContentInputSchema>;
+
+/** `POST /api/admin/hotels` — same fields as the edit form; times, images and amenities are optional. */
+export const createHotelSchema = z
+  .object({
+    name: hotelNameField,
+    city: hotelCityField,
+    address: hotelAddressField,
+    description: z
+      .string()
+      .trim()
+      .max(2000)
+      .nullable()
+      .optional()
+      .transform((v) => (v === "" ? null : v)),
+    checkInTime: hotelTimeSchema.optional(),
+    checkOutTime: hotelTimeSchema.optional(),
+    images: hotelImagesField.default([]),
+    amenityIds: hotelAmenityIdsField.default([]),
+  })
+  .superRefine((v, ctx) => {
+    refineUniqueImageUrls(v, ctx);
+    refineUniqueAmenityIds(v, ctx);
+  });
+export type CreateHotelInput = z.input<typeof createHotelSchema>;
+export type CreateHotelData = z.output<typeof createHotelSchema>;
 
 export const hotelStatusInputSchema = z.object({ isActive: z.boolean() });
 export type HotelStatusInput = z.output<typeof hotelStatusInputSchema>;
