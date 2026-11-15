@@ -8,8 +8,10 @@ import { formErrorMessage } from "@/lib/form-errors";
 type FormHeaderProps = {
   /** Left side: page title, status… */
   heading: ReactNode;
-  /** Extra buttons placed before Back / Save (e.g. Deactivate). */
-  actions?: ReactNode;
+  /** The form's id, when the header sits outside the `<form>` (Save submits it via `form=`). */
+  formId?: string;
+  /** Shown at the bottom of the header (e.g. `DetailTabsList`), so it stays visible while scrolling. */
+  tabs?: ReactNode;
   backHref: string;
   /** Create mode: no Discard / "Saved", submit is always enabled. */
   isCreate: boolean;
@@ -24,10 +26,14 @@ type FormHeaderProps = {
   onDiscard: () => void;
 };
 
-/** Sticky header of a whole-page admin form: title, actions, Back / Discard / Save and the save status. */
+/**
+ * Sticky header of a whole-page admin form: title + Back / Save on the right; the save status (and Discard,
+ * while there are unsaved edits) under the title. Page actions such as Deactivate live in the page, not here.
+ */
 export function FormHeader({
   heading,
-  actions,
+  formId,
+  tabs,
   backHref,
   isCreate,
   createLabel,
@@ -43,19 +49,10 @@ export function FormHeader({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">{heading}</div>
         <div className="flex flex-wrap items-center gap-2">
-          <p role="status" className="text-sm text-muted-foreground">
-            {!isCreate && isSuccess && !isDirty ? "บันทึกแล้ว" : ""}
-          </p>
-          {actions}
           <Button asChild variant="outline">
             <Link href={backHref}>กลับ</Link>
           </Button>
-          {!isCreate && (
-            <Button type="button" variant="outline" disabled={!isDirty || isPending} onClick={onDiscard}>
-              ยกเลิกการแก้ไข
-            </Button>
-          )}
-          <Button type="submit" disabled={(!isCreate && !isDirty) || isPending}>
+          <Button type="submit" form={formId} disabled={(!isCreate && !isDirty) || isPending}>
             {isCreate
               ? isPending
                 ? "กำลังสร้าง…"
@@ -66,6 +63,27 @@ export function FormHeader({
           </Button>
         </div>
       </div>
+      {!isCreate && (
+        <div role="status" className="flex min-h-6 flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+          {isDirty ? (
+            <>
+              <span>มีการแก้ไขที่ยังไม่บันทึก</span>
+              <span aria-hidden>·</span>
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto p-0 text-sm"
+                disabled={isPending}
+                onClick={onDiscard}
+              >
+                ยกเลิกการแก้ไข
+              </Button>
+            </>
+          ) : isSuccess ? (
+            <span>บันทึกแล้ว</span>
+          ) : null}
+        </div>
+      )}
       {error != null && !hasFieldError && (
         <p role="alert" className="text-sm text-destructive">
           {formErrorMessage(error)}
@@ -76,6 +94,7 @@ export function FormHeader({
           มีบางช่องที่ต้องแก้ไข ยังไม่ได้บันทึกข้อมูล
         </p>
       )}
+      {tabs && <div className="pt-1">{tabs}</div>}
     </header>
   );
 }

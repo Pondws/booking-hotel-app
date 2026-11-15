@@ -57,7 +57,8 @@ variants only where shadcn components already do.
 
 - Spacing on the 4px Tailwind scale: `gap-2` inside controls, `gap-4` between cards and form fields
   (`space-y-4` for stacked fields, `space-y-2` label → input), `gap-6`/`py-8` between page sections.
-- Page container: `mx-auto w-full max-w-5xl px-4` (matches the header). Narrow forms: `max-w-sm`.
+- Page container: web `mx-auto w-full max-w-5xl px-4` (matches the header); web-admin `w-full px-4` (full width
+  beside the sidebar). Narrow forms: `max-w-sm`.
 - Radius: `--radius` = `0.625rem` → `rounded-lg` for cards and images, `rounded-md` for controls (the
   component defaults). Don't mix in `rounded-none`/`rounded-3xl`.
 - Grids: results `grid gap-4 sm:grid-cols-2 lg:grid-cols-3`. Mobile first; everything works at 360px wide.
@@ -77,6 +78,7 @@ Use what's in `packages/ui` first; add new shadcn components only with `npm run 
 | `Separator` | Section dividers | Prefer spacing; use sparingly. |
 | `Popover` + `Calendar` | Date range picker | `mode="range"`; disable days before Bangkok today and ranges > 30 nights (rules from `@booking/shared`). Trigger is an `outline` button showing "12 Apr – 15 Apr" or "Add dates". |
 | `ImageUpload` | Picking image files (click or drop) | `multiple` for galleries (+ `maxFiles` = slots left), single otherwise. It only selects files — upload, previews and errors stay with the caller (web-admin: `features/uploads/hooks.ts` `useUploadImages`). |
+| `Timeline` (+ `TimelineItem/Icon/Content/Header/Title/Time/Description`) | web-admin history ("ประวัติการแก้ไข" tab) | One `TimelineItem` per activity, newest first; `TimelineIcon` holds a lucide icon (`variant`: default / primary / secondary / muted / destructive) and is decorative, so the title says what happened. |
 | `DataTable` (+ `DataTableSkeleton`) | web-admin lists (hotels, room types, bookings…) | Pass `columns` (`{ id, header, cell(row), className? }`), `rows`, `getRowKey`, a `caption` (screen readers) and `busy={isPlaceholderData}`. Loading/error/empty copy stays in the feature. Use `Table` directly only for one-off layouts. |
 | `Skeleton` | Loading placeholders | Shape matches the final content (image block + 2 text lines for a hotel card). |
 

@@ -12,7 +12,7 @@ export default function NewHotelPage() {
   );
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8">
+    <main className="w-full space-y-6 px-4 py-8">
       {me?.role === "ADMIN" ? (
         <HotelForm heading={heading} />
       ) : (

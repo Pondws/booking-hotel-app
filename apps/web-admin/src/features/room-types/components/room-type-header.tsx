@@ -16,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@booking/ui/components/alert-dialog";
 import { Button } from "@booking/ui/components/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@booking/ui/components/card";
 import { HotelStatusBadge } from "@/features/hotels/components/hotel-list";
 import { formErrorMessage } from "@/lib/form-errors";
 import { useDeleteRoomType, useSetRoomTypeStatus } from "../hooks";
@@ -43,13 +44,28 @@ export function RoomTypeHeading({
   );
 }
 
-/** Deactivate / Reactivate, and Delete while nothing depends on the room type. */
-export function RoomTypeActions({ roomType }: { roomType: AdminRoomType }) {
+/** Deactivate / Reactivate, and Delete while nothing depends on the room type — at the bottom of the details tab. */
+export function RoomTypeStatusCard({ roomType }: { roomType: AdminRoomType }) {
   return (
-    <>
-      <StatusDialog roomType={roomType} />
-      {roomType.deletable && <DeleteDialog roomType={roomType} />}
-    </>
+    <Card>
+      <CardHeader>
+        <CardTitle>สถานะประเภทห้อง</CardTitle>
+        <CardDescription>
+          {roomType.isActive
+            ? "เปิดใช้งานอยู่ ลูกค้าค้นหาและจองห้องประเภทนี้ได้"
+            : "ปิดใช้งานอยู่ ลูกค้าค้นหาและจองห้องประเภทนี้ไม่ได้"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <StatusDialog roomType={roomType} />
+          {roomType.deletable && <DeleteDialog roomType={roomType} />}
+        </div>
+        {!roomType.deletable && (
+          <p className="text-sm text-muted-foreground">ลบได้เฉพาะตอนที่ยังไม่มีห้องพักหรือช่วงราคา</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

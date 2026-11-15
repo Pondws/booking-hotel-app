@@ -6,6 +6,8 @@ import type { AdminBooking } from "@booking/shared";
 import { Button } from "@booking/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@booking/ui/components/card";
 import { Skeleton } from "@booking/ui/components/skeleton";
+import { DetailTabs, DetailTabsList, DetailsPanel, HistoryPanel } from "@/components/detail-tabs";
+import { HistoryCard } from "@/components/history-card";
 import { formatDate, formatMoney } from "@/features/room-types/format";
 import { ApiError } from "@/lib/api";
 import { BookingActions } from "./booking-actions";
@@ -66,83 +68,91 @@ export function BookingDetail({ booking }: { booking: AdminBooking }) {
         <BookingActions booking={booking} />
       </header>
 
-      {refundFailed && (
-        <div role="alert" className="rounded-lg border border-destructive p-4 text-sm">
-          <p className="font-medium text-destructive">คืนเงินไม่สำเร็จ</p>
-          <p className="text-muted-foreground">
-            การจองถูกยกเลิกแล้วแต่การชำระเงินยังไม่ถูกคืน ตรวจสอบและคืนเงินในระบบชำระเงิน ({payment?.provider})
-          </p>
-        </div>
-      )}
+      <DetailTabs>
+        <DetailTabsList />
+        <DetailsPanel>
+          {refundFailed && (
+            <div role="alert" className="rounded-lg border border-destructive p-4 text-sm">
+              <p className="font-medium text-destructive">คืนเงินไม่สำเร็จ</p>
+              <p className="text-muted-foreground">
+                การจองถูกยกเลิกแล้วแต่การชำระเงินยังไม่ถูกคืน ตรวจสอบและคืนเงินในระบบชำระเงิน ({payment?.provider})
+              </p>
+            </div>
+          )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Section title="การเข้าพัก">
-          <Row label="โรงแรม">
-            <Link href={`/hotels/${booking.hotel.id}`} className="hover:underline">
-              {booking.hotel.name}
-            </Link>
-          </Row>
-          <Row label="ประเภทห้อง">{booking.roomType.name}</Row>
-          <Row label="ห้อง">{booking.room.number}</Row>
-          <Row label="เช็คอิน">
-            {formatDate(booking.checkIn)} <span className="text-muted-foreground">ตั้งแต่ {booking.hotel.checkInTime}</span>
-          </Row>
-          <Row label="เช็คเอาท์">
-            {formatDate(booking.checkOut)}{" "}
-            <span className="text-muted-foreground">ก่อน {booking.hotel.checkOutTime}</span>
-          </Row>
-          <Row label="จำนวน">
-            {booking.nights} คืน · {booking.guests} คน
-          </Row>
-        </Section>
-
-        <Section title="ผู้เข้าพัก">
-          <Row label="ชื่อ">{booking.guestName}</Row>
-          <Row label="อีเมล">{booking.guestEmail}</Row>
-          <Row label="โทรศัพท์">{booking.guestPhone ?? <span className="text-muted-foreground">—</span>}</Row>
-          <Row label="บัญชีที่จอง">
-            {booking.customer.name}
-            <span className="block text-xs text-muted-foreground">{booking.customer.email}</span>
-          </Row>
-        </Section>
-
-        <Section title="การชำระเงิน">
-          <Row label="ยอดรวม">
-            <span className="font-semibold tabular-nums">{formatMoney(booking.totalAmount, booking.currency)}</span>{" "}
-            <span className="text-muted-foreground">({booking.nights} คืน)</span>
-          </Row>
-          <Row label="สถานะ">
-            <PaymentStatusBadge status={payment?.status ?? null} bookingStatus={booking.status} />
-          </Row>
-          {payment && (
-            <>
-              <Row label="ชำระเมื่อ">
-                {payment.paidAt ? formatDateTime(payment.paidAt) : <span className="text-muted-foreground">—</span>}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Section title="การเข้าพัก">
+              <Row label="โรงแรม">
+                <Link href={`/hotels/${booking.hotel.id}`} className="hover:underline">
+                  {booking.hotel.name}
+                </Link>
               </Row>
-              {payment.refundedAt && <Row label="คืนเงินเมื่อ">{formatDateTime(payment.refundedAt)}</Row>}
-              <Row label="ผู้ให้บริการ">
-                {payment.provider}{" "}
-                <span className="text-muted-foreground">· {PAYMENT_LABELS[payment.status]}</span>
+              <Row label="ประเภทห้อง">{booking.roomType.name}</Row>
+              <Row label="ห้อง">{booking.room.number}</Row>
+              <Row label="เช็คอิน">
+                {formatDate(booking.checkIn)} <span className="text-muted-foreground">ตั้งแต่ {booking.hotel.checkInTime}</span>
               </Row>
-            </>
-          )}
-        </Section>
+              <Row label="เช็คเอาท์">
+                {formatDate(booking.checkOut)}{" "}
+                <span className="text-muted-foreground">ก่อน {booking.hotel.checkOutTime}</span>
+              </Row>
+              <Row label="จำนวน">
+                {booking.nights} คืน · {booking.guests} คน
+              </Row>
+            </Section>
 
-        <Section title="ประวัติ">
-          <Row label="จองเมื่อ">{formatDateTime(booking.createdAt)}</Row>
-          {booking.status === "PENDING" && booking.expiresAt && (
-            <Row label="หมดเวลาชำระ">{formatDateTime(booking.expiresAt)}</Row>
-          )}
-          {booking.checkedInAt && <Row label="เช็คอินเมื่อ">{formatDateTime(booking.checkedInAt)}</Row>}
-          {booking.checkedOutAt && <Row label="เช็คเอาท์เมื่อ">{formatDateTime(booking.checkedOutAt)}</Row>}
-          {booking.cancelledAt && <Row label="ยกเลิกเมื่อ">{formatDateTime(booking.cancelledAt)}</Row>}
-          {booking.status === "CANCELLED" && (
-            <Row label="เหตุผล">
-              {booking.cancelReason ?? <span className="text-muted-foreground">ลูกค้ายกเลิกเอง</span>}
-            </Row>
-          )}
-        </Section>
-      </div>
+            <Section title="ผู้เข้าพัก">
+              <Row label="ชื่อ">{booking.guestName}</Row>
+              <Row label="อีเมล">{booking.guestEmail}</Row>
+              <Row label="โทรศัพท์">{booking.guestPhone ?? <span className="text-muted-foreground">—</span>}</Row>
+              <Row label="บัญชีที่จอง">
+                {booking.customer.name}
+                <span className="block text-xs text-muted-foreground">{booking.customer.email}</span>
+              </Row>
+            </Section>
+
+            <Section title="การชำระเงิน">
+              <Row label="ยอดรวม">
+                <span className="font-semibold tabular-nums">{formatMoney(booking.totalAmount, booking.currency)}</span>{" "}
+                <span className="text-muted-foreground">({booking.nights} คืน)</span>
+              </Row>
+              <Row label="สถานะ">
+                <PaymentStatusBadge status={payment?.status ?? null} bookingStatus={booking.status} />
+              </Row>
+              {payment && (
+                <>
+                  <Row label="ชำระเมื่อ">
+                    {payment.paidAt ? formatDateTime(payment.paidAt) : <span className="text-muted-foreground">—</span>}
+                  </Row>
+                  {payment.refundedAt && <Row label="คืนเงินเมื่อ">{formatDateTime(payment.refundedAt)}</Row>}
+                  <Row label="ผู้ให้บริการ">
+                    {payment.provider}{" "}
+                    <span className="text-muted-foreground">· {PAYMENT_LABELS[payment.status]}</span>
+                  </Row>
+                </>
+              )}
+            </Section>
+
+            <Section title="ประวัติ">
+              <Row label="จองเมื่อ">{formatDateTime(booking.createdAt)}</Row>
+              {booking.status === "PENDING" && booking.expiresAt && (
+                <Row label="หมดเวลาชำระ">{formatDateTime(booking.expiresAt)}</Row>
+              )}
+              {booking.checkedInAt && <Row label="เช็คอินเมื่อ">{formatDateTime(booking.checkedInAt)}</Row>}
+              {booking.checkedOutAt && <Row label="เช็คเอาท์เมื่อ">{formatDateTime(booking.checkedOutAt)}</Row>}
+              {booking.cancelledAt && <Row label="ยกเลิกเมื่อ">{formatDateTime(booking.cancelledAt)}</Row>}
+              {booking.status === "CANCELLED" && (
+                <Row label="เหตุผล">
+                  {booking.cancelReason ?? <span className="text-muted-foreground">ลูกค้ายกเลิกเอง</span>}
+                </Row>
+              )}
+            </Section>
+          </div>
+        </DetailsPanel>
+        <HistoryPanel>
+          <HistoryCard filter={{ entityType: "BOOKING", entityId: booking.code }} />
+        </HistoryPanel>
+      </DetailTabs>
     </div>
   );
 }

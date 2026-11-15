@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { Button } from "@booking/ui/components/button";
 import { Skeleton } from "@booking/ui/components/skeleton";
 import { AdminOnly } from "@/components/admin-only";
+import { DetailTabs, DetailTabsList, DetailsPanel, HistoryPanel } from "@/components/detail-tabs";
+import { HistoryCard } from "@/components/history-card";
 import { StaffHotelsCard } from "@/features/staff/components/staff-hotels-card";
 import { StaffProfileCard } from "@/features/staff/components/staff-profile-card";
 import { useStaff } from "@/features/staff/hooks";
@@ -12,7 +14,7 @@ import { ApiError } from "@/lib/api";
 
 export default function StaffMemberPage() {
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8">
+    <main className="w-full space-y-6 px-4 py-8">
       <AdminOnly>
         <StaffMember />
       </AdminOnly>
@@ -66,9 +68,17 @@ function StaffMember() {
           <Link href="/staff">กลับ</Link>
         </Button>
       </header>
-      {/* Remount when another staff member is opened so the form defaults follow */}
-      <StaffProfileCard key={staff.id} staff={staff} />
-      <StaffHotelsCard staff={staff} />
+      <DetailTabs>
+        <DetailTabsList />
+        <DetailsPanel>
+          {/* Remount when another staff member is opened so the form defaults follow */}
+          <StaffProfileCard key={staff.id} staff={staff} />
+          <StaffHotelsCard staff={staff} />
+        </DetailsPanel>
+        <HistoryPanel>
+          <HistoryCard filter={{ entityType: "STAFF", entityId: staff.id }} />
+        </HistoryPanel>
+      </DetailTabs>
     </>
   );
 }

@@ -16,6 +16,10 @@ export function fetchAmenities(scope?: AmenityScope) {
   });
 }
 
+export function fetchAmenity(id: string) {
+  return request(adminAmenitySchema, { method: "GET", url: `/api/admin/amenities/${encodeURIComponent(id)}` });
+}
+
 export function createAmenity(input: CreateAmenityInput) {
   return request(adminAmenitySchema, { method: "POST", url: "/api/admin/amenities", data: input });
 }
