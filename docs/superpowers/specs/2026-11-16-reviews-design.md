@@ -45,8 +45,8 @@ row (`SELECT … FOR UPDATE`) so two concurrent writes for one hotel can't inter
 ### Schema (one additive migration)
 - `Review.isHidden Boolean @default(false)`, `hiddenAt DateTime?`.
 - `@@index([hotelId, isHidden, createdAt])` (replaces the plain `hotelId` index use for listing).
-- Raw-SQL CHECK `reviews_rating_range` (`rating BETWEEN 1 AND 5`) + a case in `prisma/checks/constraints.sql`.
-- `AuditEntityType` gains `REVIEW`.
+- The rating CHECK already exists (`reviews_rating_check`, booking-domain migration; covered in `constraints.sql`).
+- `AuditEntityType` gains `REVIEW` — in 7.4, where it is first used.
 - `ratingAvg` stays `Float`; the API rounds to 1 decimal for display only on the FE.
 
 ### Shared (`@booking/shared`)
@@ -83,7 +83,7 @@ row (`SELECT … FOR UPDATE`) so two concurrent writes for one hotel can't inter
 
 ## Sub-tasks (each one PR)
 
-1. **7.1** Migration + shared schemas + `POST /review` + booking `reviewable`/`review` + tests.
+1. **7.1** Migration (`isHidden`, `hiddenAt`, index) + shared schemas + `POST /review` + booking `reviewable`/`review` + tests.
 2. **7.2** web review form on the booking page.
 3. **7.3** Public review list API + hotel page section.
 4. **7.4** Admin moderation (API + web-admin page) + audit.
