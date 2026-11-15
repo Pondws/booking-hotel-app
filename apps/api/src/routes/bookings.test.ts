@@ -204,6 +204,8 @@ describe("bookings API", () => {
       const own = await get(`/api/bookings/${codes[0]}`, carolCookie);
       assert.equal(own.status, 200);
       assert.equal(bookingSchema.parse(own.body.data).code, codes[0]);
+      assert.equal(own.body.data.hotel.checkInTime, "14:00");
+      assert.equal(own.body.data.hotel.checkOutTime, "12:00");
 
       const other = await get(`/api/bookings/${codes[0]}`, bobCookie);
       assert.equal(other.status, 404);

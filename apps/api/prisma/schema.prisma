@@ -99,6 +99,8 @@ model Hotel {
   currency    String   @default("THB")
   ratingAvg   Float    @default(0) @map("rating_avg")
   reviewCount Int      @default(0) @map("review_count")
+  checkInTime  String  @default("14:00") @map("check_in_time") @db.VarChar(5)
+  checkOutTime String  @default("12:00") @map("check_out_time") @db.VarChar(5)
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

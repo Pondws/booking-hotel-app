@@ -250,7 +250,7 @@ describe("toBooking payment fields", () => {
     expiresAt: new Date(now.getTime() + 10 * MIN),
     cancelledAt: null,
     createdAt: now,
-    room: { roomType: { id: "rt", name: "RT", hotel: { name: "H", slug: "h", city: "C", images: [] } } },
+    room: { roomType: { id: "rt", name: "RT", hotel: { name: "H", slug: "h", city: "C", checkInTime: "14:00", checkOutTime: "12:00", images: [] } } },
     payments: [],
     ...over,
   });

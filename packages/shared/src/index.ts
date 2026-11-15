@@ -94,14 +94,74 @@ export type Hotel = z.infer<typeof hotelSchema>;
 
 export const hotelListSchema = z.array(hotelSchema);
 
+/** 24-hour `HH:mm`. */
+export const hotelTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:mm (24-hour)");
+
+const hotelNameField = z.string().trim().min(1, "Name is required").max(120);
+const hotelCityField = z.string().trim().min(1, "City is required").max(80);
+const hotelAddressField = z.string().trim().min(1, "Address is required").max(255);
+
 export const createHotelSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(120),
-  city: z.string().trim().min(1, "City is required").max(80),
-  address: z.string().trim().min(1, "Address is required").max(255),
+  name: hotelNameField,
+  city: hotelCityField,
+  address: hotelAddressField,
   description: z.string().trim().max(2000).optional(),
+  checkInTime: hotelTimeSchema.optional(),
+  checkOutTime: hotelTimeSchema.optional(),
 });
 export type CreateHotelInput = z.input<typeof createHotelSchema>;
 export type CreateHotelData = z.output<typeof createHotelSchema>;
+
+/** Slug and currency never change on edit. `description: ""` or `null` clears it. */
+export const updateHotelSchema = z
+  .object({
+    name: hotelNameField.optional(),
+    city: hotelCityField.optional(),
+    address: hotelAddressField.optional(),
+    description: z
+      .string()
+      .trim()
+      .max(2000)
+      .nullable()
+      .optional()
+      .transform((v) => (v === "" ? null : v)),
+    checkInTime: hotelTimeSchema.optional(),
+    checkOutTime: hotelTimeSchema.optional(),
+  })
+  .refine((v) => Object.values(v).some((x) => x !== undefined), { message: "Nothing to update" });
+export type UpdateHotelInput = z.input<typeof updateHotelSchema>;
+export type UpdateHotelData = z.output<typeof updateHotelSchema>;
+
+export const hotelImagesInputSchema = z
+  .object({
+    images: z
+      .array(
+        z.object({
+          url: z.url({ protocol: /^https?$/ }).max(2048),
+          alt: z.string().trim().max(200).optional(),
+        }),
+      )
+      .max(20),
+  })
+  .refine((v) => new Set(v.images.map((i) => i.url)).size === v.images.length, {
+    message: "Each image URL must be unique",
+    path: ["images"],
+  });
+export type HotelImagesInput = z.output<typeof hotelImagesInputSchema>;
+
+export const hotelAmenitiesInputSchema = z
+  .object({ amenityIds: z.array(z.string().min(1)).max(50) })
+  .refine((v) => new Set(v.amenityIds).size === v.amenityIds.length, {
+    message: "Each amenity can only be added once",
+    path: ["amenityIds"],
+  });
+export type HotelAmenitiesInput = z.output<typeof hotelAmenitiesInputSchema>;
+
+export const hotelStatusInputSchema = z.object({ isActive: z.boolean() });
+export type HotelStatusInput = z.output<typeof hotelStatusInputSchema>;
+
+export const hotelIdParamsSchema = z.object({ hotelId: z.string().min(1) });
+export type HotelIdParams = z.output<typeof hotelIdParamsSchema>;
 
 // ---------- Catalog ----------
 export const BOOKING_TZ = "Asia/Bangkok";
@@ -228,6 +288,73 @@ export type HotelSummary = z.infer<typeof hotelSummarySchema>;
 
 export const hotelSearchResultSchema = paginated(hotelSummarySchema);
 
+// ---------- Admin hotels ----------
+export const adminHotelSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  city: z.string(),
+  isActive: z.boolean(),
+  coverImage: imageSchema.nullable(),
+  updatedAt: z.iso.datetime(),
+});
+export type AdminHotelSummary = z.infer<typeof adminHotelSummarySchema>;
+
+export const adminHotelListSchema = paginated(adminHotelSummarySchema);
+
+export const adminHotelListQuerySchema = z.object({
+  q: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().trim().max(120).optional(),
+  ),
+  status: z.enum(["active", "inactive", "all"]).default("all"),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type AdminHotelListQuery = z.output<typeof adminHotelListQuerySchema>;
+
+export const adminHotelImageSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  alt: z.string().nullable(),
+  sortOrder: z.number().int(),
+});
+export type AdminHotelImage = z.infer<typeof adminHotelImageSchema>;
+
+export const adminHotelSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  city: z.string(),
+  address: z.string(),
+  description: z.string().nullable(),
+  currency: z.string(),
+  checkInTime: z.string(),
+  checkOutTime: z.string(),
+  isActive: z.boolean(),
+  images: z.array(adminHotelImageSchema),
+  amenities: z.array(z.object({ id: z.string(), code: z.string(), name: z.string() })),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+export type AdminHotel = z.infer<typeof adminHotelSchema>;
+
+export const amenityScopeSchema = z.enum(["HOTEL", "ROOM"]);
+export type AmenityScope = z.infer<typeof amenityScopeSchema>;
+
+export const amenityOptionSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  name: z.string(),
+  scope: amenityScopeSchema,
+});
+export type AmenityOption = z.infer<typeof amenityOptionSchema>;
+
+export const amenityOptionListSchema = z.array(amenityOptionSchema);
+
+export const amenityListQuerySchema = z.object({ scope: amenityScopeSchema.optional() });
+export type AmenityListQuery = z.output<typeof amenityListQuerySchema>;
+
 export const roomTypeSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -249,6 +376,8 @@ export const hotelDetailSchema = z.object({
   currency: z.string(),
   ratingAvg: z.number().min(0).max(5),
   reviewCount: z.number().int().min(0),
+  checkInTime: z.string(),
+  checkOutTime: z.string(),
   images: z.array(imageSchema),
   amenities: z.array(amenitySchema),
   roomTypes: z.array(roomTypeSchema),
@@ -339,6 +468,8 @@ export const bookingSchema = z.object({
     name: z.string(),
     slug: z.string(),
     city: z.string(),
+    checkInTime: z.string(),
+    checkOutTime: z.string(),
     coverImage: imageSchema.nullable(),
   }),
   roomType: z.object({ id: z.string(), name: z.string() }),

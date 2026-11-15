@@ -146,6 +146,8 @@ describe("GET /api/hotels", () => {
       assert.equal(res.status, 200);
       const h = hotelDetailSchema.parse(res.body.data);
       assert.equal(h.id, A.hotelId);
+      assert.equal(h.checkInTime, "14:00");
+      assert.equal(h.checkOutTime, "12:00");
       assert.deepEqual(
         h.images.map((i) => i.url),
         ["https://img.test/a-1.jpg", "https://img.test/a-2.jpg"],

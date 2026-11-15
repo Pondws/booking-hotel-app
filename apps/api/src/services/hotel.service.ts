@@ -159,6 +159,8 @@ export async function getHotelBySlug(slug: string): Promise<HotelDetail> {
       currency: true,
       ratingAvg: true,
       reviewCount: true,
+      checkInTime: true,
+      checkOutTime: true,
       images: { select: imageSelect, orderBy: [...imageOrder] },
       amenities: { select: amenitySelect, orderBy: amenityOrder },
       roomTypes: {

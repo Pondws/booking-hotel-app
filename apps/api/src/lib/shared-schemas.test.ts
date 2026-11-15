@@ -21,6 +21,10 @@ import {
   nightsBetween,
   stayRangeSchema,
   todayIn,
+  hotelTimeSchema,
+  updateHotelSchema,
+  hotelImagesInputSchema,
+  hotelAmenitiesInputSchema,
 } from "@booking/shared";
 
 test("createHotel requires address and no longer accepts rating", () => {
@@ -259,7 +263,14 @@ test("bookingSchema parses a sample", () => {
     cancellable: true,
     payable: true,
     payment: { status: "PENDING", paidAt: null, refundedAt: null },
-    hotel: { name: "A", slug: "a", city: "Bangkok", coverImage: null },
+    hotel: {
+      name: "A",
+      slug: "a",
+      city: "Bangkok",
+      checkInTime: "14:00",
+      checkOutTime: "12:00",
+      coverImage: null,
+    },
     roomType: { id: "rt1", name: "Deluxe" },
   });
   assert.equal(r.status, "PENDING");
@@ -276,4 +287,30 @@ test("bookingListQuerySchema defaults and caps pageSize at 50", () => {
 });
 test("errorCodeSchema includes ROOM_UNAVAILABLE", () => {
   assert.ok(errorCodeSchema.options.includes("ROOM_UNAVAILABLE"));
+});
+
+test("hotelTimeSchema accepts 24-hour HH:mm only", () => {
+  for (const ok of ["00:00", "14:00", "23:59"]) assert.equal(hotelTimeSchema.safeParse(ok).success, true, ok);
+  for (const bad of ["24:00", "9:00", "14:60", "2pm"]) {
+    assert.equal(hotelTimeSchema.safeParse(bad).success, false, bad);
+  }
+});
+
+test("updateHotelSchema needs at least one field and maps empty description to null", () => {
+  assert.throws(() => updateHotelSchema.parse({}));
+  assert.deepEqual(updateHotelSchema.parse({ description: "" }), { description: null });
+});
+
+test("hotelImagesInputSchema rejects > 20 images, non-http URLs and duplicate URLs", () => {
+  const imgs = (n: number) => Array.from({ length: n }, (_, i) => ({ url: `https://img.test/${i}.jpg` }));
+  assert.equal(hotelImagesInputSchema.safeParse({ images: imgs(20) }).success, true);
+  assert.equal(hotelImagesInputSchema.safeParse({ images: imgs(21) }).success, false);
+  assert.equal(hotelImagesInputSchema.safeParse({ images: [{ url: "ftp://img.test/a.jpg" }] }).success, false);
+  const dup = { url: "https://img.test/a.jpg" };
+  assert.equal(hotelImagesInputSchema.safeParse({ images: [dup, dup] }).success, false);
+});
+
+test("hotelAmenitiesInputSchema rejects duplicate ids", () => {
+  assert.equal(hotelAmenitiesInputSchema.safeParse({ amenityIds: ["a", "b"] }).success, true);
+  assert.equal(hotelAmenitiesInputSchema.safeParse({ amenityIds: ["a", "a"] }).success, false);
 });
