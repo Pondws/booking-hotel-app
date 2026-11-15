@@ -1,5 +1,6 @@
 import {
   nightsBetween,
+  type AdminHotel,
   type Availability,
   type CreateHotelData,
   type HotelDetail,
@@ -10,9 +11,11 @@ import {
 } from "@booking/shared";
 import { Prisma, type Hotel } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
+import { imageOrder } from "../lib/image-order";
 import { isUniqueViolationOn } from "../lib/prisma-errors";
 import { prisma } from "../lib/prisma";
 import { toSlug, withSuffix } from "../lib/slug";
+import { getAdminHotel } from "./admin-hotel.service";
 import { availableRoomCounts, blockingBookingWhere } from "./availability.service";
 import { quoteStays } from "./pricing.service";
 
@@ -21,7 +24,6 @@ export type { Hotel };
 const hotelNotFound = () => new AppError(404, "NOT_FOUND", "Hotel not found");
 
 const imageSelect = { url: true, alt: true } as const;
-export const imageOrder = [{ sortOrder: "asc" }, { id: "asc" }] as const;
 const amenitySelect = { amenity: { select: { code: true, name: true } } } as const;
 const amenityOrder = { amenity: { name: "asc" } } as const;
 
@@ -245,15 +247,20 @@ async function nextSlug(name: string): Promise<string> {
   );
 }
 
-export async function createHotel(input: CreateHotelData): Promise<Hotel> {
+export async function createHotel(input: CreateHotelData): Promise<AdminHotel> {
+  const create = async () =>
+    prisma.hotel.create({
+      data: { ...input, slug: await nextSlug(input.name) },
+      select: { id: true },
+    });
+  let created: { id: string };
   try {
-    return await prisma.hotel.create({ data: { ...input, slug: await nextSlug(input.name) } });
+    created = await create();
   } catch (err) {
     // Lost a slug race (P2002 on slug only; other violations propagate) with a concurrent create: recompute once and retry.
     // A second P2002 propagates and becomes 409 CONFLICT.
-    if (isUniqueViolationOn(err, "slug")) {
-      return prisma.hotel.create({ data: { ...input, slug: await nextSlug(input.name) } });
-    }
-    throw err;
+    if (!isUniqueViolationOn(err, "slug")) throw err;
+    created = await create();
   }
+  return getAdminHotel(created.id);
 }

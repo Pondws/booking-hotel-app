@@ -2,13 +2,16 @@ import type {
   AdminHotel,
   AdminHotelListQuery,
   AdminHotelSummary,
+  HotelAmenitiesInput,
+  HotelImagesInput,
   Paginated,
   PublicUser,
+  UpdateHotelData,
 } from "@booking/shared";
 import type { Prisma } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
 import { prisma } from "../lib/prisma";
-import { imageOrder } from "./hotel.service";
+import { imageOrder } from "../lib/image-order";
 
 export const adminHotelSelect = {
   id: true,
@@ -100,4 +103,70 @@ export async function getAdminHotel(hotelId: string): Promise<AdminHotel> {
   const row = await prisma.hotel.findUnique({ where: { id: hotelId }, select: adminHotelSelect });
   if (!row) throw new AppError(404, "NOT_FOUND", "Hotel not found");
   return toAdminHotel(row);
+}
+
+// Explicit existence check so a missing hotel is a clean 404 (not a Prisma error) before any write.
+async function assertHotelExists(hotelId: string): Promise<void> {
+  const found = await prisma.hotel.findUnique({ where: { id: hotelId }, select: { id: true } });
+  if (!found) throw new AppError(404, "NOT_FOUND", "Hotel not found");
+}
+
+/** Updates editable details only — slug and currency are never touched. */
+export async function updateAdminHotel(hotelId: string, data: UpdateHotelData): Promise<AdminHotel> {
+  await assertHotelExists(hotelId);
+  const { name, city, address, description, checkInTime, checkOutTime } = data;
+  await prisma.hotel.update({
+    where: { id: hotelId },
+    data: { name, city, address, description, checkInTime, checkOutTime },
+  });
+  return getAdminHotel(hotelId);
+}
+
+export async function replaceHotelImages(
+  hotelId: string,
+  input: HotelImagesInput,
+): Promise<AdminHotel> {
+  await assertHotelExists(hotelId);
+  await prisma.$transaction([
+    prisma.hotelImage.deleteMany({ where: { hotelId } }),
+    prisma.hotelImage.createMany({
+      data: input.images.map((img, index) => ({
+        hotelId,
+        url: img.url,
+        alt: img.alt ?? null,
+        sortOrder: index,
+      })),
+    }),
+  ]);
+  return getAdminHotel(hotelId);
+}
+
+export async function replaceHotelAmenities(
+  hotelId: string,
+  input: HotelAmenitiesInput,
+): Promise<AdminHotel> {
+  await assertHotelExists(hotelId);
+  const amenities = await prisma.amenity.findMany({
+    where: { id: { in: input.amenityIds } },
+    select: { id: true, scope: true },
+  });
+  if (amenities.length !== input.amenityIds.length || amenities.some((a) => a.scope !== "HOTEL")) {
+    throw new AppError(400, "VALIDATION_FAILED", "Only hotel amenities can be added", {
+      formErrors: [],
+      fieldErrors: { amenityIds: ["Only hotel amenities can be added"] },
+    });
+  }
+  await prisma.$transaction([
+    prisma.hotelAmenity.deleteMany({ where: { hotelId } }),
+    prisma.hotelAmenity.createMany({
+      data: input.amenityIds.map((amenityId) => ({ hotelId, amenityId })),
+    }),
+  ]);
+  return getAdminHotel(hotelId);
+}
+
+export async function setHotelStatus(hotelId: string, isActive: boolean): Promise<AdminHotel> {
+  await assertHotelExists(hotelId);
+  await prisma.hotel.update({ where: { id: hotelId }, data: { isActive } });
+  return getAdminHotel(hotelId);
 }

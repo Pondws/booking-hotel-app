@@ -1,6 +1,21 @@
 import { Router } from "express";
-import { adminHotelListQuerySchema, createHotelSchema, hotelIdParamsSchema } from "@booking/shared";
-import { getAdminHotel, listAdminHotels } from "../../controllers/admin-hotel.controller";
+import {
+  adminHotelListQuerySchema,
+  createHotelSchema,
+  hotelAmenitiesInputSchema,
+  hotelIdParamsSchema,
+  hotelImagesInputSchema,
+  hotelStatusInputSchema,
+  updateHotelSchema,
+} from "@booking/shared";
+import {
+  getAdminHotel,
+  listAdminHotels,
+  replaceHotelAmenities,
+  replaceHotelImages,
+  setHotelStatus,
+  updateHotel,
+} from "../../controllers/admin-hotel.controller";
 import { createHotel } from "../../controllers/hotel.controller";
 import { requireHotelAccess } from "../../middleware/require-hotel-access";
 import { requireRole } from "../../middleware/require-role";
@@ -22,4 +37,33 @@ adminHotelsRouter.post(
   requireRole("ADMIN"),
   validate({ body: createHotelSchema }),
   createHotel,
+);
+
+adminHotelsRouter.patch(
+  "/:hotelId",
+  requireHotelAccess(),
+  validate({ params: hotelIdParamsSchema, body: updateHotelSchema }),
+  updateHotel,
+);
+
+adminHotelsRouter.put(
+  "/:hotelId/images",
+  requireHotelAccess(),
+  validate({ params: hotelIdParamsSchema, body: hotelImagesInputSchema }),
+  replaceHotelImages,
+);
+
+adminHotelsRouter.put(
+  "/:hotelId/amenities",
+  requireHotelAccess(),
+  validate({ params: hotelIdParamsSchema, body: hotelAmenitiesInputSchema }),
+  replaceHotelAmenities,
+);
+
+adminHotelsRouter.patch(
+  "/:hotelId/status",
+  requireRole("ADMIN"),
+  requireHotelAccess(),
+  validate({ params: hotelIdParamsSchema, body: hotelStatusInputSchema }),
+  setHotelStatus,
 );

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import express from "express";
 import request from "supertest";
+import { adminHotelSchema } from "@booking/shared";
 import { hashToken } from "./lib/session-token";
 import { app } from "./app";
 import { env } from "./env";
@@ -121,7 +122,9 @@ test("POST /api/admin/hotels as ADMIN → 201 with slug", async () => {
       description: "Created by a test",
     });
   assert.equal(res.status, 201);
-  assert.equal(typeof res.body.data.slug, "string");
+  const hotel = adminHotelSchema.parse(res.body.data);
+  assert.equal(typeof hotel.slug, "string");
+  assert.equal(hotel.checkInTime, "14:00");
 });
 
 test("trust proxy defaults to 0 and X-Forwarded-For does not change req.ip", async () => {
