@@ -165,7 +165,13 @@ function RoomList({ hotel, slug, range, guests }: RoomListProps) {
       <ul aria-busy={refreshing || undefined} className={cn("space-y-3 transition-opacity", refreshing && "opacity-60")}>
         {fitting.map((roomType) => (
           <li key={roomType.id}>
-            <RoomTypeCard roomType={roomType} currency={hotel.currency} pricing={pricingFor(roomType.id)} />
+            <RoomTypeCard
+              roomType={roomType}
+              currency={hotel.currency}
+              pricing={pricingFor(roomType.id)}
+              hotelSlug={slug}
+              range={range}
+            />
           </li>
         ))}
       </ul>
