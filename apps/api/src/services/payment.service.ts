@@ -15,8 +15,9 @@ type ProviderOpts = { provider?: PaymentProvider };
  * The only function that moves a payment out of PENDING (booking cancel excepted) and owns the
  * booking side of it. It claims the payment row first (`updateMany … WHERE status PENDING`), so two
  * settlers — the webhook and the sync endpoint — can never both act on one intent.
- * A success whose hold already lapsed (or was cancelled) is refunded after the transaction commits;
- * a later call retries a refund that failed, and the refund itself is idempotent at the provider.
+ * A success that can't confirm the booking is refunded after the transaction commits: the hold lapsed
+ * or was cancelled, the row was already FAILED (a race with cancel/start), or the amount doesn't match.
+ * A later call retries a refund that failed; the refund itself is idempotent at the provider.
  */
 export async function settlePayment(
   providerRef: string,
@@ -38,11 +39,14 @@ export async function settlePayment(
   if (outcome === "SUCCEEDED") {
     const intent = await provider.getIntent(providerRef);
     if (intent.amountMinor !== toMinorUnits(payment.amount) || intent.currency !== payment.currency) {
+      // Never confirm a booking for a different amount — give the money back instead.
+      const current = await prisma.payment.findUniqueOrThrow({ where: { id: payment.id }, select: { status: true } });
+      if (current.status === "REFUNDED") return "noop";
       console.error(
         `settlePayment: amount mismatch for booking ${bookingCode} (intent ${intent.amountMinor} ${intent.currency}, ` +
-          `payment ${payment.amount.toString()} ${payment.currency}) — left PENDING`,
+          `payment ${payment.amount.toString()} ${payment.currency}) — refunding`,
       );
-      return "noop";
+      return refundPayment(provider, providerRef, payment.id, bookingCode, now);
     }
   }
 
@@ -63,24 +67,37 @@ export async function settlePayment(
   if (settled === "failed" || settled === "confirmed") return settled;
 
   if (settled === "lost") {
-    // Someone else settled it. Only act if that left a charge on an unconfirmed booking (a refund that failed).
+    if (outcome !== "SUCCEEDED") return "noop";
+    // Someone else settled the row. Act only if that leaves a charge nothing paid for.
     const current = await prisma.payment.findUniqueOrThrow({
       where: { id: payment.id },
       select: { status: true, booking: { select: { status: true } } },
     });
-    // CONFIRMED or COMPLETED means the charge paid for a stay — never refund it from a repeated event.
+    // SUCCEEDED on a CONFIRMED/COMPLETED booking paid for the stay — never refund it from a repeated event.
     const paidFor = current.booking.status === "CONFIRMED" || current.booking.status === "COMPLETED";
-    if (outcome !== "SUCCEEDED" || current.status !== "SUCCEEDED" || paidFor) return "noop";
+    // FAILED: the row was given up (cancel, or a failed start) but the card was charged anyway.
+    const stranded = current.status === "FAILED" || (current.status === "SUCCEEDED" && !paidFor);
+    if (!stranded) return "noop";
   }
 
+  return refundPayment(provider, providerRef, payment.id, bookingCode, now);
+}
+
+async function refundPayment(
+  provider: PaymentProvider,
+  providerRef: string,
+  paymentId: string,
+  bookingCode: string,
+  now: Date,
+): Promise<"refunded"> {
   try {
-    await provider.refund(providerRef, { idempotencyKey: `refund-${payment.id}` });
+    await provider.refund(providerRef, { idempotencyKey: `refund-${paymentId}` });
   } catch (err) {
     console.error(`settlePayment: refund failed for booking ${bookingCode}`, err);
     throw err;
   }
   await prisma.payment.updateMany({
-    where: { id: payment.id, status: "SUCCEEDED" },
+    where: { id: paymentId, status: { not: "REFUNDED" } },
     data: { status: "REFUNDED", refundedAt: now },
   });
   return "refunded";
@@ -138,22 +155,28 @@ export async function startPayment(
     if (payment.providerRef === null) {
       // New payment, or one a concurrent start is still creating: the shared idempotency key makes
       // the provider return the same intent to both.
-      try {
-        const intent = await provider.createIntent({
-          amountMinor: toMinorUnits(booking.totalAmount),
-          currency: booking.currency,
-          idempotencyKey: payment.id,
-          metadata: { bookingCode: booking.code, paymentId: payment.id },
+      // A createIntent failure leaves the row PENDING with no ref, so the next start retries it with the
+      // same key — marking it FAILED could strand a secret a concurrent start already handed out.
+      const intent = await provider.createIntent({
+        amountMinor: toMinorUnits(booking.totalAmount),
+        currency: booking.currency,
+        idempotencyKey: payment.id,
+        metadata: { bookingCode: booking.code, paymentId: payment.id },
+      });
+      // Always record the ref (even on a row given up meanwhile): a late success is found by it and refunded.
+      await prisma.payment.updateMany({
+        where: { id: payment.id, providerRef: null },
+        data: { providerRef: intent.providerRef },
+      });
+      const current = await prisma.payment.findUniqueOrThrow({ where: { id: payment.id }, select: { status: true } });
+      if (current.status !== "PENDING") {
+        // Cancelled (or settled) while the intent was being created: don't hand out its secret.
+        await provider.cancelIntent(intent.providerRef).catch((err: unknown) => {
+          console.error(`startPayment: could not cancel intent ${intent.providerRef} of a given-up payment`, err);
         });
-        await prisma.payment.update({ where: { id: payment.id }, data: { providerRef: intent.providerRef } });
-        return { clientSecret: intent.clientSecret };
-      } catch (err) {
-        await prisma.payment.updateMany({
-          where: { id: payment.id, status: "PENDING", providerRef: null },
-          data: { status: "FAILED" },
-        });
-        throw err;
+        throw notPayable();
       }
+      return { clientSecret: intent.clientSecret };
     }
 
     const intent = await provider.getIntent(payment.providerRef);

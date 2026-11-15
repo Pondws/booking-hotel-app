@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, test } from "node:test";
+import type { PublicUser } from "@booking/shared";
 import { Prisma } from "../generated/prisma/client";
 import { MockProvider } from "../lib/payments/mock-provider";
 import { prisma } from "../lib/prisma";
@@ -10,7 +11,7 @@ import {
   createCatalogFixture,
   type CatalogFixture,
 } from "../test/catalog-fixtures";
-import { settlePayment } from "./payment.service";
+import { settlePayment, startPayment } from "./payment.service";
 
 const LABEL = "pay-svc";
 const MIN = 60_000;
@@ -122,14 +123,30 @@ describe("settlePayment", () => {
     assert.equal((await paymentOf(paymentId)).status, "REFUNDED");
   });
 
-  test("leaves an amount mismatch pending", async () => {
+  test("refunds an amount mismatch instead of confirming", async () => {
     const now = new Date();
     const { bookingId, paymentId, ref } = await holdWithPayment(new Date(now.getTime() + 10 * MIN));
     mock.succeed(ref);
     mock.setAmount(ref, 1);
-    assert.equal(await settlePayment(ref, "SUCCEEDED", now, { provider: mock }), "noop");
-    assert.equal((await paymentOf(paymentId)).status, "PENDING");
+    assert.equal(await settlePayment(ref, "SUCCEEDED", now, { provider: mock }), "refunded");
+    assert.equal((await paymentOf(paymentId)).status, "REFUNDED");
     assert.equal((await bookingOf(bookingId)).status, "PENDING");
+    assert.deepEqual(mock.refunds, [ref]);
+  });
+
+  test("refunds a success that lands on a payment already marked FAILED", async () => {
+    const now = new Date();
+    const { bookingId, paymentId, ref } = await holdWithPayment(new Date(now.getTime() + 10 * MIN));
+    await prisma.payment.update({ where: { id: paymentId }, data: { status: "FAILED" } });
+    mock.succeed(ref);
+    assert.equal(await settlePayment(ref, "SUCCEEDED", now, { provider: mock }), "refunded");
+    const payment = await paymentOf(paymentId);
+    assert.equal(payment.status, "REFUNDED");
+    assert.ok(payment.refundedAt);
+    assert.notEqual((await bookingOf(bookingId)).status, "CONFIRMED");
+    assert.deepEqual(mock.refunds, [ref]);
+    assert.equal(await settlePayment(ref, "SUCCEEDED", now, { provider: mock }), "noop");
+    assert.equal(mock.refunds.length, 1);
   });
 
   test("a repeated success after the stay COMPLETED does not refund", async () => {
@@ -141,6 +158,54 @@ describe("settlePayment", () => {
     assert.equal(await settlePayment(ref, "SUCCEEDED", now, { provider: mock }), "noop");
     assert.deepEqual(mock.refunds, []);
     assert.equal((await paymentOf(paymentId)).status, "SUCCEEDED");
+  });
+
+  const ownerOf = (): Promise<PublicUser> =>
+    prisma.user.findUniqueOrThrow({
+      where: { id: fx.userId },
+      select: { id: true, email: true, name: true, phone: true, role: true },
+    });
+
+  test("startPayment: a failed createIntent leaves the payment PENDING so a retry reuses it", async () => {
+    const now = new Date();
+    const booking = await addBooking(fx, roomId, "2030-03-01", "2030-03-03", "PENDING", new Date(now.getTime() + 10 * MIN));
+    const flaky = new (class extends MockProvider {
+      failNext = true;
+      override async createIntent(i: Parameters<MockProvider["createIntent"]>[0]) {
+        if (this.failNext) {
+          this.failNext = false;
+          throw new Error("stripe down");
+        }
+        return super.createIntent(i);
+      }
+    })();
+    const user = await ownerOf();
+    await assert.rejects(startPayment(user, booking.code, now, { provider: flaky }));
+    const [row] = await prisma.payment.findMany({ where: { bookingId: booking.id } });
+    assert.equal(row!.status, "PENDING");
+    const { clientSecret } = await startPayment(user, booking.code, now, { provider: flaky });
+    const rows = await prisma.payment.findMany({ where: { bookingId: booking.id } });
+    assert.equal(rows.length, 1);
+    assert.equal(clientSecret, `${rows[0]!.providerRef}_secret`);
+  });
+
+  test("startPayment: a payment given up while its intent was being created is not handed out", async () => {
+    const now = new Date();
+    const booking = await addBooking(fx, roomId, "2030-03-01", "2030-03-03", "PENDING", new Date(now.getTime() + 10 * MIN));
+    // A concurrent cancel marks the row FAILED while createIntent is in flight.
+    const racing = new (class extends MockProvider {
+      override async createIntent(i: Parameters<MockProvider["createIntent"]>[0]) {
+        await prisma.payment.updateMany({ where: { bookingId: booking.id }, data: { status: "FAILED" } });
+        return super.createIntent(i);
+      }
+    })();
+    await assert.rejects(startPayment(await ownerOf(), booking.code, now, { provider: racing }), (err: unknown) =>
+      err instanceof Error && "status" in err && err.status === 409,
+    );
+    const [row] = await prisma.payment.findMany({ where: { bookingId: booking.id } });
+    assert.equal(row!.status, "FAILED");
+    assert.ok(row!.providerRef, "the intent is recorded so a late success can still be refunded");
+    assert.deepEqual(racing.cancelled, [row!.providerRef]);
   });
 
   test("unknown ref is a no-op", async () => {
