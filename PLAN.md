@@ -49,7 +49,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 3 | Catalog สาธารณะ + ห้องว่าง | ✅ เสร็จแล้ว |
 | 4 | Booking flow | ✅ เสร็จแล้ว |
 | 5 | Payments (Stripe, test mode) | ✅ เสร็จแล้ว (ยังไม่ได้ทดสอบ Stripe จริงในเบราว์เซอร์) |
-| 6 | Back-office (web-admin) | ⬜ ถัดไป |
+| 6 | Back-office (web-admin) | 🔄 กำลังทำ (6.1 Hotels) |
 | 7 | Reviews | ⬜ |
 | 8 | Hardening และ deployment | ⬜ |
 
@@ -236,27 +236,51 @@ Spec: `docs/superpowers/specs/2026-11-15-payments-design.md` · Plan: `docs/supe
 - `prisma-client-api`: query สำหรับ dashboard (aggregate, groupBy)
 - `next-dev-loop`: ตรวจแต่ละหน้าจัดการ
 
+Phase 6 แบ่งเป็นงานย่อย แต่ละงานมี spec, plan, branch และ PR ของตัวเอง ทำตามลำดับนี้
+(6.4 ต้องใช้ room type/ห้องจาก 6.2, 6.6 ใช้ข้อมูลจากทุกงาน, 6.5 ไม่ขึ้นกับงานอื่น)
+
+| # | งาน | Branch | สถานะ |
+| --- | --- | --- | --- |
+| 6.1 | Admin shell + Hotels | `feat/admin-hotels` | 🔄 กำลังทำ |
+| 6.2 | Room types + Rooms | `feat/admin-room-types` | ⬜ |
+| 6.3 | Rate periods | `feat/admin-rate-periods` | ⬜ |
+| 6.4 | Bookings | `feat/admin-bookings` | ⬜ |
+| 6.5 | Staff + Amenity catalog (เฉพาะ ADMIN) | `feat/admin-staff` | ⬜ |
+| 6.6 | Dashboard | `feat/admin-dashboard` | ⬜ |
+
+### 6.1 — Admin shell + Hotels
+- [ ] Layout และเมนูข้างของ web-admin
+- [ ] `GET /api/admin/hotels`: staff เห็นเฉพาะโรงแรมที่ตัวเองดูแล ส่วน admin เห็นทุกโรงแรม (รวมที่ปิดใช้งาน)
 - [ ] Hotels:
-  - ดูรายการ, สร้าง, แก้ไข
+  - ดูรายการ, หน้ารายละเอียด, สร้าง, แก้ไข
   - ปิดใช้งานด้วย `isActive = false` (ไม่ลบจริง)
   - รูป (รายการ URL + ลำดับ)
-  - amenities (เฉพาะ scope HOTEL)
+  - amenities (เฉพาะ scope HOTEL โดยตรวจใน service)
+- [ ] เรื่องที่ต้องตัดสินใจ #7: เวลา check-in/check-out ของโรงแรม
+
+### 6.2 — Room types + Rooms
 - [ ] Room types:
   - CRUD และปิดใช้งาน
   - รูป
   - amenities (เฉพาะ scope ROOM โดยตรวจใน service)
 - [ ] Rooms: เพิ่มห้อง, แก้เลขห้อง, ปิดใช้งาน
-- [ ] Rate periods: มุมมองปฏิทินหรือรายการ, สร้าง/แก้ไข/ลบ และถ้าช่วงทับกันตอบ `409` (มาจาก `rate_periods_no_overlap`)
-- [ ] Bookings:
-  - กรองตามโรงแรม, สถานะ และวันที่
-  - หน้ารายละเอียด
-  - check-in และ check-out → `COMPLETED`
-  - ยกเลิกพร้อมเหตุผล
-  - ย้ายไปห้องอื่นใน room type เดียวกัน
-  - แสดงสถานะการชำระเงิน (`payment.status`, `paidAt`, `refundedAt`) — ย้ายมาจาก Phase 5
-- [ ] Staff (เฉพาะ ADMIN): สร้าง user STAFF และผูกกับโรงแรมหรือเอาออก
-- [ ] Catalog amenities (เฉพาะ ADMIN)
-- [ ] Dashboard: แขกเข้า/ออกวันนี้, อัตราการเข้าพัก และรายได้ตามช่วงวันที่
+
+### 6.3 — Rate periods
+- [ ] มุมมองปฏิทินหรือรายการ, สร้าง/แก้ไข/ลบ และถ้าช่วงทับกันตอบ `409` (มาจาก `rate_periods_no_overlap`)
+
+### 6.4 — Bookings
+- [ ] กรองตามโรงแรม, สถานะ และวันที่
+- [ ] หน้ารายละเอียด พร้อมสถานะการชำระเงิน (`payment.status`, `paidAt`, `refundedAt`) — ย้ายมาจาก Phase 5
+- [ ] check-in และ check-out → `COMPLETED` (ต้องแก้ schema: ยังไม่มี `checkedInAt`/`checkedOutAt` และไม่มีสถานะ `CHECKED_IN`)
+- [ ] ยกเลิกพร้อมเหตุผล (ต้องแก้ schema: ยังไม่มี `cancelReason`) และคืนเงินผ่าน `payment.service`
+- [ ] ย้ายไปห้องอื่นใน room type เดียวกัน
+
+### 6.5 — Staff + Amenity catalog (เฉพาะ ADMIN)
+- [ ] Staff: สร้าง user STAFF และผูกกับโรงแรมหรือเอาออก
+- [ ] Catalog amenities: CRUD
+
+### 6.6 — Dashboard
+- [ ] แขกเข้า/ออกวันนี้, อัตราการเข้าพัก และรายได้ตามช่วงวันที่ (stat tiles + กราฟ)
 
 ## Phase 7 — Reviews
 
