@@ -200,6 +200,19 @@ describe("bookings API", () => {
       assert.equal(b.cancellable, false);
     });
 
+    test("a COMPLETED booking is reviewable with no review; others are not", async () => {
+      const done = await addBooking(fx, fx.roomTypes[1]!.roomIds[0]!, "2030-03-01", "2030-03-03", "COMPLETED", null, alice.id);
+      const res = await get(`/api/bookings/${done.code}`, aliceCookie);
+      assert.equal(res.status, 200);
+      const b = bookingSchema.parse(res.body.data);
+      assert.equal(b.reviewable, true);
+      assert.equal(b.review, null);
+
+      const pending = bookingSchema.parse((await get(`/api/bookings/${codes[0]}`, carolCookie)).body.data);
+      assert.equal(pending.reviewable, false);
+      assert.equal(pending.review, null);
+    });
+
     test("GET /:code own → 200, other user's → 404, malformed → 400", async () => {
       const own = await get(`/api/bookings/${codes[0]}`, carolCookie);
       assert.equal(own.status, 200);

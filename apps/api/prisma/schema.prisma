@@ -313,8 +313,10 @@ model Review {
   hotelId   String   @map("hotel_id")
   rating    Int
   comment   String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  isHidden  Boolean   @default(false) @map("is_hidden")
+  hiddenAt  DateTime? @map("hidden_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
   user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
@@ -322,6 +324,7 @@ model Review {
 
   @@index([hotelId])
   @@index([userId])
+  @@index([hotelId, isHidden, createdAt])
   @@map("reviews")
 }
 

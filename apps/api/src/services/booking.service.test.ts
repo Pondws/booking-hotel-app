@@ -252,6 +252,7 @@ describe("toBooking payment fields", () => {
     createdAt: now,
     room: { roomType: { id: "rt", name: "RT", hotel: { name: "H", slug: "h", city: "C", checkInTime: "14:00", checkOutTime: "12:00", images: [] } } },
     payments: [],
+    review: null,
     ...over,
   });
 

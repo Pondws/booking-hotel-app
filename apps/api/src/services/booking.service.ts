@@ -48,6 +48,7 @@ export const bookingSelect = {
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: 1,
   },
+  review: { select: { rating: true, comment: true, createdAt: true } },
   room: {
     select: {
       roomType: {
@@ -106,6 +107,10 @@ export function toBooking(row: BookingRow, now: Date): Booking {
           paidAt: payment.paidAt?.toISOString() ?? null,
           refundedAt: payment.refundedAt?.toISOString() ?? null,
         }
+      : null,
+    reviewable: status === "COMPLETED" && row.review === null,
+    review: row.review
+      ? { rating: row.review.rating, comment: row.review.comment, createdAt: row.review.createdAt.toISOString() }
       : null,
     hotel: {
       name: roomType.hotel.name,
