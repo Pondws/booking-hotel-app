@@ -57,3 +57,12 @@ export function isExclusionViolation(err: unknown, constraint = "bookings_no_ove
   const message = typeof cause.originalMessage === "string" ? cause.originalMessage : cause.message;
   return typeof message === "string" && message.includes(`"${constraint}"`);
 }
+
+/**
+ * True when Postgres aborted the statement as a deadlock / serialization failure (Prisma P2034,
+ * "Transaction failed due to a write conflict or a deadlock"). Two concurrent inserts that conflict on
+ * an exclusion constraint can deadlock instead of raising 23P01; the aborted one can simply retry.
+ */
+export function isWriteConflict(err: unknown): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034";
+}

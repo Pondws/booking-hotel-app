@@ -8,7 +8,7 @@ import {
   type CatalogFixture,
 } from "../test/catalog-fixtures";
 import { prisma } from "./prisma";
-import { isExclusionViolation, isUniqueViolationOn, isUniqueViolationOnIndex } from "./prisma-errors";
+import { isExclusionViolation, isUniqueViolationOn, isUniqueViolationOnIndex, isWriteConflict } from "./prisma-errors";
 
 const LABEL = "bk-code";
 let fx: CatalogFixture;
@@ -91,4 +91,11 @@ test("a named (partial) unique index violation is matched by index name only", (
   assert.equal(isUniqueViolationOnIndex(err, "hotels_slug_key"), false);
   assert.equal(isUniqueViolationOnIndex(p2002({}), "payments_one_active_per_booking"), false);
   assert.equal(isUniqueViolationOnIndex(new Error("x"), "payments_one_active_per_booking"), false);
+});
+
+test("P2034 (deadlock / write conflict) is recognised; other errors are not", () => {
+  const conflict = new Prisma.PrismaClientKnownRequestError("deadlock", { code: "P2034", clientVersion: "test" });
+  assert.equal(isWriteConflict(conflict), true);
+  assert.equal(isWriteConflict(p2002({})), false);
+  assert.equal(isWriteConflict(new Error("deadlock")), false);
 });

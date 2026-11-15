@@ -15,7 +15,7 @@ import { AppError } from "../lib/app-error";
 import { generateBookingCode } from "../lib/booking-code";
 import { fromDbDate, toDbDate } from "../lib/dates";
 import { prisma } from "../lib/prisma";
-import { isExclusionViolation, isUniqueViolationOn } from "../lib/prisma-errors";
+import { isExclusionViolation, isUniqueViolationOn, isWriteConflict } from "../lib/prisma-errors";
 import { blockingBookingWhere } from "./availability.service";
 import { quoteStay } from "./pricing.service";
 
@@ -190,6 +190,9 @@ export async function createBooking(
       } catch (err) {
         if (isExclusionViolation(err)) break; // taken meanwhile → next room
         if (isUniqueViolationOn(err, "code") && attempt < MAX_CODE_ATTEMPTS) continue;
+        // Racing a concurrent insert on this room can deadlock instead of raising the exclusion
+        // violation; the retry then sees the winner's row and moves on.
+        if (isWriteConflict(err) && attempt < MAX_CODE_ATTEMPTS) continue;
         throw err;
       }
     }
