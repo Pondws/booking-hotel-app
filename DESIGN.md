@@ -73,6 +73,7 @@ Use what's in `packages/ui` first; add new shadcn components only with `npm run 
 | `Badge` | Rating, "Sold out", status | `outline` for neutral info, `secondary` for status, `destructive` only for problems. |
 | `Separator` | Section dividers | Prefer spacing; use sparingly. |
 | `Popover` + `Calendar` | Date range picker | `mode="range"`; disable days before Bangkok today and ranges > 30 nights (rules from `@booking/shared`). Trigger is an `outline` button showing "12 Apr – 15 Apr" or "Add dates". |
+| `DataTable` (+ `DataTableSkeleton`) | web-admin lists (hotels, room types, bookings…) | Pass `columns` (`{ id, header, cell(row), className? }`), `rows`, `getRowKey`, a `caption` (screen readers) and `busy={isPlaceholderData}`. Loading/error/empty copy stays in the feature. Use `Table` directly only for one-off layouts. |
 | `Skeleton` | Loading placeholders | Shape matches the final content (image block + 2 text lines for a hotel card). |
 
 Forms: react-hook-form + `zodResolver` with schemas from `@booking/shared`; server field errors via
