@@ -193,4 +193,107 @@ describe("admin staff API", () => {
     const again = await as(adminCookie).delete(`/api/admin/staff/${staff.id}/hotels/${h2.hotelId}`);
     assert.equal(again.status, 404);
   });
+
+  /** A STAFF member who can really sign in (fixture users have a dummy hash). */
+  async function createLoginableStaff(password = "password123") {
+    const email = newEmail();
+    const res = await as(adminCookie).post("/api/admin/staff", { name: "Leaver", email, password });
+    assert.equal(res.status, 201);
+    const id = adminStaffSchema.parse(res.body.data).id;
+    const login = await request(app).post("/api/auth/admin/login").send({ email, password });
+    assert.equal(login.status, 200);
+    const cookie = `admin_sid=${await signIn(id, "ADMIN")}`;
+    return { id, email, cookie };
+  }
+
+  test("deactivate → sessions revoked at once, login refused like a wrong password; reactivate → login works", async () => {
+    const leaver = await createLoginableStaff();
+    assert.equal((await as(leaver.cookie).get("/api/auth/admin/me")).status, 200);
+
+    const off = await as(adminCookie).patch(`/api/admin/staff/${leaver.id}/status`, { isActive: false });
+    assert.equal(off.status, 200);
+    assert.equal(adminStaffSchema.parse(off.body.data).isActive, false);
+    assert.equal(await prisma.session.count({ where: { userId: leaver.id } }), 0);
+    assert.equal((await as(leaver.cookie).get("/api/admin/hotels")).status, 401);
+
+    const login = await request(app)
+      .post("/api/auth/admin/login")
+      .send({ email: leaver.email, password: "password123" });
+    assert.equal(login.status, 401);
+    assert.deepEqual(login.body, { error: { code: "UNAUTHORIZED", message: "Invalid email or password" } });
+    const webLogin = await request(app).post("/api/auth/login").send({ email: leaver.email, password: "password123" });
+    assert.equal(webLogin.status, 401);
+
+    const listed = adminStaffListSchema.parse(
+      (await as(adminCookie).get(`/api/admin/staff?q=${encodeURIComponent(leaver.email)}`)).body.data,
+    );
+    assert.equal(listed.items[0]?.isActive, false);
+
+    const audit = await prisma.auditLog.findFirst({
+      where: { entityType: "STAFF", entityId: leaver.id, action: "UPDATE" },
+      orderBy: { createdAt: "desc" },
+      select: { changes: true },
+    });
+    assert.deepEqual(audit?.changes, [{ field: "isActive", before: true, after: false }]);
+
+    const on = await as(adminCookie).patch(`/api/admin/staff/${leaver.id}/status`, { isActive: true });
+    assert.equal(adminStaffSchema.parse(on.body.data).isActive, true);
+    const back = await request(app)
+      .post("/api/auth/admin/login")
+      .send({ email: leaver.email, password: "password123" });
+    assert.equal(back.status, 200);
+  });
+
+  test("a session row left on a deactivated user is refused and deleted", async () => {
+    const leaver = await createLoginableStaff();
+    await prisma.user.update({ where: { id: leaver.id }, data: { isActive: false } });
+    const before = await prisma.session.count({ where: { userId: leaver.id } });
+    assert.equal((await as(leaver.cookie).get("/api/auth/admin/me")).status, 401);
+    assert.equal(await prisma.session.count({ where: { userId: leaver.id } }), before - 1);
+  });
+
+  test("status: own account → 409, ADMIN/unknown id → 404, STAFF caller → 403, bad body → 400", async () => {
+    const self = await as(adminCookie).patch(`/api/admin/staff/${admin.id}/status`, { isActive: false });
+    assert.equal(self.status, 409);
+    const other = await createFixtureUser(LABEL, "ADMIN");
+    assert.equal(
+      (await as(adminCookie).patch(`/api/admin/staff/${other.id}/status`, { isActive: false })).status,
+      404,
+    );
+    assert.equal(
+      (await as(adminCookie).patch(`/api/admin/staff/nope/status`, { isActive: false })).status,
+      404,
+    );
+    assert.equal(
+      (await as(staffCookie).patch(`/api/admin/staff/${staff.id}/status`, { isActive: false })).status,
+      403,
+    );
+    assert.equal(
+      (await as(adminCookie).patch(`/api/admin/staff/${staff.id}/status`, { isActive: "no" })).status,
+      400,
+    );
+  });
+
+  test("reset password → old sessions + old password stop working, new one works, audited without the value", async () => {
+    const s = await createLoginableStaff();
+    const res = await as(adminCookie).post(`/api/admin/staff/${s.id}/password`, { password: "temporary456" });
+    assert.equal(res.status, 204);
+    assert.equal((await as(s.cookie).get("/api/auth/admin/me")).status, 401);
+    const old = await request(app).post("/api/auth/admin/login").send({ email: s.email, password: "password123" });
+    assert.equal(old.status, 401);
+    const fresh = await request(app).post("/api/auth/admin/login").send({ email: s.email, password: "temporary456" });
+    assert.equal(fresh.status, 200);
+
+    const audit = await prisma.auditLog.findFirst({
+      where: { entityType: "STAFF", entityId: s.id, action: "UPDATE" },
+      orderBy: { createdAt: "desc" },
+      select: { changes: true },
+    });
+    assert.deepEqual(audit?.changes, [{ field: "password", before: null, after: "reset" }]);
+    assert.ok(!JSON.stringify(audit).includes("temporary456"));
+
+    assert.equal((await as(adminCookie).post(`/api/admin/staff/nope/password`, { password: "temporary456" })).status, 404);
+    assert.equal((await as(adminCookie).post(`/api/admin/staff/${s.id}/password`, { password: "short" })).status, 400);
+    assert.equal((await as(staffCookie).post(`/api/admin/staff/${s.id}/password`, { password: "temporary456" })).status, 403);
+  });
 });

@@ -40,6 +40,8 @@ model User {
   name         String
   phone        String?
   role         Role     @default(CUSTOMER)
+  /// false = can't sign in and existing sessions stop working (staff who left). Only ADMIN toggles it, for STAFF.
+  isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

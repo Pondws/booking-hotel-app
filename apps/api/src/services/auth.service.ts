@@ -84,7 +84,8 @@ export async function login(
   });
   // Unknown emails still run one verify, against the dummy hash.
   const valid = await verifyPassword(input.password, found ? found.passwordHash : await DUMMY_HASH);
-  if (!found || !valid) {
+  // A deactivated account gets the same answer as a wrong password (checked after the verify, so same timing).
+  if (!found || !valid || !found.isActive) {
     throw new AppError(401, "UNAUTHORIZED", "Invalid email or password");
   }
   if (audience === "ADMIN" && found.role !== "ADMIN" && found.role !== "STAFF") {
@@ -147,13 +148,20 @@ export async function resolveSession(
 ): Promise<{ user: PublicUser; sessionId: string } | null> {
   const session = await prisma.session.findUnique({
     where: { tokenHash: hashToken(token) },
-    select: { id: true, audience: true, expiresAt: true, user: { select: publicUserSelect } },
+    select: {
+      id: true,
+      audience: true,
+      expiresAt: true,
+      user: { select: { ...publicUserSelect, isActive: true } },
+    },
   });
   if (!session) return null;
-  if (session.expiresAt.getTime() <= Date.now()) {
+  // Deactivation deletes sessions too; this check also covers a session created in a race with it.
+  if (session.expiresAt.getTime() <= Date.now() || !session.user.isActive) {
     await prisma.session.deleteMany({ where: { id: session.id } });
     return null;
   }
   if (session.audience !== audience) return null;
-  return { user: session.user, sessionId: session.id };
+  const { isActive: _isActive, ...user } = session.user;
+  return { user, sessionId: session.id };
 }

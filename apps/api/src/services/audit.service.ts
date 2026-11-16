@@ -73,6 +73,7 @@ export const staffSnapshot = (s: AdminStaff): AuditSnapshot => ({
   email: s.email,
   phone: s.phone,
   hotels: s.hotels.map((h) => h.name),
+  isActive: s.isActive,
 });
 
 /** `status` is the stage staff see: CONFIRMED + checked in reads CHECKED_IN. */

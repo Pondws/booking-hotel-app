@@ -995,6 +995,8 @@ export const adminStaffSummarySchema = z.object({
   email: z.string(),
   phone: z.string().nullable(),
   hotels: z.array(z.object({ id: z.string(), name: z.string() })),
+  /** false = deactivated: can't sign in, sessions revoked. */
+  isActive: z.boolean(),
   createdAt: z.iso.datetime(),
 });
 export type AdminStaffSummary = z.infer<typeof adminStaffSummarySchema>;
@@ -1032,6 +1034,14 @@ export type CreateStaffData = z.output<typeof createStaffSchema>;
 export const updateStaffSchema = z.object({ name: staffNameField, phone: staffPhoneField });
 export type UpdateStaffInput = z.input<typeof updateStaffSchema>;
 export type UpdateStaffData = z.output<typeof updateStaffSchema>;
+
+/** `PATCH /api/admin/staff/:userId/status`. Deactivating revokes every session of that staff member. */
+export const setStaffActiveSchema = z.object({ isActive: z.boolean() });
+export type SetStaffActiveInput = z.output<typeof setStaffActiveSchema>;
+
+/** `POST /api/admin/staff/:userId/password` — ADMIN sets a temporary password; revokes every session. */
+export const resetStaffPasswordSchema = z.object({ password: registerSchema.shape.password });
+export type ResetStaffPasswordInput = z.output<typeof resetStaffPasswordSchema>;
 
 // ---------- Own account (web `/api/auth/me`, web-admin `/api/auth/admin/me`) ----------
 
