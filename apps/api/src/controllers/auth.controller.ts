@@ -1,4 +1,4 @@
-import type { LoginInput, RegisterInput } from "@booking/shared";
+import type { ChangePasswordInput, LoginInput, RegisterInput, UpdateProfileData } from "@booking/shared";
 import type { Request, RequestHandler, Response } from "express";
 import type { SessionAudience } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
@@ -40,7 +40,24 @@ export const logout =
     noContent(res);
   };
 
-export function me(req: Request, res: Response) {
+function currentAuth(req: Request): NonNullable<Request["auth"]> {
   if (!req.auth) throw new AppError(401, "UNAUTHORIZED", "Authentication required");
-  ok(res, req.auth.user);
+  return req.auth;
+}
+
+export function me(req: Request, res: Response) {
+  ok(res, currentAuth(req).user);
+}
+
+type Body<T> = Request<Record<string, string>, unknown, T>;
+
+export async function updateProfile(req: Body<UpdateProfileData>, res: Response) {
+  ok(res, await authService.updateProfile(currentAuth(req).user.id, req.body));
+}
+
+/** Revokes every other session; the one making the request stays signed in. */
+export async function changePassword(req: Body<ChangePasswordInput>, res: Response) {
+  const { user, sessionId } = currentAuth(req);
+  await authService.changePassword(user.id, sessionId, req.body);
+  noContent(res);
 }

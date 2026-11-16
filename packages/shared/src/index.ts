@@ -1033,6 +1033,20 @@ export const updateStaffSchema = z.object({ name: staffNameField, phone: staffPh
 export type UpdateStaffInput = z.input<typeof updateStaffSchema>;
 export type UpdateStaffData = z.output<typeof updateStaffSchema>;
 
+// ---------- Own account (web `/api/auth/me`, web-admin `/api/auth/admin/me`) ----------
+
+/** `PATCH /api/auth/me` + `/api/auth/admin/me`. Same fields as staff edit; email and role never change here. */
+export const updateProfileSchema = z.object({ name: staffNameField, phone: staffPhoneField });
+export type UpdateProfileInput = z.input<typeof updateProfileSchema>;
+export type UpdateProfileData = z.output<typeof updateProfileSchema>;
+
+/** `POST /api/auth/me/password` + `/api/auth/admin/me/password`. */
+export const changePasswordSchema = z.object({
+  currentPassword: loginSchema.shape.password,
+  newPassword: registerSchema.shape.password,
+});
+export type ChangePasswordInput = z.output<typeof changePasswordSchema>;
+
 export const staffIdParamsSchema = z.object({ userId: z.string().min(1) });
 export type StaffIdParams = z.output<typeof staffIdParamsSchema>;
 

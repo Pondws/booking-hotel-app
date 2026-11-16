@@ -1,4 +1,10 @@
-import type { LoginInput, PublicUser, RegisterInput } from "@booking/shared";
+import type {
+  ChangePasswordInput,
+  LoginInput,
+  PublicUser,
+  RegisterInput,
+  UpdateProfileData,
+} from "@booking/shared";
 import type { Prisma, SessionAudience } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
 import { SESSION_TTL_MS } from "../lib/cookies";
@@ -94,6 +100,41 @@ export async function login(
   const { token, data } = newSession(audience, meta);
   await prisma.session.create({ data: { ...data, userId: user.id }, select: { id: true } });
   return { user, token };
+}
+
+export async function updateProfile(userId: string, data: UpdateProfileData): Promise<PublicUser> {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { name: data.name, phone: data.phone },
+    select: publicUserSelect,
+  });
+}
+
+/**
+ * Checks the current password, then sets the new hash and deletes every other session of the user
+ * (both audiences) in one transaction. The session making the request stays signed in.
+ */
+export async function changePassword(
+  userId: string,
+  sessionId: string,
+  input: ChangePasswordInput,
+): Promise<void> {
+  const found = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    omit: { passwordHash: false },
+  });
+  if (!(await verifyPassword(input.currentPassword, found.passwordHash))) {
+    const message = "Current password is incorrect";
+    throw new AppError(400, "VALIDATION_FAILED", message, {
+      formErrors: [],
+      fieldErrors: { currentPassword: [message] },
+    });
+  }
+  const passwordHash = await hashPassword(input.newPassword);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { passwordHash }, select: { id: true } }),
+    prisma.session.deleteMany({ where: { userId, id: { not: sessionId } } }),
+  ]);
 }
 
 export async function logout(sessionId: string): Promise<void> {
