@@ -248,6 +248,8 @@ describe("toBooking payment fields", () => {
     totalAmount: new Prisma.Decimal("3000.00"),
     discountAmount: new Prisma.Decimal(0),
     discountLabel: null,
+    pointsRedeemed: 0,
+    pointsEarned: 0,
     currency: "THB",
     expiresAt: new Date(now.getTime() + 10 * MIN),
     cancelledAt: null,

@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import type { CreateReviewData } from "@booking/shared";
 import { ApiError } from "@/lib/api";
 import { hotelKeys } from "@/features/hotels/hooks";
+import { rewardKeys } from "@/features/rewards/hooks";
 import { cancelBooking, createBooking, createReview, fetchBooking, fetchMyBookings } from "./api";
 
 export const bookingKeys = {
@@ -40,6 +41,7 @@ export function useCreateBooking(hotelSlug: string) {
     mutationFn: createBooking,
     onSuccess: (booking) => {
       queryClient.setQueryData(bookingKeys.detail(booking.code), booking);
+      void queryClient.invalidateQueries({ queryKey: rewardKeys.all });
       void queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
       void queryClient.invalidateQueries({ queryKey: availabilityPrefix(hotelSlug) });
       void queryClient.invalidateQueries({ queryKey: hotelKeys.lists() });
@@ -81,6 +83,7 @@ export function useCancelBooking(hotelSlug: string) {
     mutationFn: cancelBooking,
     onSuccess: (booking) => {
       queryClient.setQueryData(bookingKeys.detail(booking.code), booking);
+      void queryClient.invalidateQueries({ queryKey: rewardKeys.all });
       void queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
       void queryClient.invalidateQueries({ queryKey: availabilityPrefix(hotelSlug) });
       void queryClient.invalidateQueries({ queryKey: hotelKeys.lists() });

@@ -261,6 +261,7 @@ async function main() {
         checkOut: new Date("2026-10-03"),
         status: "COMPLETED",
         totalAmount: 6400,
+        pointsEarned: 64, // floor(6400 × 1 / 100) at MEMBER
         currency: "THB",
       },
     });

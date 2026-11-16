@@ -762,6 +762,13 @@ export const createBookingSchema = z
     guestEmail: emailField.optional(),
     guestPhone: z.string().trim().min(1).max(30).optional(),
     promoCode: optionalPromoCode,
+    /** Reward points to spend (11.6); 0 / omitted = none. */
+    pointsToRedeem: z
+      .number({ error: "Enter a whole number of points" })
+      .int("Enter a whole number of points")
+      .min(0, "Enter a whole number of points")
+      .max(10_000_000, "Enter a whole number of points")
+      .optional(),
   })
   .superRefine((v, ctx) => refineStay(ctx, v.checkIn, v.checkOut));
 export type CreateBookingInput = z.input<typeof createBookingSchema>;
@@ -843,11 +850,15 @@ export const bookingSchema = z.object({
   guestName: z.string(),
   guestEmail: z.string(),
   guestPhone: z.string().nullable(),
-  /** Before the deal; totalAmount = subtotalAmount − discountAmount. */
+  /** Before the deal and points; totalAmount = subtotalAmount − discountAmount − pointsRedeemed. */
   subtotalAmount: z.number(),
   discountAmount: z.number(),
   /** The deal's name when booked; null without a deal. */
   discountLabel: z.string().nullable(),
+  /** Reward points spent (1 point = 1 unit of currency off). */
+  pointsRedeemed: z.number().int(),
+  /** Points earned at check-out; 0 until COMPLETED. */
+  pointsEarned: z.number().int(),
   totalAmount: z.number(),
   currency: z.string(),
   expiresAt: z.iso.datetime().nullable(),
@@ -1414,3 +1425,60 @@ export const dealSchema = z.object({
 });
 export type Deal = z.infer<typeof dealSchema>;
 export const dealListSchema = z.array(dealSchema);
+
+// ---------- Rewards (11.6, `/api/rewards/me`) ----------
+
+export const REWARD_TIERS = ["MEMBER", "SILVER", "GOLD"] as const;
+export const rewardTierSchema = z.enum(REWARD_TIERS);
+export type RewardTier = z.infer<typeof rewardTierSchema>;
+
+/**
+ * Tier = lifetime points earned (never goes down when points are spent). Points per 100 units paid,
+ * at the tier held when the stay is checked out.
+ */
+export const REWARD_TIER_RULES: Record<RewardTier, { minPoints: number; pointsPer100: number }> = {
+  MEMBER: { minPoints: 0, pointsPer100: 1 },
+  SILVER: { minPoints: 500, pointsPer100: 1.5 },
+  GOLD: { minPoints: 2000, pointsPer100: 2 },
+};
+
+/** Spend at least this many points at once… */
+export const POINTS_MIN_REDEEM = 100;
+/** …and cover at most this share of a booking's price (after deals) with points. 1 point = 1 unit of currency. */
+export const POINTS_MAX_SHARE = 0.5;
+
+export function rewardTierFor(lifetimePoints: number): RewardTier {
+  if (lifetimePoints >= REWARD_TIER_RULES.GOLD.minPoints) return "GOLD";
+  if (lifetimePoints >= REWARD_TIER_RULES.SILVER.minPoints) return "SILVER";
+  return "MEMBER";
+}
+
+/** Most points one booking of `total` (after deals) can take, given `balance`. 0 when below the minimum. */
+export function maxRedeemablePoints(balance: number, total: number): number {
+  const max = Math.min(balance, Math.floor(total * POINTS_MAX_SHARE));
+  return max >= POINTS_MIN_REDEEM ? max : 0;
+}
+
+export const rewardsHistoryItemSchema = z.object({
+  code: z.string(),
+  hotelName: z.string(),
+  checkIn: isoDate,
+  checkOut: isoDate,
+  status: bookingStatusSchema,
+  pointsEarned: z.number().int(),
+  pointsRedeemed: z.number().int(),
+});
+export type RewardsHistoryItem = z.infer<typeof rewardsHistoryItemSchema>;
+
+export const rewardsSummarySchema = z.object({
+  tier: rewardTierSchema,
+  /** Points earned on completed stays, ever. Decides the tier. */
+  lifetimePoints: z.number().int(),
+  /** Spendable now: earned − points on bookings that hold a room or are completed. */
+  balance: z.number().int(),
+  pointsPer100: z.number(),
+  nextTier: z.object({ tier: rewardTierSchema, minPoints: z.number().int(), pointsToGo: z.number().int() }).nullable(),
+  /** Bookings that earned or spent points, newest first (at most 20). */
+  history: z.array(rewardsHistoryItemSchema),
+});
+export type RewardsSummary = z.infer<typeof rewardsSummarySchema>;

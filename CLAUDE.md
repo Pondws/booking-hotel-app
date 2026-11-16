@@ -26,8 +26,8 @@ apps/
     src/
       app/               # routes (App Router): / (search), hotels/ (results), hotels/[slug]/ (detail), login/,
                          # register/, account/; layout.tsx (SiteHeader + SiteFooter);
-                         # rewards/, help/ = <ComingSoon> placeholders (PLAN.md Phase 11 — replace when the
-                         # feature ships); deals/ = features/deals (GET /api/deals);
+                         # help/ = <ComingSoon> placeholder (PLAN.md Phase 11 — replace when the feature ships);
+                         # deals/ = features/deals (GET /api/deals); rewards/ = features/rewards (GET /api/rewards/me);
                          # providers.tsx (QueryClient; no retry on 4xx; Query/MutationCache 401 → me = null)
       components/        # app-wide components shared by several features (pagination.tsx, site-header.tsx,
                          # site-footer.tsx, nav-links.ts (MAIN_NAV / FOOTER_NAV), coming-soon.tsx)
@@ -70,7 +70,9 @@ apps/
       services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts,
                          # pricing.service.ts quoteStay(s) — the ONLY place prices + deals are computed (best single
                          # deal via lib/promotions.ts, never stacked), deal.service.ts (GET /api/deals),
-                         # admin-promotion.service.ts, availability.service.ts availableRoomCounts,
+                         # admin-promotion.service.ts, rewards.service.ts (pointsBalance is derived from bookings —
+                         # never store a balance; pointsEarned is written with COMPLETED at check-out),
+                         # availability.service.ts availableRoomCounts,
                          # payment.service.ts — settlePayment is the ONLY code that moves a Payment out of PENDING,
                          # admin-hotel.service.ts — admin hotel list/detail/writes, all writes return AdminHotel,
                          # admin-room-type.service.ts — room types + rooms, all writes return AdminRoomType,

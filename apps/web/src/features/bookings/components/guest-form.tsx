@@ -48,6 +48,7 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
       checkOut: stay.checkOut,
       guests: stay.guests,
       promoCode: stay.promoCode ?? "",
+      pointsToRedeem: stay.pointsToRedeem,
       guestName: me?.name ?? "",
       guestEmail: me?.email ?? "",
       guestPhone: me?.phone ?? "",
@@ -86,6 +87,10 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
       <input type="hidden" {...register("checkOut")} />
       <input type="hidden" {...register("guests")} />
       <input type="hidden" {...register("promoCode")} />
+      <input
+        type="hidden"
+        {...register("pointsToRedeem", { setValueAs: (v) => (v === "" || v === undefined ? undefined : Number(v)) })}
+      />
       <div className="space-y-2">
         <Label htmlFor="guestName">ชื่อ-นามสกุล</Label>
         <Input

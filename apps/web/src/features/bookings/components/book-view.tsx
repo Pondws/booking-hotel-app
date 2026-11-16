@@ -71,9 +71,9 @@ function BookHotel({ slug, input }: { slug: string; input: CreateBookingData }) 
   return (
     <div className="grid gap-8 md:grid-cols-[1fr_20rem] md:items-start">
       <GuestForm
-        key={`${input.roomTypeId}|${input.checkIn}|${input.checkOut}|${input.guests}|${input.promoCode ?? ""}`}
+        key={`${input.roomTypeId}|${input.checkIn}|${input.checkOut}|${input.guests}|${input.promoCode ?? ""}|${input.pointsToRedeem ?? 0}`}
         hotelSlug={slug} stay={input} canHold={canHold} />
-      <BookingSummary hotel={hotel} roomType={roomType} range={range} />
+      <BookingSummary hotel={hotel} roomType={roomType} range={range} points={input.pointsToRedeem ?? 0} />
     </div>
   );
 }

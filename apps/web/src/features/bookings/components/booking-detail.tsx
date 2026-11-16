@@ -167,17 +167,28 @@ function BookingView({ booking, refetch, onStillPending }: ViewProps) {
             {booking.guestName} · {booking.guestEmail}
           </dd>
         </dl>
-        {booking.discountAmount > 0 && (
+        {(booking.discountAmount > 0 || booking.pointsRedeemed > 0) && (
           <dl className="space-y-1 border-t pt-3 text-sm tabular-nums">
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">ราคาห้องพัก</dt>
               <dd>{formatMoney(booking.subtotalAmount, booking.currency)}</dd>
             </div>
-            <div className="flex justify-between gap-4 text-primary">
-              <dt>ส่วนลด{booking.discountLabel ? ` · ${booking.discountLabel}` : ""}</dt>
-              <dd>−{formatMoney(booking.discountAmount, booking.currency)}</dd>
-            </div>
+            {booking.discountAmount > 0 && (
+              <div className="flex justify-between gap-4 text-primary">
+                <dt>ส่วนลด{booking.discountLabel ? ` · ${booking.discountLabel}` : ""}</dt>
+                <dd>−{formatMoney(booking.discountAmount, booking.currency)}</dd>
+              </div>
+            )}
+            {booking.pointsRedeemed > 0 && (
+              <div className="flex justify-between gap-4 text-primary">
+                <dt>ใช้แต้ม {booking.pointsRedeemed.toLocaleString("th-TH")} แต้ม</dt>
+                <dd>−{formatMoney(booking.pointsRedeemed, booking.currency)}</dd>
+              </div>
+            )}
           </dl>
+        )}
+        {booking.pointsEarned > 0 && (
+          <p className="text-sm text-primary">ได้รับ {booking.pointsEarned.toLocaleString("th-TH")} แต้มจากการเข้าพักนี้</p>
         )}
         <p className="flex justify-between gap-4 border-t pt-3 text-base font-semibold tabular-nums">
           <span>ราคารวม</span>

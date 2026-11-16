@@ -18,6 +18,7 @@ import { isExclusionViolation, isWriteConflict } from "../lib/prisma-errors";
 import { bookingSnapshot, recordAudit } from "./audit.service";
 import { blockingBookingWhere } from "./availability.service";
 import { canAccessHotel } from "./hotel-access.service";
+import { pointsForCheckOut } from "./rewards.service";
 import { releaseBookingPayment } from "./payment.service";
 
 const adminBookingSelect = {
@@ -318,14 +319,16 @@ export async function checkInBooking(user: PublicUser, code: string, now: Date =
   return auditBooking(user, code, now, before);
 }
 
+/** Reward points (11.6) are written by the same conditional statement that sets COMPLETED. */
 export async function checkOutBooking(user: PublicUser, code: string, now: Date = new Date()): Promise<AdminBooking> {
   const before = await getAdminBooking(user, code, now);
+  const pointsEarned = await pointsForCheckOut(code);
   await applyAction(
     user,
     code,
     now,
     checkOutWhere,
-    { status: "COMPLETED", checkedOutAt: now },
+    { status: "COMPLETED", checkedOutAt: now, pointsEarned },
     "This booking can't be checked out",
   );
   return auditBooking(user, code, now, before);

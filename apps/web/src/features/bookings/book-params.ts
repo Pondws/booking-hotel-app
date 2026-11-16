@@ -5,8 +5,8 @@ export type BookParams =
   | { hotel: string | null; input: null };
 
 /**
- * `/book?hotel=&roomTypeId=&checkIn=&checkOut=&guests=&promo=` → validated booking input, or `input: null`.
- * A malformed `promo` is dropped rather than failing the whole stay.
+ * `/book?hotel=&roomTypeId=&checkIn=&checkOut=&guests=&promo=&points=` → validated booking input, or
+ * `input: null`. A malformed `promo` / `points` is dropped rather than failing the whole stay.
  */
 export function parseBookParams(sp: URLSearchParams): BookParams {
   const hotel = sp.get("hotel")?.trim() || null;
@@ -18,7 +18,15 @@ export function parseBookParams(sp: URLSearchParams): BookParams {
   });
   if (hotel === null || !parsed.success) return { hotel, input: null };
   const promo = promoCodeField.safeParse(sp.get("promo") ?? "");
-  return { hotel, input: { ...parsed.data, promoCode: promo.success ? promo.data : undefined } };
+  const points = Number(sp.get("points") ?? 0);
+  return {
+    hotel,
+    input: {
+      ...parsed.data,
+      promoCode: promo.success ? promo.data : undefined,
+      pointsToRedeem: Number.isInteger(points) && points > 0 ? points : undefined,
+    },
+  };
 }
 
 /** `/book` URL for a room type and stay. */

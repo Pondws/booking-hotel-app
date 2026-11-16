@@ -11,6 +11,7 @@ import { amenitiesRouter } from "./routes/amenities";
 import { dealsRouter } from "./routes/deals";
 import { destinationsRouter } from "./routes/destinations";
 import { hotelsRouter } from "./routes/hotels";
+import { rewardsRouter } from "./routes/rewards";
 import { wishlistsRouter } from "./routes/wishlists";
 import { webhooksRouter } from "./routes/webhooks";
 
@@ -45,6 +46,7 @@ app.use("/api/amenities", amenitiesRouter);
 app.use("/api/deals", dealsRouter);
 app.use("/api/destinations", destinationsRouter);
 app.use("/api/bookings", bookingsRouter);
+app.use("/api/rewards", rewardsRouter);
 app.use("/api/wishlists", wishlistsRouter);
 app.use("/api/admin", adminRouter);
 

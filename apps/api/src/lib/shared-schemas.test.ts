@@ -270,6 +270,8 @@ test("bookingSchema parses a sample", () => {
     subtotalAmount: 9600,
     discountAmount: 0,
     discountLabel: null,
+    pointsRedeemed: 0,
+    pointsEarned: 0,
     totalAmount: 9600,
     currency: "THB",
     expiresAt: "2027-01-01T10:15:00.000Z",

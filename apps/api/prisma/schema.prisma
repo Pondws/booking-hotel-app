@@ -280,6 +280,11 @@ model Booking {
   /// The deal's name when booked (the promotion may be renamed or deleted since).
   discountLabel  String?    @map("discount_label") @db.VarChar(80)
   promotionId    String?    @map("promotion_id")
+  /// Reward points spent on this booking (1 point = 1 unit of currency), already taken off totalAmount (11.6).
+  /// They count against the balance only while the booking holds a room or is completed.
+  pointsRedeemed Int        @default(0) @map("points_redeemed")
+  /// Points earned, written in the same statement that sets COMPLETED (check-out); 0 before.
+  pointsEarned   Int        @default(0) @map("points_earned")
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 

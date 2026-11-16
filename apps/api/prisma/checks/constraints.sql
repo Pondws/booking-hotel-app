@@ -65,6 +65,9 @@ SELECT pg_temp.expect_fail($q$INSERT INTO promotions (id, hotel_id, name, type, 
 SELECT pg_temp.expect_fail($q$INSERT INTO promotions (id, hotel_id, name, type, percent_off, valid_from, valid_until, updated_at) VALUES ('t_pr4', 't_hotel', 'P', 'CODE', 10, '2027-02-01', '2027-01-31', now())$q$, '23514');
 INSERT INTO promotions (id, hotel_id, name, type, percent_off, valid_from, valid_until, updated_at) VALUES ('t_pr5', 't_hotel', 'P', 'CODE', 90, '2027-02-01', '2027-02-01', now());
 SELECT pg_temp.expect_fail($q$UPDATE bookings SET discount_amount = -1 WHERE id = 't_b1'$q$, '23514');
+-- reward points can't go negative
+SELECT pg_temp.expect_fail($q$UPDATE bookings SET points_redeemed = -1 WHERE id = 't_b1'$q$, '23514');
+SELECT pg_temp.expect_fail($q$UPDATE bookings SET points_earned = -1 WHERE id = 't_b1'$q$, '23514');
 
 DO $$ BEGIN RAISE NOTICE 'ALL CONSTRAINT CHECKS PASSED'; END $$;
 ROLLBACK;
