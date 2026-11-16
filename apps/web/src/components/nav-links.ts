@@ -1,7 +1,7 @@
 /** Main navigation (header) — pages marked `soon` are placeholders until their phase ships (PLAN.md Phase 11). */
 export const MAIN_NAV = [
   { href: "/hotels", label: "ที่พัก" },
-  { href: "/destinations", label: "จุดหมายปลายทาง", soon: true },
+  { href: "/destinations", label: "จุดหมายปลายทาง" },
   { href: "/deals", label: "ดีลพิเศษ", soon: true },
   { href: "/rewards", label: "สมาชิกรางวัล", soon: true },
 ] as const;
