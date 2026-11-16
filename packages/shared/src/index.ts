@@ -1057,6 +1057,15 @@ export const changePasswordSchema = z.object({
 });
 export type ChangePasswordInput = z.output<typeof changePasswordSchema>;
 
+/** The change-password form in web + web-admin: the API body plus a client-only confirmation. */
+export const changePasswordFormSchema = changePasswordSchema
+  .extend({ confirmPassword: z.string().min(1, "Password is required").max(128) })
+  .refine((v) => v.confirmPassword === v.newPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords don't match",
+  });
+export type ChangePasswordFormInput = z.input<typeof changePasswordFormSchema>;
+
 export const staffIdParamsSchema = z.object({ userId: z.string().min(1) });
 export type StaffIdParams = z.output<typeof staffIdParamsSchema>;
 
