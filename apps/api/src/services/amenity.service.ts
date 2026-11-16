@@ -131,3 +131,12 @@ export async function assertAmenityScope(amenityIds: string[], scope: AmenitySco
     });
   }
 }
+
+/** Public: hotel-level amenities for the search filter (code + name only). */
+export function listHotelAmenities(): Promise<{ code: string; name: string }[]> {
+  return prisma.amenity.findMany({
+    where: { scope: "HOTEL" },
+    orderBy: [{ name: "asc" }, { code: "asc" }],
+    select: { code: true, name: true },
+  });
+}

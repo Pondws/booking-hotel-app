@@ -11,7 +11,7 @@ import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
 import { cn } from "@booking/ui/lib/utils";
 import { thaiResolver } from "@/lib/messages-th";
-import { searchHref } from "../search-params";
+import { pickFilters, searchHref } from "../search-params";
 import { DateRangeField } from "./date-range-field";
 
 type FormInput = z.input<typeof hotelSearchQuerySchema>;
@@ -44,9 +44,19 @@ export function SearchBar({ defaultValues, className }: Props) {
   });
   const [checkIn, checkOut] = useWatch({ control, name: ["checkIn", "checkOut"] });
 
-  // Every new search starts on page 1 (page/pageSize come from the schema defaults)
+  // Every new search starts on page 1 and keeps the FilterPanel's filters + sort from the URL
   const onSubmit = handleSubmit((values) => {
-    router.push(searchHref({ ...values, page: 1, pageSize: defaultValues?.pageSize }));
+    router.push(
+      searchHref({
+        ...pickFilters(defaultValues),
+        city: values.city,
+        checkIn: values.checkIn,
+        checkOut: values.checkOut,
+        guests: values.guests,
+        page: 1,
+        pageSize: defaultValues?.pageSize,
+      }),
+    );
   });
 
   const dateError = errors.checkIn?.message ?? errors.checkOut?.message;

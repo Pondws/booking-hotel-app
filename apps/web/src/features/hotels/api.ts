@@ -1,8 +1,10 @@
 import {
+  amenityListSchema,
   availabilitySchema,
   hotelDetailSchema,
   hotelReviewListSchema,
   hotelSearchResultSchema,
+  type Amenity,
   type Availability,
   type HotelDetail,
   type HotelReviewList,
@@ -15,7 +17,9 @@ import {
 import { request } from "@/lib/api";
 
 export function searchHotels(q: HotelSearchQuery): Promise<Paginated<HotelSummary>> {
-  return request(hotelSearchResultSchema, { method: "GET", url: "/api/hotels", params: q });
+  // Express parses `amenities=a,b`; axios would send an array as `amenities[]=a&amenities[]=b`
+  const params = { ...q, amenities: q.amenities?.join(",") };
+  return request(hotelSearchResultSchema, { method: "GET", url: "/api/hotels", params });
 }
 
 export function fetchHotel(slug: string): Promise<HotelDetail> {
@@ -39,4 +43,9 @@ export function fetchAvailability(slug: string, range: StayRange): Promise<Avail
     url: `/api/hotels/${encodeURIComponent(slug)}/availability`,
     params: range,
   });
+}
+
+/** Hotel-level amenities for the search filter. */
+export function fetchHotelAmenities(): Promise<Amenity[]> {
+  return request(amenityListSchema, { method: "GET", url: "/api/amenities" });
 }

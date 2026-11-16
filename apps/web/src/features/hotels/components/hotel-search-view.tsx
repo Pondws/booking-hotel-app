@@ -20,7 +20,7 @@ export function HotelSearchView() {
         </div>
       </div>
       <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 lg:grid-cols-4 lg:items-start">
-        <FilterPanel className="lg:sticky lg:top-24" />
+        <FilterPanel query={query} className="lg:sticky lg:top-24" />
         <div className="space-y-4 lg:col-span-3">
           <h1 className="text-2xl font-semibold tracking-tight">
             {query.city ? `ที่พักใน ${query.city}` : "ที่พักทั้งหมด"}

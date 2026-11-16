@@ -47,7 +47,7 @@ test("searchHotels omits inactive hotels", async () => {
   const active = await createHotel(admin, { ...input(`${PREFIX}${Date.now()} active`), city });
   const inactive = await createHotel(admin, { ...input(`${PREFIX}${Date.now()} inactive`), city });
   await prisma.hotel.update({ where: { id: inactive.id }, data: { isActive: false } });
-  const result = await searchHotels({ city, page: 1, pageSize: 50 });
+  const result = await searchHotels({ city, sort: "recommended", page: 1, pageSize: 50 });
   assert.deepEqual(
     result.items.map((x) => x.id),
     [active.id],

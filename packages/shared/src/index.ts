@@ -382,6 +382,28 @@ export type RatePeriodData = z.output<typeof ratePeriodInputSchema>;
 export const ratePeriodParamsSchema = roomTypeParamsSchema.extend({ ratePeriodId: z.string().min(1) });
 export type RatePeriodParams = z.output<typeof ratePeriodParamsSchema>;
 
+const blankToUndef = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
+
+/** Result order on `/hotels`. `recommended` = rating, then name. Price = lowest nightly `fromPrice`. */
+export const HOTEL_SORTS = ["recommended", "price_asc", "price_desc", "rating_desc"] as const;
+export const hotelSortSchema = z.enum(HOTEL_SORTS);
+export type HotelSort = z.infer<typeof hotelSortSchema>;
+
+/** Nightly price bound in the hotel's currency (whole units). */
+const priceBound = z.preprocess(blankToUndef, z.coerce.number().int().min(0).max(10_000_000).optional());
+
+const AMENITY_CODE = /^[a-z0-9_-]{1,40}$/;
+/** `wifi,pool` (URL) or `["wifi","pool"]` → unique codes; a hotel must have all of them. */
+const amenityCodesField = z.preprocess(
+  (v) => {
+    const parts = Array.isArray(v) ? v : typeof v === "string" ? v.split(",") : v;
+    if (!Array.isArray(parts)) return parts;
+    const codes = [...new Set(parts.map((p) => (typeof p === "string" ? p.trim() : p)).filter((p) => p !== ""))];
+    return codes.length === 0 ? undefined : codes;
+  },
+  z.array(z.string().regex(AMENITY_CODE)).max(20).optional(),
+);
+
 export const hotelSearchQuerySchema = z
   .object({
     city: z.preprocess(
@@ -391,10 +413,18 @@ export const hotelSearchQuerySchema = z
     checkIn: isoDate.optional(),
     checkOut: isoDate.optional(),
     guests: guestsField.optional(),
+    minPrice: priceBound,
+    maxPrice: priceBound,
+    minRating: z.preprocess(blankToUndef, z.coerce.number().min(0).max(5).optional()),
+    amenities: amenityCodesField,
+    sort: z.preprocess(blankToUndef, hotelSortSchema.default("recommended")),
     page: z.coerce.number().int().min(1).default(1),
     pageSize: z.coerce.number().int().min(1).max(50).default(12),
   })
   .superRefine((v, ctx) => {
+    if (v.minPrice !== undefined && v.maxPrice !== undefined && v.maxPrice < v.minPrice) {
+      ctx.addIssue({ code: "custom", path: ["maxPrice"], message: "Max price must be at least the min price" });
+    }
     if (v.checkIn === undefined && v.checkOut === undefined) return;
     if (v.checkIn === undefined || v.checkOut === undefined) {
       ctx.addIssue({
@@ -434,6 +464,10 @@ export const amenitySchema = z.object({
   code: z.string(),
   name: z.string(),
 });
+
+/** `GET /api/amenities` — hotel-level amenities, for the search filter. */
+export const amenityListSchema = z.array(amenitySchema);
+export type Amenity = z.infer<typeof amenitySchema>;
 
 export const hotelSummarySchema = z.object({
   id: z.string(),

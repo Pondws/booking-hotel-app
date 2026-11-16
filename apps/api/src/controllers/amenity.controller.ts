@@ -33,3 +33,7 @@ export async function deleteAmenity(req: Request, res: AmenityRes) {
   await amenityService.deleteAmenity(currentUser(req), res.locals.params.amenityId);
   noContent(res);
 }
+
+export async function listHotelAmenities(_req: Request, res: Response) {
+  ok(res, await amenityService.listHotelAmenities());
+}

@@ -9,13 +9,14 @@ import {
 } from "@tanstack/react-query";
 import { useCallback } from "react";
 import type { HotelSearchQuery, StayRange } from "@booking/shared";
-import { fetchAvailability, fetchHotel, fetchHotelReviews, searchHotels } from "./api";
+import { fetchAvailability, fetchHotel, fetchHotelAmenities, fetchHotelReviews, searchHotels } from "./api";
 
 const REVIEWS_PAGE_SIZE = 10;
 
 export const hotelKeys = {
   all: ["hotels"] as const,
   lists: () => [...hotelKeys.all, "list"] as const,
+  amenities: () => [...hotelKeys.all, "amenities"] as const,
   list: (q: HotelSearchQuery) => [...hotelKeys.lists(), q] as const,
   details: () => [...hotelKeys.all, "detail"] as const,
   detail: (slug: string) => [...hotelKeys.details(), slug] as const,
@@ -72,4 +73,9 @@ export function usePrefetchHotel(): (slug: string) => void {
     },
     [queryClient],
   );
+}
+
+/** The filter's amenity options change rarely (admin catalog), so keep them for a while. */
+export function useHotelAmenities() {
+  return useQuery({ queryKey: hotelKeys.amenities(), queryFn: fetchHotelAmenities, staleTime: 30 * 60_000 });
 }
