@@ -6,6 +6,7 @@ import {
   type AdminBooking,
   type AdminHotel,
   type AdminRatePeriod,
+  type AdminReview,
   type AdminRoomType,
   type AdminStaff,
   type AuditChange,
@@ -82,7 +83,10 @@ export const bookingSnapshot = (b: AdminBooking): AuditSnapshot => ({
   paymentStatus: b.payment?.status ?? null,
 });
 
-export const roomLabel = (roomTypeName: string, number: string) => `${roomTypeName} · ${number}`;
+/** Staff only change whether a review shows. */
+export const reviewSnapshot = (r: AdminReview): AuditSnapshot => ({ isHidden: r.isHidden });
+
+export const roomLabel =(roomTypeName: string, number: string) => `${roomTypeName} · ${number}`;
 
 export const ratePeriodLabel = (roomTypeName: string, rp: AdminRatePeriod) =>
   `${roomTypeName} · ${rp.name ?? `${rp.startDate} – ${rp.endDate}`}`;

@@ -6,6 +6,7 @@ import { adminAuditLogsRouter } from "./audit-logs";
 import { adminBookingsRouter } from "./bookings";
 import { adminDashboardRouter } from "./dashboard";
 import { adminHotelsRouter } from "./hotels";
+import { adminReviewsRouter } from "./reviews";
 import { adminStaffRouter } from "./staff";
 import { adminUploadsRouter } from "./uploads";
 
@@ -17,5 +18,6 @@ adminRouter.use("/amenities", adminAmenitiesRouter);
 adminRouter.use("/audit-logs", adminAuditLogsRouter);
 adminRouter.use("/bookings", adminBookingsRouter);
 adminRouter.use("/dashboard", adminDashboardRouter);
+adminRouter.use("/reviews", adminReviewsRouter);
 adminRouter.use("/staff", adminStaffRouter);
 adminRouter.use("/uploads", adminUploadsRouter);

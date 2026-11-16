@@ -70,6 +70,7 @@ const EXACT: Record<string, string> = {
   "This staff member already works at this hotel": "พนักงานคนนี้ดูแลโรงแรมนี้อยู่แล้ว",
   "This staff member doesn't work at this hotel": "พนักงานคนนี้ไม่ได้ดูแลโรงแรมนี้",
   "Amenity not found": "ไม่พบสิ่งอำนวยความสะดวก",
+  "Review not found": "ไม่พบรีวิว",
 };
 
 const ISO = String.raw`(\d{4}-\d{2}-\d{2})`;

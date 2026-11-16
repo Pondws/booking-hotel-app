@@ -334,9 +334,9 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-dashboard-design.md`
 - [ ] web: ส่วนรีวิวในหน้าโรงแรม (คะแนนเฉลี่ย + รายการ + "ดูเพิ่มเติม")
 
 ### 7.4 — ซ่อนรีวิว (Admin)
-- [ ] Migration: `AuditEntityType.REVIEW`
-- [ ] `GET /api/admin/reviews` + `PATCH /api/admin/reviews/:id { isHidden }` แล้วคำนวณคะแนนใหม่; STAFF เฉพาะโรงแรมตัวเอง; บันทึก audit log
-- [ ] web-admin: เมนู "รีวิว" ตาราง + ตัวกรองโรงแรม/สถานะ + ปุ่มซ่อน/แสดง
+- [x] Migration: `AuditEntityType.REVIEW`
+- [x] `GET /api/admin/reviews` + `PATCH /api/admin/reviews/:id { isHidden }` แล้วคำนวณคะแนนใหม่; STAFF เฉพาะโรงแรมตัวเอง; บันทึก audit log
+- [x] web-admin: เมนู "รีวิว" ตาราง + ตัวกรองโรงแรม/สถานะ + ปุ่มซ่อน/แสดง
 
 ## Phase 8 — บัญชีผู้ใช้ + ความปลอดภัยของ staff
 

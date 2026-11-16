@@ -2,6 +2,8 @@ import {
   ArrowLeftRight,
   Ban,
   Building2,
+  Eye,
+  EyeOff,
   ImageIcon,
   LogIn,
   LogOut,
@@ -44,6 +46,11 @@ export function activityOf(log: AdminAuditLog): Activity {
     return changeOf(log, "isActive")?.after === true
       ? { icon: Power, label: "เปิดใช้งาน", variant: "secondary" }
       : { icon: PowerOff, label: "ปิดใช้งาน", variant: "muted" };
+  }
+  if (only(log, "isHidden")) {
+    return changeOf(log, "isHidden")?.after === true
+      ? { icon: EyeOff, label: "ซ่อนรีวิว", variant: "muted" }
+      : { icon: Eye, label: "แสดงรีวิว", variant: "secondary" };
   }
   if (only(log, "hotels")) return { icon: Building2, label: "เปลี่ยนโรงแรมที่ดูแล", variant: "default" };
   if (only(log, "images")) return { icon: ImageIcon, label: "แก้ไขรูปภาพ", variant: "default" };

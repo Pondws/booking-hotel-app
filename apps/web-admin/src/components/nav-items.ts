@@ -1,4 +1,12 @@
-import { Building2, CalendarCheck, LayoutDashboard, Sparkles, Users, type LucideIcon } from "lucide-react";
+import {
+  Building2,
+  CalendarCheck,
+  LayoutDashboard,
+  MessageSquare,
+  Sparkles,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import type { Role } from "@booking/shared";
 
 export type NavItem = {
@@ -14,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "ภาพรวม", icon: LayoutDashboard },
   { href: "/hotels", label: "โรงแรม", icon: Building2 },
   { href: "/bookings", label: "การจอง", icon: CalendarCheck },
+  { href: "/reviews", label: "รีวิว", icon: MessageSquare },
   { href: "/staff", label: "พนักงาน", icon: Users, roles: ["ADMIN"] },
   { href: "/amenities", label: "สิ่งอำนวยความสะดวก", icon: Sparkles, roles: ["ADMIN"] },
 ];

@@ -1042,6 +1042,44 @@ export type StaffHotelParams = z.output<typeof staffHotelParamsSchema>;
 export const assignStaffHotelSchema = z.object({ hotelId: z.string().min(1, "Choose a hotel") });
 export type AssignStaffHotelInput = z.output<typeof assignStaffHotelSchema>;
 
+// ---------- Admin reviews ----------
+export const ADMIN_REVIEW_VISIBILITY_FILTERS = ["all", "visible", "hidden"] as const;
+export type AdminReviewVisibilityFilter = (typeof ADMIN_REVIEW_VISIBILITY_FILTERS)[number];
+
+/** Newest first. STAFF only see reviews of their own hotels. */
+export const adminReviewListQuerySchema = z.object({
+  hotelId: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  visibility: z.enum(ADMIN_REVIEW_VISIBILITY_FILTERS).default("all"),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type AdminReviewListQuery = z.output<typeof adminReviewListQuerySchema>;
+
+/** A review as staff see it: hidden ones too, with the guest's full name and the booking. */
+export const adminReviewSchema = z.object({
+  id: z.string(),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().nullable(),
+  guestName: z.string(),
+  bookingCode: z.string(),
+  hotel: z.object({ id: z.string(), name: z.string() }),
+  /** The booking's check-out date (YYYY-MM-DD). */
+  stayedAt: isoDate,
+  isHidden: z.boolean(),
+  hiddenAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+});
+export type AdminReview = z.infer<typeof adminReviewSchema>;
+
+export const adminReviewListSchema = paginated(adminReviewSchema);
+
+export const reviewIdParamsSchema = z.object({ reviewId: z.string().min(1) });
+export type ReviewIdParams = z.output<typeof reviewIdParamsSchema>;
+
+/** `PATCH /api/admin/reviews/:reviewId`. Hidden reviews leave the hotel page and its rating. */
+export const updateReviewVisibilitySchema = z.object({ isHidden: z.boolean() });
+export type UpdateReviewVisibilityInput = z.output<typeof updateReviewVisibilitySchema>;
+
 // ---------- Admin audit log ----------
 export const AUDIT_ACTIONS = ["CREATE", "UPDATE", "DELETE"] as const;
 export const auditActionSchema = z.enum(AUDIT_ACTIONS);
@@ -1055,6 +1093,7 @@ export const AUDIT_ENTITY_TYPES = [
   "AMENITY",
   "STAFF",
   "BOOKING",
+  "REVIEW",
 ] as const;
 export const auditEntityTypeSchema = z.enum(AUDIT_ENTITY_TYPES);
 export type AuditEntityType = z.infer<typeof auditEntityTypeSchema>;
