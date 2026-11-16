@@ -3,12 +3,12 @@ import { Suspense } from "react";
 import { RequireAuth } from "@/features/auth/components/require-auth";
 import { BookView, BookViewSkeleton } from "@/features/bookings/components/book-view";
 
-export const metadata: Metadata = { title: "Book your stay · Booking Hotel" };
+export const metadata: Metadata = { title: "ยืนยันการจอง · Booking Hotel" };
 
 export default function BookPage() {
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Book your stay</h1>
+    <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8">
+      <h1 className="text-2xl font-semibold tracking-tight">ยืนยันการจอง</h1>
       <Suspense fallback={<BookViewSkeleton />}>
         <RequireAuth>
           <BookView />

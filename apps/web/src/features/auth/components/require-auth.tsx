@@ -41,20 +41,20 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   }, [user, current, router]);
 
   if (!hydrated) {
-    return <p className="py-10 text-center text-muted-foreground">Loading…</p>;
+    return <p className="py-10 text-center text-muted-foreground">กำลังโหลด…</p>;
   }
   if (isError) {
     return (
       <div className="space-y-3 py-10 text-center">
-        <p className="text-destructive">Could not load your session.</p>
+        <p className="text-destructive">โหลดข้อมูลการเข้าสู่ระบบไม่ได้</p>
         <Button variant="outline" onClick={() => void refetch()}>
-          Try again
+          ลองใหม่
         </Button>
       </div>
     );
   }
   if (isPending || user === null) {
-    return <p className="py-10 text-center text-muted-foreground">Loading…</p>;
+    return <p className="py-10 text-center text-muted-foreground">กำลังโหลด…</p>;
   }
   return <>{children}</>;
 }

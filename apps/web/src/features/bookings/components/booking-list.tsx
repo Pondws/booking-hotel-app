@@ -25,7 +25,7 @@ export function BookingList() {
   if (data === undefined) {
     if (!isError) {
       return (
-        <div className={LIST} role="status" aria-busy="true" aria-label="Loading bookings">
+        <div className={LIST} role="status" aria-busy="true" aria-label="กำลังโหลดการจอง">
           {Array.from({ length: 3 }, (_, i) => (
             <BookingCardSkeleton key={i} />
           ))}
@@ -34,9 +34,9 @@ export function BookingList() {
     }
     return (
       <div role="alert" className="space-y-3 rounded-lg border p-6 text-center">
-        <p className="text-sm">We couldn&apos;t load your bookings right now.</p>
+        <p className="text-sm">โหลดรายการจองไม่ได้ในขณะนี้</p>
         <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
-          {isFetching ? "Retrying…" : "Try again"}
+          {isFetching ? "กำลังลองใหม่…" : "ลองใหม่"}
         </Button>
       </div>
     );
@@ -47,18 +47,19 @@ export function BookingList() {
     if (data.total > 0) {
       return (
         <div className="space-y-2 rounded-lg border p-6 text-center">
-          <p className="font-medium">There are no more bookings on this page.</p>
+          <p className="font-medium">ไม่มีการจองในหน้านี้แล้ว</p>
           <Link href={pageHref(1)} className="inline-flex min-h-6 items-center text-sm underline underline-offset-4">
-            Back to the first page
+            กลับไปหน้าแรก
           </Link>
         </div>
       );
     }
     return (
       <div className="space-y-3 rounded-lg border p-6 text-center">
-        <p className="font-medium">No bookings yet</p>
+        <p className="font-medium">ยังไม่มีการจอง</p>
+        <p className="text-sm text-muted-foreground">เริ่มวางแผนทริปถัดไป แล้วการจองจะแสดงที่นี่</p>
         <Link href="/hotels" className={buttonVariants({ variant: "outline" })}>
-          Find a hotel
+          ค้นหาที่พัก
         </Link>
       </div>
     );
@@ -68,7 +69,7 @@ export function BookingList() {
   return (
     <section aria-labelledby="bookings-heading" className="space-y-4">
       <h2 id="bookings-heading" className="sr-only">
-        Your bookings
+        การจองของคุณ
       </h2>
       <div aria-busy={busy} className={cn(LIST, "transition-opacity", busy && "opacity-60")}>
         {data.items.map((booking) => (
@@ -79,7 +80,7 @@ export function BookingList() {
         page={data.page}
         totalPages={data.totalPages}
         hrefFor={pageHref}
-        label="Bookings pages"
+        label="หน้ารายการจอง"
       />
     </section>
   );

@@ -52,8 +52,9 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 6 | Back-office (web-admin) | ✅ เสร็จแล้ว (6.1–6.7) |
 | 7 | Reviews | 🟡 กำลังทำ (7.1–7.4) |
 | 8 | บัญชีผู้ใช้ + ความปลอดภัยของ staff | ⬜ |
-| 9 | ตรวจและแก้ UI ทั้งหมด | ⬜ |
+| 9 | ตรวจและแก้ UI ทั้งหมด | 🟡 9.0 (redesign web + ภาษาไทย) ทำแล้ว รอตรวจในเบราว์เซอร์ |
 | 10 | Hardening และ deployment | ⬜ |
+| 11 | ฟีเจอร์ลูกค้าเพิ่มเติม (ref: Booking.com, Airbnb, Expedia) | ⬜ มีหน้า placeholder แล้ว |
 
 ---
 
@@ -372,6 +373,22 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-dashboard-design.md`
 และมี loading/error/empty states ครบ
 Claude ตรวจและแก้เองทั้งหมด: เปิดทุกหน้าในเบราว์เซอร์จริง → จดปัญหา → แก้ → ตรวจซ้ำ
 เป็น phase สุดท้ายก่อน deploy เพื่อตรวจทุกหน้ารอบเดียว รวม UI ของรีวิว (Phase 7) และหน้าบัญชี (Phase 8)
+
+### 9.0 — Redesign `apps/web` + เปลี่ยนเป็นภาษาไทย (branch `feat/web-redesign`)
+
+อ้างอิงเว็บจองโรงแรมชั้นนำ 3 เว็บ: **Booking.com** (แถบสีแบรนด์ + กล่องค้นหาซ้อนขอบ, ป้ายคะแนน + คำ, ตัวกรองด้านซ้าย,
+ความเร่งด่วน "เหลือ x ห้อง"), **Airbnb** (ภาพเป็นพระเอก, การ์ดมุมโค้ง, mosaic รูปหน้าโรงแรม, กล่องสรุปติดข้าง),
+**Expedia** (หน้าบัญชีแบบ hub, footer หลายคอลัมน์, banner สมาชิก/ดีล)
+
+- [x] Theme ของ web: primary สีเขียวน้ำทะเลเข้ม (teal), `--radius` 0.75rem, ฟอนต์ Anuphan, container `max-w-6xl`
+- [x] Header ติดบน (เมนูหลัก + รายการโปรด + บัญชี; มือถือมีแถบเมนูเลื่อนข้าง) และ footer 4 คอลัมน์
+- [x] หน้าแรก: hero + กล่องค้นหา, จุดหมายยอดนิยม (สรุปจากโรงแรมที่มี), โรงแรมแนะนำ, banner ดีล, "ทำไมต้องจองกับเรา"
+- [x] `/hotels`: แถบค้นหา + แผงตัวกรอง (placeholder) + หัวข้อตามเมือง; การ์ดโรงแรมแบบใหม่ (คะแนน + คำ + จำนวนรีวิว)
+- [x] หน้าโรงแรม: mosaic รูป (md+), เนื้อหา 2 คอลัมน์ + กล่องสรุปติดข้าง, ห้องพัก, รีวิว
+- [x] login/register แบบ 2 คอลัมน์ (สิทธิประโยชน์สมาชิก), หน้าบัญชีเป็น hub
+- [x] ข้อความทั้งหมดเป็นภาษาไทย: `lib/messages-th.ts` (toThai + thaiResolver), zod th locale, วันที่ พ.ศ., ปฏิทิน th, Stripe `locale: "th"`
+- [x] หน้า placeholder ของฟีเจอร์ที่ยังไม่มี → ดู Phase 11
+- [ ] ตรวจในเบราว์เซอร์ที่ 375/768/1280px (ทุก route ตอบ 200 และ h1 เป็นภาษาไทยแล้ว — ตรวจด้วย curl 2026-11-16 แต่ยังไม่ได้ดูหน้าจอจริง)
 ส่วนหน้าใหม่ใน Phase 7–8 ให้ทำตาม `DESIGN.md` ตั้งแต่ตอนสร้าง
 
 **Skills:**
@@ -421,7 +438,28 @@ Claude ตรวจและแก้เองทั้งหมด: เปิ�
   - managed Postgres ที่รองรับ `btree_gist`
 - [ ] Payments live mode: ตั้งค่าบัญชี/keys จริง, รองรับ refund ที่ยัง `pending` (webhook `refund.updated`),
       reconciliation ของ payment ที่ SUCCEEDED บน booking ที่ CANCELLED (refund ล้มเหลวตอนยกเลิก)
-- [ ] (ไม่บังคับ) i18n ไทย/อังกฤษสำหรับ `apps/web`
+- [ ] (ไม่บังคับ) i18n ไทย/อังกฤษสำหรับ `apps/web` (ตอนนี้เป็นภาษาไทยแบบ hardcode ตั้งแต่ 9.0) ⚠️ ต้องเพิ่ม dependency ต้องถามก่อน
+
+## Phase 11 — ฟีเจอร์ลูกค้าเพิ่มเติม (ref: Booking.com, Airbnb, Expedia)
+
+เป้าหมาย: เติมฟีเจอร์ที่เว็บจองโรงแรมชั้นนำมี แต่เรายังไม่มี ทุกข้อด้านล่างมีหน้า placeholder (`ComingSoon`
+ใน `apps/web/src/components/coming-soon.tsx`) และลิงก์จาก header/footer/หน้าบัญชีอยู่แล้ว
+พอทำข้อไหนเสร็จ ให้แทน placeholder ด้วยหน้าจริงและเอาป้าย "เร็ว ๆ นี้" ออก ทุกข้อทำตามลำดับใน CLAUDE.md
+(schema → shared → service → controller → route + tests → FE) และผ่าน `superpowers:brainstorming` ก่อน
+
+| # | ฟีเจอร์ | ref | หน้า placeholder | หมายเหตุ |
+| --- | --- | --- | --- | --- |
+| 11.1 | ตัวกรอง + เรียงลำดับผลค้นหา (ช่วงราคา, คะแนนรีวิว, สิ่งอำนวยความสะดวก, เรียงตามราคา/คะแนน) | Booking.com | `FilterPanel` ใน `/hotels` | ขยาย `hotelSearchQuerySchema` + query ใน `hotel.service`; state อยู่ใน URL |
+| 11.2 | รายการโปรด (wishlist) หลายลิสต์ + ปุ่มหัวใจบนการ์ดและหน้าโรงแรม | Airbnb | `/wishlist` | ตารางใหม่ `Wishlist`/`WishlistItem`; หัวใจต้องอยู่นอก `<Link>` ของการ์ด |
+| 11.3 | หน้าจุดหมายปลายทาง: รวมเมือง + จำนวนโรงแรม + ราคาเริ่มต้น, ไอเดียทริปตามธีม | Expedia / Booking.com | `/destinations` | ต้องมี endpoint สรุปรายเมือง (ตอนนี้หน้าแรกสรุปจากหน้าแรกของผลค้นหา) |
+| 11.4 | ค้นหาบนแผนที่ (map view) | Airbnb / Booking.com | (อยู่ใน 11.3 และ `FilterPanel`) | ต้องเพิ่ม lat/lng ใน `Hotel` + ไลบรารีแผนที่ ⚠️ dependency ใหม่ ต้องถามก่อน |
+| 11.5 | ดีลพิเศษ: early bird, last minute, ส่วนลดพักหลายคืน, โค้ดส่วนลด | Booking.com / Agoda | `/deals` | ต่อยอดจาก rate periods; ราคาต้องมาจาก `pricing.service` เท่านั้น แสดงก่อน/หลังส่วนลด |
+| 11.6 | สมาชิกรางวัล: แต้มจากการเข้าพักที่ COMPLETED, ระดับสมาชิก, ใช้แต้มเป็นส่วนลด | Booking.com Genius / Expedia One Key | `/rewards` | แต้มต้องเขียนใน transaction เดียวกับการเปลี่ยนสถานะ booking |
+| 11.7 | ศูนย์ช่วยเหลือ: FAQ ค้นหาได้, ติดต่อทีมงานจากหน้าการจอง | ทั้งสามเว็บ | `/help` (มีหัวข้อนโยบายยกเลิก + การชำระเงินที่ถูกต้องแล้ว) | |
+| 11.8 | ความปลอดภัยของบัญชี: แก้โปรไฟล์, เปลี่ยนรหัสผ่าน, ลืมรหัสผ่าน | ทั้งสามเว็บ | `/account/security` | คืองานใน Phase 8 — ทำ Phase 8 แล้วใช้หน้านี้เป็น UI |
+| 11.9 | Lightbox ดูรูปเต็มจอ (คีย์บอร์ด ← →) แทน "ดูรูปทั้งหมด" แบบกางลง | Airbnb | `HotelGallery` | ใช้ dialog จาก `packages/ui` (`npm run ui:add -- dialog`) |
+
+**เสร็จเมื่อ:** ไม่มีหน้า `ComingSoon` เหลือ และทุกฟีเจอร์มี test ฝั่ง API + loading/error/empty states ฝั่ง FE
 
 ---
 

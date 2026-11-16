@@ -1,3 +1,55 @@
 @import "@booking/ui/globals.css";
 
 /* App-specific styles go below */
+
+@theme inline {
+  --font-sans: var(--font-anuphan);
+}
+
+/*
+ * Customer theme: a deep sea-teal primary (search, book, pay, rating badges and the hero band) on
+ * near-white, faintly teal-tinted neutrals, so hotel photos carry the colour. Same token names as the shared
+ * theme, so every @booking/ui component picks it up. Rounder than the shared theme for a softer, photo-led look.
+ */
+:root {
+  --radius: 0.75rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.21 0.02 200);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.02 200);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.02 200);
+  --primary: oklch(0.47 0.1 192);
+  --primary-foreground: oklch(0.985 0.005 190);
+  --secondary: oklch(0.96 0.02 185);
+  --secondary-foreground: oklch(0.32 0.06 195);
+  --muted: oklch(0.966 0.007 190);
+  --muted-foreground: oklch(0.47 0.02 200);
+  --accent: oklch(0.95 0.03 185);
+  --accent-foreground: oklch(0.36 0.08 195);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.915 0.012 190);
+  --input: oklch(0.88 0.015 190);
+  --ring: oklch(0.47 0.1 192);
+}
+
+.dark {
+  --background: oklch(0.17 0.018 205);
+  --foreground: oklch(0.97 0.005 190);
+  --card: oklch(0.21 0.022 205);
+  --card-foreground: oklch(0.97 0.005 190);
+  --popover: oklch(0.21 0.022 205);
+  --popover-foreground: oklch(0.97 0.005 190);
+  --primary: oklch(0.74 0.11 185);
+  --primary-foreground: oklch(0.17 0.018 205);
+  --secondary: oklch(0.27 0.03 200);
+  --secondary-foreground: oklch(0.97 0.005 190);
+  --muted: oklch(0.26 0.022 205);
+  --muted-foreground: oklch(0.73 0.02 195);
+  --accent: oklch(0.3 0.05 195);
+  --accent-foreground: oklch(0.93 0.03 185);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.74 0.11 185);
+}

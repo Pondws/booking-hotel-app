@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Booking } from "@booking/shared";
 import { Card } from "@booking/ui/components/card";
 import { Skeleton } from "@booking/ui/components/skeleton";
-import { formatDateRange, formatMoney } from "@/features/hotels/format";
+import { formatDateRange, formatMoney, nightsLabel } from "@/features/hotels/format";
 import { BookingStatusBadge } from "./booking-status-badge";
 
 export function BookingCard({ booking }: { booking: Booking }) {
@@ -11,9 +11,9 @@ export function BookingCard({ booking }: { booking: Booking }) {
   return (
     <Link
       href={`/account/bookings/${encodeURIComponent(booking.code)}`}
-      className="group block rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="group block rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
-      <Card className="flex-row gap-4 p-3 transition-shadow group-hover:shadow-md">
+      <Card className="flex-row gap-4 rounded-xl p-3 transition-shadow group-hover:shadow-md">
         <div className="relative hidden aspect-[4/3] w-28 shrink-0 overflow-hidden rounded-md bg-muted sm:block">
           {hotel.coverImage && (
             <Image
@@ -34,7 +34,7 @@ export function BookingCard({ booking }: { booking: Booking }) {
           <p className="text-sm text-muted-foreground">
             {formatDateRange(booking.checkIn, booking.checkOut)}
             {" · "}
-            {booking.nights === 1 ? "1 night" : `${booking.nights} nights`}
+            {nightsLabel(booking.nights)}
           </p>
           <p className="text-sm font-medium tabular-nums">
             {formatMoney(booking.totalAmount, booking.currency)}

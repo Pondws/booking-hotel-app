@@ -44,7 +44,13 @@ variants only where shadcn components already do.
 ### Typography
 
 - Font: Geist Sans (`font-sans`) for everything; Geist Mono (`font-mono`) only for codes/IDs (booking refs).
-  web-admin (Thai UI) sets `font-sans` to IBM Plex Sans Thai (Thai + Latin) in its `globals.css`.
+  Both apps are Thai UI and set `font-sans` in their `globals.css`: web = Anuphan (variable, Thai + Latin),
+  web-admin = IBM Plex Sans Thai.
+- web theme (ref: Booking.com / Airbnb / Expedia): its `globals.css` sets a deep sea-teal `primary` (search, book, pay,
+  rating score badge, hero band) on near-white neutrals, `--radius` 0.75rem. Home + `/hotels` open with a
+  `bg-primary` band holding the search card; hotel detail = photo mosaic (md+, ≥5 photos) + content in
+  `lg:col-span-2` beside a sticky summary card. Ratings show as a `bg-primary` score + word (`ratingWord`) + count.
+  Features not built yet get a `ComingSoon` page (no dead controls); copy is written in Thai, never machine-literal.
 - web-admin theme: its `globals.css` redefines the colour tokens (blue primary on slate-tinted neutrals, white
   cards on a tinted page, `--radius` 0.5rem). Same token names — components still use `bg-primary`, `bg-sidebar` etc., never raw colours.
 - Scale (Tailwind defaults): page title `text-2xl font-semibold tracking-tight` (hero may use `text-3xl`/`text-4xl`
@@ -57,10 +63,11 @@ variants only where shadcn components already do.
 
 - Spacing on the 4px Tailwind scale: `gap-2` inside controls, `gap-4` between cards and form fields
   (`space-y-4` for stacked fields, `space-y-2` label → input), `gap-6`/`py-8` between page sections.
-- Page container: web `mx-auto w-full max-w-5xl px-4` (matches the header); web-admin `w-full px-4` (full width
-  beside the sidebar). Narrow forms: `max-w-sm`.
-- Radius: `--radius` = `0.625rem` → `rounded-lg` for cards and images, `rounded-md` for controls (the
-  component defaults). Don't mix in `rounded-none`/`rounded-3xl`.
+- Page container: web `mx-auto w-full max-w-6xl px-4` (matches the header/footer; account and booking pages
+  narrower: `max-w-3xl`/`max-w-5xl`); web-admin `w-full px-4` (full width beside the sidebar). Narrow forms: `max-w-sm`.
+- Radius: shared `--radius` = `0.625rem` (web 0.75rem, web-admin 0.5rem) → `rounded-lg` for cards and images
+  (web uses `rounded-xl` for cards, tiles and photos), `rounded-md` for controls (the component defaults).
+  Don't mix in `rounded-none`/`rounded-3xl`.
 - Grids: results `grid gap-4 sm:grid-cols-2 lg:grid-cols-3`. Mobile first; everything works at 360px wide.
 - Images: `next/image`, fixed aspect ratio (`aspect-[4/3]` cards, `aspect-video` gallery main), `object-cover`,
   meaningful `alt` (hotel/room name).
@@ -114,6 +121,7 @@ with alerts.
 ## Formatting
 
 - Money: `Intl.NumberFormat("th-TH", { style: "currency", currency })` with the API's `currency` (THB → ฿).
-- Dates: wire format is `YYYY-MM-DD` in `Asia/Bangkok`; display as `12 Apr 2027` (`date-fns` `d MMM yyyy`),
-  ranges as `12 – 15 Apr 2027`. Nights are `[checkIn, checkOut)`; always show the night count with a total.
-- Ratings: `★ 4.6` with one decimal + "(128 reviews)".
+- Dates: wire format is `YYYY-MM-DD` in `Asia/Bangkok`; both apps display Thai months + Buddhist-era year,
+  `12 เม.ย. 2570`, ranges `12 – 15 เม.ย. 2570` (each app's `format.ts`); calendars use the `th` locale from
+  `@booking/ui/lib/calendar-locales`. Nights are `[checkIn, checkOut)`; always show the night count with a total.
+- Ratings: web `4.6 ดีมาก · 128 รีวิว` (score badge + `ratingWord` + `reviewsLabel`); stars (`★`) in review lists.

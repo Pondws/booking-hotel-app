@@ -62,9 +62,9 @@ export function StayPicker({ value }: Props) {
   const hasDates = Boolean(value.checkIn && value.checkOut);
 
   return (
-    <div className="grid gap-4 rounded-lg border bg-card p-4 text-card-foreground sm:grid-cols-[1fr_8rem_auto] sm:items-start">
+    <div className="grid gap-4 rounded-xl border bg-card p-4 text-card-foreground sm:grid-cols-[1fr_8rem_auto] sm:items-start">
       <div className="space-y-2">
-        <Label htmlFor="stay-dates">Dates</Label>
+        <Label htmlFor="stay-dates">เช็คอิน – เช็คเอาท์</Label>
         <DateRangeField
           id="stay-dates"
           value={dates}
@@ -75,7 +75,7 @@ export function StayPicker({ value }: Props) {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="stay-guests">Guests</Label>
+        <Label htmlFor="stay-guests">ผู้เข้าพัก</Label>
         <Input
           id="stay-guests"
           type="number"
@@ -98,7 +98,7 @@ export function StayPicker({ value }: Props) {
         />
         {guestsInvalid && (
           <p id="stay-guests-error" className="text-sm text-destructive">
-            Enter 1 to {MAX_GUESTS} guests
+            กรอกจำนวนผู้เข้าพัก 1–{MAX_GUESTS} คน
           </p>
         )}
       </div>
@@ -117,7 +117,7 @@ export function StayPicker({ value }: Props) {
             write({ guests: value.guests });
           }}
         >
-          Clear dates
+          ล้างวันที่
         </Button>
       </div>
     </div>

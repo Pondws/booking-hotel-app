@@ -20,10 +20,11 @@ import { Textarea } from "@booking/ui/components/textarea";
 import { cn } from "@booking/ui/lib/utils";
 import { formatDate } from "@/features/hotels/format";
 import { applyServerFieldErrors, formErrorMessage } from "@/lib/form-errors";
+import { thaiResolver } from "@/lib/messages-th";
 import { useCreateReview } from "../hooks";
 
 const RATINGS = [1, 2, 3, 4, 5] as const;
-const RATING_LABELS: Record<number, string> = { 1: "Poor", 2: "Fair", 3: "Good", 4: "Very good", 5: "Excellent" };
+const RATING_LABELS: Record<number, string> = { 1: "ควรปรับปรุง", 2: "พอใช้", 3: "ดี", 4: "ดีมาก", 5: "ยอดเยี่ยม" };
 
 /** Review form when the stay can be reviewed, read-only view once reviewed, nothing otherwise. */
 export function ReviewCard({ booking }: { booking: Booking }) {
@@ -44,18 +45,18 @@ function Stars({ value, className }: { value: number; className?: string }) {
 
 function ReviewView({ review }: { review: Review }) {
   return (
-    <section aria-labelledby="review-heading" className="space-y-2 rounded-lg border p-4">
+    <section aria-labelledby="review-heading" className="space-y-2 rounded-xl border p-4">
       <h2 id="review-heading" className="text-lg font-semibold">
-        Your review
+        รีวิวของคุณ
       </h2>
       <div className="flex flex-wrap items-center gap-2">
         <Stars value={review.rating} />
-        <span className="sr-only">Rated {review.rating} out of 5</span>
+        <span className="sr-only">ให้คะแนน {review.rating} จาก 5</span>
         <span className="text-sm font-medium">{RATING_LABELS[review.rating]}</span>
       </div>
       {review.comment && <p className="text-sm break-words whitespace-pre-line">{review.comment}</p>}
       <p className="text-xs text-muted-foreground">
-        Reviewed on {formatDate(todayIn(BOOKING_TZ, new Date(review.createdAt)))}
+        รีวิวเมื่อ {formatDate(todayIn(BOOKING_TZ, new Date(review.createdAt)))}
       </p>
     </section>
   );
@@ -72,7 +73,7 @@ function ReviewForm({ booking }: { booking: Booking }) {
     setError,
     formState: { errors },
   } = useForm<CreateReviewInput, unknown, CreateReviewData>({
-    resolver: zodResolver(createReviewSchema),
+    resolver: thaiResolver(zodResolver(createReviewSchema)),
     defaultValues: { comment: "" },
   });
   const commentLength = useWatch({ control, name: "comment" })?.length ?? 0;
@@ -89,12 +90,12 @@ function ReviewForm({ booking }: { booking: Booking }) {
   });
 
   return (
-    <section aria-labelledby="review-heading" className="space-y-4 rounded-lg border p-4">
+    <section aria-labelledby="review-heading" className="space-y-4 rounded-xl border p-4">
       <div className="space-y-1">
         <h2 id="review-heading" className="text-lg font-semibold">
-          Rate your stay
+          ให้คะแนนการเข้าพัก
         </h2>
-        <p className="text-sm text-muted-foreground">How was {booking.hotel.name}? Your review helps other guests.</p>
+        <p className="text-sm text-muted-foreground">การเข้าพักที่ {booking.hotel.name} เป็นอย่างไรบ้าง? รีวิวของคุณช่วยผู้เข้าพักคนอื่นได้</p>
       </div>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         <Controller
@@ -104,7 +105,7 @@ function ReviewForm({ booking }: { booking: Booking }) {
             const shown = hovered ?? field.value ?? 0;
             return (
               <fieldset className="space-y-2" aria-describedby="rating-hint">
-                <legend className="text-sm font-medium">Rating</legend>
+                <legend className="text-sm font-medium">คะแนน</legend>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex gap-0.5" onMouseLeave={() => setHovered(null)}>
                     {RATINGS.map((n) => (
@@ -131,13 +132,13 @@ function ReviewForm({ booking }: { booking: Booking }) {
                           )}
                         />
                         <span className="sr-only">
-                          {n} {n === 1 ? "star" : "stars"} — {RATING_LABELS[n]}
+                          {n} ดาว — {RATING_LABELS[n]}
                         </span>
                       </label>
                     ))}
                   </div>
                   <span id="rating-hint" className="text-sm text-muted-foreground" aria-live="polite">
-                    {shown > 0 ? RATING_LABELS[shown] : "Select 1–5 stars"}
+                    {shown > 0 ? RATING_LABELS[shown] : "เลือก 1–5 ดาว"}
                   </span>
                 </div>
                 {errors.rating && <p className="text-sm text-destructive">{errors.rating.message}</p>}
@@ -147,13 +148,13 @@ function ReviewForm({ booking }: { booking: Booking }) {
         />
         <div className="space-y-2">
           <Label htmlFor="review-comment">
-            Comment <span className="font-normal text-muted-foreground">(optional)</span>
+            ความคิดเห็น <span className="font-normal text-muted-foreground">(ไม่บังคับ)</span>
           </Label>
           <Textarea
             id="review-comment"
             rows={4}
             maxLength={REVIEW_COMMENT_MAX}
-            placeholder="What did you like? What could be better?"
+            placeholder="ชอบอะไรบ้าง? มีอะไรที่ควรปรับปรุง?"
             aria-invalid={!!errors.comment}
             aria-describedby="review-comment-count"
             {...register("comment")}
@@ -171,7 +172,7 @@ function ReviewForm({ booking }: { booking: Booking }) {
           </p>
         )}
         <Button type="submit" disabled={review.isPending}>
-          {review.isPending ? "Submitting…" : "Submit review"}
+          {review.isPending ? "กำลังส่ง…" : "ส่งรีวิว"}
         </Button>
       </form>
     </section>

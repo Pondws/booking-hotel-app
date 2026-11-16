@@ -4,7 +4,7 @@ import Image from "next/image";
 import type { HotelDetail, RoomType, StayRange } from "@booking/shared";
 import { Button } from "@booking/ui/components/button";
 import { Skeleton } from "@booking/ui/components/skeleton";
-import { formatDate, formatDateRange, formatMoney } from "@/features/hotels/format";
+import { formatDate, formatDateRange, formatMoney, guestsLabel } from "@/features/hotels/format";
 import { useAvailability } from "@/features/hotels/hooks";
 import type { RoomAvailability } from "@/features/hotels/components/room-type-card";
 
@@ -17,9 +17,9 @@ export function BookingSummary({ hotel, roomType, range }: Props) {
   const entry = availability.data?.roomTypes.find((r) => r.roomTypeId === roomType.id);
 
   return (
-    <section aria-labelledby="summary-heading" className="space-y-4 rounded-lg border p-4">
+    <section aria-labelledby="summary-heading" className="space-y-4 rounded-xl border bg-card p-4 shadow-sm md:sticky md:top-24">
       <h2 id="summary-heading" className="sr-only">
-        Booking summary
+        สรุปการจอง
       </h2>
       <div className="relative aspect-video overflow-hidden rounded-md bg-muted">
         {cover && (
@@ -37,13 +37,13 @@ export function BookingSummary({ hotel, roomType, range }: Props) {
         <p className="text-sm text-muted-foreground">{roomType.name}</p>
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-        <dt className="text-muted-foreground">Dates</dt>
+        <dt className="text-muted-foreground">วันที่</dt>
         <dd>{formatDateRange(range.checkIn, range.checkOut)}</dd>
-        <dt className="text-muted-foreground">Guests</dt>
-        <dd>{range.guests === 1 ? "1 guest" : `${range.guests} guests`}</dd>
+        <dt className="text-muted-foreground">ผู้เข้าพัก</dt>
+        <dd>{guestsLabel(range.guests)}</dd>
         {entry?.available && (
           <>
-            <dt className="text-muted-foreground">Nights</dt>
+            <dt className="text-muted-foreground">จำนวนคืน</dt>
             <dd>{entry.quote.nights}</dd>
           </>
         )}
@@ -70,7 +70,7 @@ type QuoteProps = {
 function Quote({ isPending, isError, isFetching, retry, entry }: QuoteProps) {
   if (isPending) {
     return (
-      <div className="space-y-2" role="status" aria-busy="true" aria-label="Loading price">
+      <div className="space-y-2" role="status" aria-busy="true" aria-label="กำลังโหลดราคา">
         <Skeleton className="h-4 w-1/2" />
         <Skeleton className="h-4 w-1/2" />
         <Skeleton className="h-6 w-1/3" />
@@ -80,9 +80,9 @@ function Quote({ isPending, isError, isFetching, retry, entry }: QuoteProps) {
   if (isError) {
     return (
       <div role="alert" className="space-y-3">
-        <p className="text-sm">We couldn&apos;t check the price for these dates.</p>
+        <p className="text-sm">ตรวจสอบราคาของวันที่นี้ไม่ได้</p>
         <Button variant="outline" onClick={retry} disabled={isFetching}>
-          {isFetching ? "Retrying…" : "Try again"}
+          {isFetching ? "กำลังลองใหม่…" : "ลองใหม่"}
         </Button>
       </div>
     );
@@ -90,7 +90,7 @@ function Quote({ isPending, isError, isFetching, retry, entry }: QuoteProps) {
   if (!entry || !entry.available) {
     return (
       <p role="status" className="text-sm font-medium text-destructive">
-        This room type is sold out for these dates.
+        ห้องประเภทนี้เต็มในวันที่เลือกแล้ว
       </p>
     );
   }
@@ -107,7 +107,7 @@ function Quote({ isPending, isError, isFetching, retry, entry }: QuoteProps) {
         ))}
       </ul>
       <p className="flex justify-between gap-4 border-t pt-3 text-base font-semibold tabular-nums">
-        <span>Total</span>
+        <span>ราคารวม</span>
         <span>{formatMoney(quote.total, quote.currency)}</span>
       </p>
     </div>

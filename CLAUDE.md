@@ -25,9 +25,14 @@ apps/
   web/                   # customer site
     src/
       app/               # routes (App Router): / (search), hotels/ (results), hotels/[slug]/ (detail), login/,
-                         # register/, account/; layout.tsx (header + UserNav);
+                         # register/, account/; layout.tsx (SiteHeader + SiteFooter);
+                         # wishlist/, deals/, destinations/, rewards/, help/, account/security/ = <ComingSoon>
+                         # placeholders (PLAN.md Phase 11 — replace when the feature ships);
                          # providers.tsx (QueryClient; no retry on 4xx; Query/MutationCache 401 → me = null)
-      components/        # app-wide components shared by several features (e.g. pagination.tsx)
+      components/        # app-wide components shared by several features (pagination.tsx, site-header.tsx,
+                         # site-footer.tsx, nav-links.ts (MAIN_NAV / FOOTER_NAV), coming-soon.tsx)
+                         # UI copy is Thai (hardcoded, like web-admin): lib/messages-th.ts toThai() + thaiResolver,
+                         # lib/zod-locale.ts; dates via features/hotels/format.ts (Thai months, Buddhist-era year)
       features/<name>/   # one folder per feature (e.g. auth/, hotels/, bookings/, payments/, health/):
         api.ts           #   fetchers — call request()/requestNoContent() from lib/api.ts, never axios/fetch directly
         hooks.ts         #   TanStack Query hooks + key factory (e.g. hotelKeys.list(), authKeys.me())

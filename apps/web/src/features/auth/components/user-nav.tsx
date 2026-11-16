@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { CalendarCheck, LogOut, UserRound } from "lucide-react";
 import { Button, buttonVariants } from "@booking/ui/components/button";
 import { useLogout, useMe } from "../hooks";
 import { markExplicitLogout, resetExplicitLogout } from "../logout-intent";
@@ -15,29 +16,39 @@ export function UserNav() {
 
   if (!user) {
     return (
-      <nav className="flex items-center gap-2">
+      <nav aria-label="บัญชีผู้ใช้" className="flex items-center gap-2">
         <Link href="/login" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-          Log in
+          เข้าสู่ระบบ
         </Link>
         <Link href="/register" className={buttonVariants({ size: "sm" })}>
-          Register
+          สมัครสมาชิก
         </Link>
       </nav>
     );
   }
 
   return (
-    <nav className="flex items-center gap-2">
-      <span className="hidden text-sm text-muted-foreground sm:inline">{user.name}</span>
-      <Link href="/account/bookings" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-        My bookings
+    <nav aria-label="บัญชีผู้ใช้" className="flex items-center gap-1">
+      <Link
+        href="/account/bookings"
+        aria-label="การจองของฉัน"
+        className={buttonVariants({ variant: "ghost", size: "sm" })}
+      >
+        <CalendarCheck aria-hidden className="size-4" />
+        <span className="hidden sm:inline">การจองของฉัน</span>
       </Link>
-      <Link href="/account" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-        Account
+      <Link
+        href="/account"
+        aria-label={`บัญชีของ ${user.name}`}
+        className={buttonVariants({ variant: "ghost", size: "sm" })}
+      >
+        <UserRound aria-hidden className="size-4" />
+        <span className="hidden max-w-32 truncate lg:inline">{user.name}</span>
       </Link>
       <Button
         variant="outline"
         size="sm"
+        aria-label="ออกจากระบบ"
         disabled={logout.isPending}
         onClick={() => {
           markExplicitLogout();
@@ -49,7 +60,8 @@ export function UserNav() {
           });
         }}
       >
-        Log out
+        <LogOut aria-hidden className="size-4" />
+        <span className="hidden sm:inline">ออกจากระบบ</span>
       </Button>
     </nav>
   );
