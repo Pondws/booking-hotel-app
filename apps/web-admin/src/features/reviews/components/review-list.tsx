@@ -14,6 +14,8 @@ import { Button } from "@booking/ui/components/button";
 import { DataTable, DataTableSkeleton, type DataTableColumn } from "@booking/ui/components/data-table";
 import { Label } from "@booking/ui/components/label";
 import { SelectField } from "@booking/ui/components/select-field";
+import { SearchX } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
 import { formatDateTime } from "@/features/audit-logs/format";
 import { HotelFilterSelect } from "@/features/hotels/components/hotel-filter-select";
@@ -90,7 +92,7 @@ export function ReviewList() {
   const hasFilters = query.hotelId !== undefined || query.visibility !== "all";
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-2">
           <Label htmlFor="review-hotel">โรงแรม</Label>
@@ -121,34 +123,33 @@ export function ReviewList() {
             ลองอีกครั้ง
           </Button>
         </div>
-      ) : data.items.length === 0 ? (
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            {hasFilters ? "ไม่พบรีวิวที่ตรงกับตัวกรอง" : "ยังไม่มีรีวิว"}
-          </p>
-          {hasFilters && (
-            <Button asChild variant="link" className="px-0">
-              <Link href={pathname}>ล้างตัวกรอง</Link>
-            </Button>
-          )}
-        </div>
       ) : (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {data.total} รีวิว
-          </p>
+        <div className="flex min-h-0 flex-1 flex-col gap-4">
           <DataTable
+            fill
             caption="รีวิว"
             columns={COLUMNS}
             rows={data.items}
             getRowKey={(r) => r.id}
             busy={isPlaceholderData}
-          />
-          <Pagination
-            page={data.page}
-            totalPages={data.totalPages}
-            hrefFor={(page) => `${pathname}${serializeListParams({ ...query, page })}`}
-            label="หน้ารายการรีวิว"
+            emptyIcon={hasFilters ? <SearchX className="size-6" /> : undefined}
+            empty={
+              <EmptyState
+                message={hasFilters ? "ไม่พบรีวิวที่ตรงกับตัวกรอง" : "ยังไม่มีรีวิว"}
+                clearHref={hasFilters ? pathname : undefined}
+              />
+            }
+            pagination={
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                total={data.total}
+                pageSize={data.pageSize}
+                onPageSizeChange={(pageSize) => navigate({ pageSize, page: 1 })}
+                hrefFor={(page) => `${pathname}${serializeListParams({ ...query, page })}`}
+                label="หน้ารายการรีวิว"
+              />
+            }
           />
         </div>
       )}

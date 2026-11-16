@@ -5,7 +5,7 @@ import { AmenityCatalog } from "@/features/amenities/components/amenity-catalog"
 
 export default function AmenitiesPage() {
   return (
-    <main className="w-full space-y-6 px-4 py-8">
+    <main className="flex w-full flex-col gap-6 px-4 py-8 md:h-screen">
       <AdminOnly>
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">

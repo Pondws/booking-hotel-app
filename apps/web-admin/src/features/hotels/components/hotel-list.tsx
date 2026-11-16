@@ -13,6 +13,8 @@ import {
 import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
 import { SelectField } from "@booking/ui/components/select-field";
+import { SearchX } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
 import { useMe } from "@/features/auth/hooks";
 import { useAdminHotels } from "../hooks";
@@ -69,7 +71,7 @@ export function HotelList() {
   const hasFilters = query.q !== undefined || query.status !== "all";
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3">
         <form
           key={query.q ?? ""}
@@ -110,38 +112,39 @@ export function HotelList() {
             ลองอีกครั้ง
           </Button>
         </div>
-      ) : data.items.length === 0 ? (
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            {hasFilters
-              ? "ไม่พบโรงแรมที่ตรงกับตัวกรอง"
-              : me?.role === "ADMIN"
-                ? "ยังไม่มีโรงแรม"
-                : "ยังไม่มีโรงแรมที่มอบหมายให้คุณ"}
-          </p>
-          {hasFilters && (
-            <Button asChild variant="link" className="px-0">
-              <Link href={pathname}>ล้างตัวกรอง</Link>
-            </Button>
-          )}
-        </div>
       ) : (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {data.total} โรงแรม
-          </p>
+        <div className="flex min-h-0 flex-1 flex-col gap-4">
           <DataTable
+            fill
             caption="โรงแรม"
             columns={COLUMNS}
             rows={data.items}
             getRowKey={(hotel) => hotel.id}
             busy={isPlaceholderData}
-          />
-          <Pagination
-            page={data.page}
-            totalPages={data.totalPages}
-            hrefFor={(page) => `${pathname}${serializeListParams({ ...query, page })}`}
-            label="หน้ารายการโรงแรม"
+            emptyIcon={hasFilters ? <SearchX className="size-6" /> : undefined}
+            empty={
+              <EmptyState
+                message={
+                  hasFilters
+                    ? "ไม่พบโรงแรมที่ตรงกับตัวกรอง"
+                    : me?.role === "ADMIN"
+                      ? "ยังไม่มีโรงแรม"
+                      : "ยังไม่มีโรงแรมที่มอบหมายให้คุณ"
+                }
+                clearHref={hasFilters ? pathname : undefined}
+              />
+            }
+            pagination={
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                total={data.total}
+                pageSize={data.pageSize}
+                onPageSizeChange={(pageSize) => navigate({ pageSize, page: 1 })}
+                hrefFor={(page) => `${pathname}${serializeListParams({ ...query, page })}`}
+                label="หน้ารายการโรงแรม"
+              />
+            }
           />
         </div>
       )}
