@@ -9,7 +9,7 @@ import {
   updateProfile,
 } from "../controllers/auth.controller";
 import { loadSession } from "../middleware/load-session";
-import { authLimiter } from "../middleware/rate-limit";
+import { accountLimiter, authLimiter } from "../middleware/rate-limit";
 import { requireAuth } from "../middleware/require-auth";
 import { requireRole } from "../middleware/require-role";
 import { validate } from "../middleware/validate";
@@ -20,7 +20,7 @@ const webAuth = [loadSession("WEB"), requireAuth];
 const adminAuth = [loadSession("ADMIN"), requireAuth, requireRole("ADMIN", "STAFF")];
 
 authRouter.post("/register", authLimiter, validate({ body: registerSchema }), register);
-authRouter.post("/login", authLimiter, validate({ body: loginSchema }), login("WEB"));
+authRouter.post("/login", authLimiter, accountLimiter, validate({ body: loginSchema }), login("WEB"));
 authRouter.post("/logout", loadSession("WEB"), logout("WEB"));
 authRouter.get("/me", ...webAuth, me);
 authRouter.patch("/me", ...webAuth, validate({ body: updateProfileSchema }), updateProfile);
@@ -33,7 +33,7 @@ authRouter.post(
   changePassword,
 );
 
-authRouter.post("/admin/login", authLimiter, validate({ body: loginSchema }), login("ADMIN"));
+authRouter.post("/admin/login", authLimiter, accountLimiter, validate({ body: loginSchema }), login("ADMIN"));
 authRouter.post("/admin/logout", loadSession("ADMIN"), logout("ADMIN"));
 authRouter.get("/admin/me", ...adminAuth, me);
 authRouter.patch("/admin/me", ...adminAuth, validate({ body: updateProfileSchema }), updateProfile);
