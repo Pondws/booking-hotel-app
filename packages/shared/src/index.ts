@@ -467,6 +467,7 @@ export const amenitySchema = z.object({
 
 /** `GET /api/amenities` — hotel-level amenities, for the search filter. */
 export const amenityListSchema = z.array(amenitySchema);
+export type Amenity = z.infer<typeof amenitySchema>;
 
 export const hotelSummarySchema = z.object({
   id: z.string(),

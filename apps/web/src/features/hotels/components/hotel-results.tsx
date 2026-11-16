@@ -6,7 +6,7 @@ import type { HotelSearchQuery } from "@booking/shared";
 import { Button } from "@booking/ui/components/button";
 import { cn } from "@booking/ui/lib/utils";
 import { useHotelSearch } from "../hooks";
-import { searchHref } from "../search-params";
+import { hasActiveFilters, searchHref } from "../search-params";
 import { HotelCard, HotelCardSkeleton } from "./hotel-card";
 import { Pagination } from "@/components/pagination";
 
@@ -66,7 +66,24 @@ export function HotelResults({ query, showCount = false }: Props) {
     return (
       <div className="space-y-2 rounded-xl border p-8 text-center">
         <SearchX aria-hidden className="mx-auto size-8 text-muted-foreground" />
-        {hasFilters(query) ? (
+        {hasActiveFilters(query) ? (
+          <>
+            <p className="font-medium">ไม่พบโรงแรมที่ตรงกับตัวกรอง</p>
+            <p className="text-sm text-muted-foreground">ลองขยายช่วงราคา ลดคะแนนขั้นต่ำ หรือเลือกสิ่งอำนวยความสะดวกให้น้อยลง</p>
+            <Link
+              href={searchHref({
+                city: query.city,
+                checkIn: query.checkIn,
+                checkOut: query.checkOut,
+                guests: query.guests,
+                sort: query.sort,
+              })}
+              className="inline-flex min-h-6 items-center text-sm underline underline-offset-4"
+            >
+              ล้างตัวกรอง
+            </Link>
+          </>
+        ) : hasFilters(query) ? (
           <>
             <p className="font-medium">ไม่พบโรงแรมที่ตรงกับการค้นหา</p>
             <p className="text-sm text-muted-foreground">ลองเปลี่ยนเมือง ลดจำนวนผู้เข้าพัก หรือเลือกวันอื่น</p>
