@@ -13,18 +13,13 @@ import { Badge } from "@booking/ui/components/badge";
 import { Button } from "@booking/ui/components/button";
 import { DataTable, DataTableSkeleton, type DataTableColumn } from "@booking/ui/components/data-table";
 import { Label } from "@booking/ui/components/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@booking/ui/components/select";
+import { SelectField } from "@booking/ui/components/select-field";
 import { Pagination } from "@/components/pagination";
 import { formatDateTime } from "@/features/audit-logs/format";
-import { useAdminHotels } from "@/features/hotels/hooks";
+import { HotelFilterSelect } from "@/features/hotels/components/hotel-filter-select";
 import { useAdminReviews } from "../hooks";
 import { parseListParams, serializeListParams } from "../list-params";
 import { ReviewVisibilityDialog } from "./review-visibility-dialog";
-
-const ALL_HOTELS = "all";
-
-/** Staff see their own hotels here; 50 covers every real chain we manage. */
-const HOTEL_OPTIONS_QUERY = { status: "all", page: 1, pageSize: 50 } as const;
 
 const VISIBILITY_LABELS: Record<AdminReviewVisibilityFilter, string> = {
   all: "ทุกสถานะ",
@@ -32,9 +27,7 @@ const VISIBILITY_LABELS: Record<AdminReviewVisibilityFilter, string> = {
   hidden: "ซ่อนแล้ว",
 };
 
-function isVisibilityFilter(value: string): value is AdminReviewVisibilityFilter {
-  return ADMIN_REVIEW_VISIBILITY_FILTERS.some((v) => v === value);
-}
+const VISIBILITY_OPTIONS = ADMIN_REVIEW_VISIBILITY_FILTERS.map((v) => ({ value: v, label: VISIBILITY_LABELS[v] }));
 
 const COLUMNS: DataTableColumn<AdminReview>[] = [
   {
@@ -91,7 +84,6 @@ export function ReviewList() {
   const searchParams = useSearchParams();
   const query = parseListParams(new URLSearchParams(searchParams.toString()));
   const { data, isPending, isError, isPlaceholderData, refetch } = useAdminReviews(query);
-  const hotels = useAdminHotels(HOTEL_OPTIONS_QUERY);
 
   const navigate = (next: Partial<AdminReviewListQuery>) =>
     router.push(`${pathname}${serializeListParams({ ...query, ...next, page: 1 })}`);
@@ -102,42 +94,21 @@ export function ReviewList() {
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-2">
           <Label htmlFor="review-hotel">โรงแรม</Label>
-          <Select
-            value={query.hotelId ?? ALL_HOTELS}
-            onValueChange={(value) => navigate({ hotelId: value === ALL_HOTELS ? undefined : value })}
-          >
-            <SelectTrigger id="review-hotel" className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_HOTELS}>ทุกโรงแรม</SelectItem>
-              {hotels.data?.items.map((h) => (
-                <SelectItem key={h.id} value={h.id}>
-                  {h.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <HotelFilterSelect
+            id="review-hotel"
+            value={query.hotelId}
+            onChange={(hotelId) => navigate({ hotelId })}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="review-visibility">สถานะ</Label>
-          <Select
+          <SelectField
+            id="review-visibility"
+            className="w-40"
+            options={VISIBILITY_OPTIONS}
             value={query.visibility}
-            onValueChange={(value) => {
-              if (isVisibilityFilter(value)) navigate({ visibility: value });
-            }}
-          >
-            <SelectTrigger id="review-visibility" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ADMIN_REVIEW_VISIBILITY_FILTERS.map((v) => (
-                <SelectItem key={v} value={v}>
-                  {VISIBILITY_LABELS[v]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onValueChange={(visibility) => navigate({ visibility })}
+          />
         </div>
       </div>
 

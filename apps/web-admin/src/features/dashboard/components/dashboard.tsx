@@ -6,11 +6,10 @@ import { DASHBOARD_MAX_NIGHTS, adminDashboardQuerySchema, type AdminDashboardQue
 import { Button } from "@booking/ui/components/button";
 import { Card, CardContent } from "@booking/ui/components/card";
 import { Label } from "@booking/ui/components/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@booking/ui/components/select";
 import { Skeleton } from "@booking/ui/components/skeleton";
 import { cn } from "@booking/ui/lib/utils";
 import { DateFilterField } from "@/features/bookings/components/date-filter-field";
-import { useAdminHotels } from "@/features/hotels/hooks";
+import { HotelFilterSelect } from "@/features/hotels/components/hotel-filter-select";
 import { formatMoney } from "@/features/room-types/format";
 import { parseDashboardParams, serializeDashboardParams } from "../dashboard-params";
 import { formatRate } from "../format";
@@ -18,10 +17,6 @@ import { useAdminDashboard } from "../hooks";
 import { DailyChart } from "./daily-chart";
 import { StatTiles, StatTilesSkeleton } from "./stat-tiles";
 import { TodayCard } from "./today-card";
-
-const ALL_HOTELS = "all";
-/** Staff see their own hotels here; 50 covers every real chain we manage. */
-const HOTEL_OPTIONS_QUERY = { status: "all", page: 1, pageSize: 50 } as const;
 
 const compact = new Intl.NumberFormat("th-TH", { notation: "compact", maximumFractionDigits: 1 });
 
@@ -31,7 +26,6 @@ export function Dashboard() {
   const searchParams = useSearchParams();
   const query = parseDashboardParams(new URLSearchParams(searchParams.toString()));
   const { data, isPending, isError, isPlaceholderData, refetch } = useAdminDashboard(query);
-  const hotels = useAdminHotels(HOTEL_OPTIONS_QUERY);
   const [rangeError, setRangeError] = useState<string | null>(null);
 
   const navigate = (next: AdminDashboardQuery) => {
@@ -45,22 +39,11 @@ export function Dashboard() {
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-2">
           <Label htmlFor="dashboard-hotel">โรงแรม</Label>
-          <Select
-            value={query.hotelId ?? ALL_HOTELS}
-            onValueChange={(value) => navigate({ ...query, hotelId: value === ALL_HOTELS ? undefined : value })}
-          >
-            <SelectTrigger id="dashboard-hotel" className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_HOTELS}>ทุกโรงแรม</SelectItem>
-              {hotels.data?.items.map((h) => (
-                <SelectItem key={h.id} value={h.id}>
-                  {h.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <HotelFilterSelect
+            id="dashboard-hotel"
+            value={query.hotelId}
+            onChange={(hotelId) => navigate({ ...query, hotelId })}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="dashboard-range">ช่วงวันที่</Label>
