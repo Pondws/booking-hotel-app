@@ -16,7 +16,9 @@ const EXACT: Record<string, string> = {
   "Choose both check-in and check-out": "กรุณาเลือกทั้งวันเช็คอินและวันเช็คเอาท์",
   "Pick a rating": "กรุณาให้คะแนน",
   "Passwords don't match": "รหัสผ่านไม่ตรงกัน",
+  "Use 3–30 letters or digits": "กรอกโค้ด 3–30 ตัว ใช้ตัวอักษรภาษาอังกฤษหรือตัวเลข",
   // API
+  "This code can't be used for this stay": "ใช้โค้ดนี้กับการเข้าพักนี้ไม่ได้",
   "Authentication required": "กรุณาเข้าสู่ระบบ",
   "Invalid email or password": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
   "Email already registered": "อีเมลนี้มีบัญชีอยู่แล้ว",

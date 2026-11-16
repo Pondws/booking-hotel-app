@@ -22,6 +22,7 @@ import { createHotel } from "../../controllers/hotel.controller";
 import { requireHotelAccess } from "../../middleware/require-hotel-access";
 import { requireRole } from "../../middleware/require-role";
 import { validate } from "../../middleware/validate";
+import { adminPromotionsRouter } from "./promotions";
 import { adminRoomTypesRouter } from "./room-types";
 
 export const adminHotelsRouter = Router();
@@ -72,6 +73,7 @@ adminHotelsRouter.put(
 );
 
 adminHotelsRouter.use("/:hotelId/room-types", requireHotelAccess(), adminRoomTypesRouter);
+adminHotelsRouter.use("/:hotelId/promotions", requireHotelAccess(), adminPromotionsRouter);
 
 adminHotelsRouter.patch(
   "/:hotelId/status",

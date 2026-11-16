@@ -8,7 +8,7 @@ import {
   type HotelSummary,
   type Paginated,
   type PublicUser,
-  type StayRange,
+  type AvailabilityQuery,
 } from "@booking/shared";
 import { Prisma, type Hotel } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
@@ -18,7 +18,7 @@ import { prisma } from "../lib/prisma";
 import { toSlug, withSuffix } from "../lib/slug";
 import { assertHotelAmenityIds, auditHotel } from "./admin-hotel.service";
 import { availableRoomCounts, blockingBookingWhere } from "./availability.service";
-import { quoteStays } from "./pricing.service";
+import { isPromoCodeValid, quoteStays } from "./pricing.service";
 
 export type { Hotel };
 
@@ -30,7 +30,7 @@ const amenityOrder = { amenity: { name: "asc" } } as const;
 
 // ---------- Search ----------
 
-type PricedRoomType = { id: string; basePrice: Prisma.Decimal };
+type PricedRoomType = { id: string; basePrice: Prisma.Decimal; hotelId: string };
 type PricedHotel = { id: string; currency: string; roomTypes: PricedRoomType[] };
 
 function minPrice(values: Prisma.Decimal[]): number | null {
@@ -94,7 +94,7 @@ const searchSelect = (roomTypeWhere: Prisma.RoomTypeWhereInput) =>
     ratingAvg: true,
     reviewCount: true,
     images: { select: imageSelect, orderBy: [...imageOrder], take: 1 },
-    roomTypes: { where: roomTypeWhere, select: { id: true, basePrice: true } },
+    roomTypes: { where: roomTypeWhere, select: { id: true, basePrice: true, hotelId: true } },
   }) satisfies Prisma.HotelSelect;
 
 const RECOMMENDED_ORDER = [{ ratingAvg: "desc" }, { name: "asc" }, { id: "asc" }] as const satisfies
@@ -242,28 +242,30 @@ export async function getHotelBySlug(slug: string): Promise<HotelDetail> {
 
 // ---------- Availability ----------
 
-export async function getAvailability(slug: string, range: StayRange): Promise<Availability> {
-  const { checkIn, checkOut, guests } = range;
+export async function getAvailability(slug: string, range: AvailabilityQuery): Promise<Availability> {
+  const { checkIn, checkOut, guests, promoCode } = range;
   const hotel = await prisma.hotel.findFirst({
     where: { slug, isActive: true },
     select: {
+      id: true,
       currency: true,
       roomTypes: {
         where: { isActive: true, capacity: { gte: guests } },
         orderBy: [{ basePrice: "asc" }, { name: "asc" }],
-        select: { id: true, basePrice: true },
+        select: { id: true, basePrice: true, hotelId: true },
       },
     },
   });
   if (!hotel) throw hotelNotFound();
 
-  const [counts, quotes] = await Promise.all([
+  const [counts, quotes, codeValid] = await Promise.all([
     availableRoomCounts(
       hotel.roomTypes.map((rt) => rt.id),
       checkIn,
       checkOut,
     ),
-    quoteStays(hotel.roomTypes, hotel.currency, checkIn, checkOut),
+    quoteStays(hotel.roomTypes, hotel.currency, checkIn, checkOut, { promoCode }),
+    promoCode === undefined ? null : isPromoCodeValid(hotel.id, promoCode, checkIn, checkOut),
   ]);
 
   return {
@@ -277,6 +279,7 @@ export async function getAvailability(slug: string, range: StayRange): Promise<A
       const availableRooms = counts.get(rt.id) ?? 0;
       return [{ roomTypeId: rt.id, available: availableRooms > 0, availableRooms, quote }];
     }),
+    promoCode: promoCode === undefined || codeValid === null ? null : { code: promoCode, valid: codeValid },
   };
 }
 

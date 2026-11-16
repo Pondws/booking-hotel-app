@@ -167,6 +167,18 @@ function BookingView({ booking, refetch, onStillPending }: ViewProps) {
             {booking.guestName} · {booking.guestEmail}
           </dd>
         </dl>
+        {booking.discountAmount > 0 && (
+          <dl className="space-y-1 border-t pt-3 text-sm tabular-nums">
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">ราคาห้องพัก</dt>
+              <dd>{formatMoney(booking.subtotalAmount, booking.currency)}</dd>
+            </div>
+            <div className="flex justify-between gap-4 text-primary">
+              <dt>ส่วนลด{booking.discountLabel ? ` · ${booking.discountLabel}` : ""}</dt>
+              <dd>−{formatMoney(booking.discountAmount, booking.currency)}</dd>
+            </div>
+          </dl>
+        )}
         <p className="flex justify-between gap-4 border-t pt-3 text-base font-semibold tabular-nums">
           <span>ราคารวม</span>
           <span>{formatMoney(booking.totalAmount, booking.currency)}</span>

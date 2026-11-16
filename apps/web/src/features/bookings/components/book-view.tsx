@@ -39,7 +39,12 @@ function ChooseDatesFirst({ slug }: { slug: string | null }) {
 
 function BookHotel({ slug, input }: { slug: string; input: CreateBookingData }) {
   const { data: hotel, isPending, isError, error, refetch, isFetching } = useHotel(slug);
-  const range = { checkIn: input.checkIn, checkOut: input.checkOut, guests: input.guests };
+  const range = {
+    checkIn: input.checkIn,
+    checkOut: input.checkOut,
+    guests: input.guests,
+    promoCode: input.promoCode,
+  };
   // Same query key as BookingSummary, so this shares its cache entry
   const availability = useAvailability(slug, range);
 
@@ -66,7 +71,7 @@ function BookHotel({ slug, input }: { slug: string; input: CreateBookingData }) 
   return (
     <div className="grid gap-8 md:grid-cols-[1fr_20rem] md:items-start">
       <GuestForm
-        key={`${input.roomTypeId}|${input.checkIn}|${input.checkOut}|${input.guests}`}
+        key={`${input.roomTypeId}|${input.checkIn}|${input.checkOut}|${input.guests}|${input.promoCode ?? ""}`}
         hotelSlug={slug} stay={input} canHold={canHold} />
       <BookingSummary hotel={hotel} roomType={roomType} range={range} />
     </div>

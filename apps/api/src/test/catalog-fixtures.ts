@@ -92,6 +92,34 @@ export async function createCatalogFixture(
   return { hotelId: hotel.id, slug: hotel.slug, name, city, userId: user.id, roomTypes };
 }
 
+/** A deal on a fixture hotel (goes with the hotel on cleanup — FK cascade). Defaults: automatic, any stay. */
+export function addPromotion(
+  hotelId: string,
+  data: {
+    name?: string;
+    type: "EARLY_BIRD" | "LAST_MINUTE" | "LONG_STAY" | "CODE";
+    percentOff: number;
+    minNights?: number;
+    minDaysAhead?: number | null;
+    maxDaysAhead?: number | null;
+    code?: string | null;
+    validFrom?: string | null;
+    validUntil?: string | null;
+    isActive?: boolean;
+  },
+) {
+  const { validFrom, validUntil, ...rest } = data;
+  return prisma.promotion.create({
+    data: {
+      hotelId,
+      name: data.name ?? `${data.type} ${data.percentOff}%`,
+      ...rest,
+      validFrom: validFrom ? toDbDate(validFrom) : null,
+      validUntil: validUntil ? toDbDate(validUntil) : null,
+    },
+  });
+}
+
 export function addRatePeriod(
   roomTypeId: string,
   startDate: string,

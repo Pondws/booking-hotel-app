@@ -2,7 +2,7 @@
 export const MAIN_NAV = [
   { href: "/hotels", label: "ที่พัก" },
   { href: "/destinations", label: "จุดหมายปลายทาง" },
-  { href: "/deals", label: "ดีลพิเศษ", soon: true },
+  { href: "/deals", label: "ดีลพิเศษ" },
   { href: "/rewards", label: "สมาชิกรางวัล", soon: true },
 ] as const;
 

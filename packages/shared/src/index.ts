@@ -320,6 +320,18 @@ const guestsField = z.coerce
   .min(1, { error: GUESTS_MESSAGE })
   .max(20, { error: GUESTS_MESSAGE });
 
+/** A promo code as typed: trimmed + uppercased, letters and digits only. */
+export const PROMO_CODE_PATTERN = /^[A-Z0-9]{3,30}$/;
+export const promoCodeField = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(PROMO_CODE_PATTERN, "Use 3–30 letters or digits");
+const optionalPromoCode = z.preprocess(
+  (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+  promoCodeField.optional(),
+);
+
 function refineStay(ctx: z.RefinementCtx, checkIn: string, checkOut: string): void {
   if (checkIn < todayIn(BOOKING_TZ)) {
     ctx.addIssue({ code: "custom", path: ["checkIn"], message: "Check-in can't be in the past" });
@@ -677,13 +689,44 @@ export const hotelDetailSchema = z.object({
 });
 export type HotelDetail = z.infer<typeof hotelDetailSchema>;
 
+export const PROMOTION_TYPES = ["EARLY_BIRD", "LAST_MINUTE", "LONG_STAY", "CODE"] as const;
+export const promotionTypeSchema = z.enum(PROMOTION_TYPES);
+export type PromotionType = z.infer<typeof promotionTypeSchema>;
+
+/** The one deal applied to a quote (the best eligible one — deals never stack). */
+export const quoteDiscountSchema = z.object({
+  promotionId: z.string(),
+  name: z.string(),
+  type: promotionTypeSchema,
+  percentOff: z.number().int(),
+  /** Set when the deal came from a promo code. */
+  code: z.string().nullable(),
+  amount: z.number(),
+});
+export type QuoteDiscount = z.infer<typeof quoteDiscountSchema>;
+
 export const stayQuoteSchema = z.object({
   nights: z.number().int().min(1),
   nightly: z.array(z.object({ date: isoDate, price: z.number() })),
+  /** Sum of the nightly prices, before any deal. */
+  subtotal: z.number(),
+  discount: quoteDiscountSchema.nullable(),
+  /** What the guest pays: subtotal − discount. */
   total: z.number(),
   currency: z.string(),
 });
 export type StayQuote = z.infer<typeof stayQuoteSchema>;
+
+/** `GET /api/hotels/:slug/availability` — the stay plus an optional promo code to price with. */
+export const availabilityQuerySchema = z
+  .object({
+    checkIn: isoDate,
+    checkOut: isoDate,
+    guests: guestsField.default(1),
+    promoCode: optionalPromoCode,
+  })
+  .superRefine((v, ctx) => refineStay(ctx, v.checkIn, v.checkOut));
+export type AvailabilityQuery = z.output<typeof availabilityQuerySchema>;
 
 export const availabilitySchema = z.object({
   checkIn: isoDate,
@@ -698,6 +741,8 @@ export const availabilitySchema = z.object({
       quote: stayQuoteSchema,
     }),
   ),
+  /** The code asked for: valid = an active code deal of this hotel whose conditions this stay meets. */
+  promoCode: z.object({ code: z.string(), valid: z.boolean() }).nullable(),
 });
 export type Availability = z.infer<typeof availabilitySchema>;
 
@@ -716,6 +761,7 @@ export const createBookingSchema = z
     guestName: z.string().trim().min(1).max(120).optional(),
     guestEmail: emailField.optional(),
     guestPhone: z.string().trim().min(1).max(30).optional(),
+    promoCode: optionalPromoCode,
   })
   .superRefine((v, ctx) => refineStay(ctx, v.checkIn, v.checkOut));
 export type CreateBookingInput = z.input<typeof createBookingSchema>;
@@ -797,6 +843,11 @@ export const bookingSchema = z.object({
   guestName: z.string(),
   guestEmail: z.string(),
   guestPhone: z.string().nullable(),
+  /** Before the deal; totalAmount = subtotalAmount − discountAmount. */
+  subtotalAmount: z.number(),
+  discountAmount: z.number(),
+  /** The deal's name when booked; null without a deal. */
+  discountLabel: z.string().nullable(),
   totalAmount: z.number(),
   currency: z.string(),
   expiresAt: z.iso.datetime().nullable(),
@@ -845,6 +896,7 @@ export const ADMIN_BOOKING_STATUS_FILTERS = [
 ] as const;
 export type AdminBookingStatusFilter = (typeof ADMIN_BOOKING_STATUS_FILTERS)[number];
 
+const blankToNull = (v: unknown) => (v === undefined || (typeof v === "string" && v.trim() === "") ? null : v);
 const blankToUndefined = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
 
 export const adminBookingListQuerySchema = z
@@ -1161,6 +1213,7 @@ export const AUDIT_ENTITY_TYPES = [
   "STAFF",
   "BOOKING",
   "REVIEW",
+  "PROMOTION",
 ] as const;
 export const auditEntityTypeSchema = z.enum(AUDIT_ENTITY_TYPES);
 export type AuditEntityType = z.infer<typeof auditEntityTypeSchema>;
@@ -1264,3 +1317,100 @@ export const destinationSchema = z.object({
 export type Destination = z.infer<typeof destinationSchema>;
 /** Most hotels first, then city name. */
 export const destinationListSchema = z.array(destinationSchema);
+
+// ---------- Promotions / deals (11.5) ----------
+
+export const PROMOTION_MAX_PERCENT = 90;
+export const PROMOTION_MAX_DAYS_AHEAD = 365;
+
+const wholeNumber = (min: number, max: number) => {
+  const message = `Enter a whole number from ${min} to ${max}`;
+  return z.number({ error: message }).int(message).min(min, message).max(max, message);
+};
+
+/**
+ * `POST` / `PUT /api/admin/hotels/:hotelId/promotions[/:promotionId]`. Absent conditions are null.
+ * EARLY_BIRD needs minDaysAhead, LAST_MINUTE maxDaysAhead, LONG_STAY minNights ≥ 2, CODE a code; other types
+ * never keep a code. Validity is a booking-day window (inclusive) in BOOKING_TZ.
+ */
+export const promotionInputSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required").max(80, "At most 80 characters"),
+    type: promotionTypeSchema,
+    percentOff: wholeNumber(1, PROMOTION_MAX_PERCENT),
+    minNights: wholeNumber(1, MAX_NIGHTS).default(1),
+    minDaysAhead: wholeNumber(1, PROMOTION_MAX_DAYS_AHEAD).nullable().default(null),
+    maxDaysAhead: wholeNumber(0, PROMOTION_MAX_DAYS_AHEAD).nullable().default(null),
+    code: z.preprocess(blankToNull, promoCodeField.nullable()),
+    validFrom: z.preprocess(blankToNull, isoDate.nullable()),
+    validUntil: z.preprocess(blankToNull, isoDate.nullable()),
+    isActive: z.boolean().default(true),
+  })
+  .superRefine((v, ctx) => {
+    const need = (path: string, message: string) => ctx.addIssue({ code: "custom", path: [path], message });
+    if (v.type === "EARLY_BIRD" && v.minDaysAhead === null) need("minDaysAhead", "Early bird needs a minimum");
+    if (v.type === "LAST_MINUTE" && v.maxDaysAhead === null) need("maxDaysAhead", "Last minute needs a maximum");
+    if (v.type === "LONG_STAY" && v.minNights < 2) need("minNights", "A long stay is at least 2 nights");
+    if (v.type === "CODE" && v.code === null) need("code", "Enter a code");
+    if (v.minDaysAhead !== null && v.maxDaysAhead !== null && v.maxDaysAhead < v.minDaysAhead) {
+      need("maxDaysAhead", "Must be at least the minimum");
+    }
+    if (v.validFrom !== null && v.validUntil !== null && v.validUntil < v.validFrom) {
+      need("validUntil", "Must be on or after the start date");
+    }
+  })
+  .transform((v) => ({ ...v, code: v.type === "CODE" ? v.code : null }));
+export type PromotionInput = z.input<typeof promotionInputSchema>;
+export type PromotionData = z.output<typeof promotionInputSchema>;
+
+export const promotionParamsSchema = hotelIdParamsSchema.extend({ promotionId: z.string().min(1) });
+export type PromotionParams = z.output<typeof promotionParamsSchema>;
+
+export const adminPromotionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: promotionTypeSchema,
+  percentOff: z.number().int(),
+  minNights: z.number().int(),
+  minDaysAhead: z.number().int().nullable(),
+  maxDaysAhead: z.number().int().nullable(),
+  code: z.string().nullable(),
+  validFrom: isoDate.nullable(),
+  validUntil: isoDate.nullable(),
+  isActive: z.boolean(),
+  /** Bookings that took this deal. */
+  bookingCount: z.number().int().min(0),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+export type AdminPromotion = z.infer<typeof adminPromotionSchema>;
+export const adminPromotionListSchema = z.array(adminPromotionSchema);
+
+/**
+ * `GET /api/deals` — active deals bookable today, best discount first. fromPrice = the hotel's lowest base
+ * price per night; discountedFromPrice = that price after this deal (rate periods can change the real quote).
+ */
+export const dealSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: promotionTypeSchema,
+  percentOff: z.number().int(),
+  minNights: z.number().int(),
+  minDaysAhead: z.number().int().nullable(),
+  maxDaysAhead: z.number().int().nullable(),
+  code: z.string().nullable(),
+  validUntil: isoDate.nullable(),
+  hotel: z.object({
+    name: z.string(),
+    slug: z.string(),
+    city: z.string(),
+    ratingAvg: z.number(),
+    reviewCount: z.number().int(),
+    coverImage: imageSchema.nullable(),
+    currency: z.string(),
+    fromPrice: z.number(),
+    discountedFromPrice: z.number(),
+  }),
+});
+export type Deal = z.infer<typeof dealSchema>;
+export const dealListSchema = z.array(dealSchema);

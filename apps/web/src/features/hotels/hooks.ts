@@ -8,7 +8,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useCallback } from "react";
-import type { HotelSearchQuery, StayRange } from "@booking/shared";
+import type { AvailabilityQuery, HotelSearchQuery } from "@booking/shared";
 import { fetchAvailability, fetchHotel, fetchHotelAmenities, fetchHotelReviews, searchHotels } from "./api";
 
 const REVIEWS_PAGE_SIZE = 10;
@@ -20,7 +20,7 @@ export const hotelKeys = {
   list: (q: HotelSearchQuery) => [...hotelKeys.lists(), q] as const,
   details: () => [...hotelKeys.all, "detail"] as const,
   detail: (slug: string) => [...hotelKeys.details(), slug] as const,
-  availability: (slug: string, range: StayRange) =>
+  availability: (slug: string, range: AvailabilityQuery) =>
     [...hotelKeys.detail(slug), "availability", range] as const,
   // Under the detail key, so invalidating a hotel (e.g. after writing a review) refreshes its reviews too.
   reviews: (slug: string) => [...hotelKeys.detail(slug), "reviews"] as const,
@@ -42,7 +42,7 @@ export function useHotel(slug: string) {
 }
 
 /** Only fetches when `range` is a valid stay; prices change with bookings, so keep them fresher. */
-export function useAvailability(slug: string, range: StayRange | null) {
+export function useAvailability(slug: string, range: AvailabilityQuery | null) {
   return useQuery({
     queryKey: range ? hotelKeys.availability(slug, range) : [...hotelKeys.detail(slug), "availability"],
     queryFn: () => {

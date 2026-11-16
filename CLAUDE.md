@@ -26,8 +26,8 @@ apps/
     src/
       app/               # routes (App Router): / (search), hotels/ (results), hotels/[slug]/ (detail), login/,
                          # register/, account/; layout.tsx (SiteHeader + SiteFooter);
-                         # wishlist/, deals/, destinations/, rewards/, help/, account/security/ = <ComingSoon>
-                         # placeholders (PLAN.md Phase 11 — replace when the feature ships);
+                         # rewards/, help/ = <ComingSoon> placeholders (PLAN.md Phase 11 — replace when the
+                         # feature ships); deals/ = features/deals (GET /api/deals);
                          # providers.tsx (QueryClient; no retry on 4xx; Query/MutationCache 401 → me = null)
       components/        # app-wide components shared by several features (pagination.tsx, site-header.tsx,
                          # site-footer.tsx, nav-links.ts (MAIN_NAV / FOOTER_NAV), coming-soon.tsx)
@@ -48,7 +48,7 @@ apps/
                          # features/dashboard/ (adminDashboardKeys, dashboard-params.ts; `/` home = dashboard, DailyChart = shadcn chart),
                          # features/reviews/ (adminReviewKeys, list-params.ts; hide/show via ReviewVisibilityDialog),
                          # features/rate-periods/ (adminRatePeriodKeys, RatesCard on
-                         # the room type page); components/form-header.tsx + form-field.tsx and
+                         # the room type page); features/promotions/ (adminPromotionKeys, PromotionsCard on the hotel page); components/form-header.tsx + form-field.tsx and
                          # ImagesSection / AmenitiesSection (useFormContext) are shared by the hotel + room type forms;
                          # UI copy is Thai (hardcoded, no i18n lib): lib/messages-th.ts toThai() translates shared-schema
                          # + API messages, thaiResolver(zodResolver(...)) for forms; lib/zod-locale.ts = zod's th locale
@@ -64,10 +64,13 @@ apps/
                          # sub-routers per resource (hotels.ts, amenities.ts, uploads.ts = raw-body image upload;
                          # room-types.ts mounted at hotels/:hotelId/room-types behind requireHotelAccess, mergeParams;
                          # rate-periods.ts mounted inside it at :roomTypeId/rate-periods; dashboard.ts = GET /dashboard;
-                         # reviews.ts = GET / + PATCH /:reviewId { isHidden })
+                         # reviews.ts = GET / + PATCH /:reviewId { isHidden }; promotions.ts mounted at
+                         # hotels/:hotelId/promotions behind requireHotelAccess)
       controllers/       # parse req, call service, respond with ok()/noContent() — never import prisma
       services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts,
-                         # pricing.service.ts quoteStay(s), availability.service.ts availableRoomCounts,
+                         # pricing.service.ts quoteStay(s) — the ONLY place prices + deals are computed (best single
+                         # deal via lib/promotions.ts, never stacked), deal.service.ts (GET /api/deals),
+                         # admin-promotion.service.ts, availability.service.ts availableRoomCounts,
                          # payment.service.ts — settlePayment is the ONLY code that moves a Payment out of PENDING,
                          # admin-hotel.service.ts — admin hotel list/detail/writes, all writes return AdminHotel,
                          # admin-room-type.service.ts — room types + rooms, all writes return AdminRoomType,

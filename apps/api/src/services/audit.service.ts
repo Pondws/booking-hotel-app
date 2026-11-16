@@ -5,6 +5,7 @@ import {
   type AdminAuditLogListQuery,
   type AdminBooking,
   type AdminHotel,
+  type AdminPromotion,
   type AdminRatePeriod,
   type AdminReview,
   type AdminRoomType,
@@ -82,6 +83,19 @@ export const bookingSnapshot = (b: AdminBooking): AuditSnapshot => ({
   room: b.room.number,
   cancelReason: b.cancelReason,
   paymentStatus: b.payment?.status ?? null,
+});
+
+export const promotionSnapshot = (p: AdminPromotion): AuditSnapshot => ({
+  name: p.name,
+  type: p.type,
+  percentOff: p.percentOff,
+  minNights: p.minNights,
+  minDaysAhead: p.minDaysAhead,
+  maxDaysAhead: p.maxDaysAhead,
+  code: p.code,
+  validFrom: p.validFrom,
+  validUntil: p.validUntil,
+  isActive: p.isActive,
 });
 
 /** Staff only change whether a review shows. */

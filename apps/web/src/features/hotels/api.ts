@@ -6,13 +6,13 @@ import {
   hotelSearchResultSchema,
   type Amenity,
   type Availability,
+  type AvailabilityQuery,
   type HotelDetail,
   type HotelReviewList,
   type HotelReviewsQuery,
   type HotelSearchQuery,
   type HotelSummary,
   type Paginated,
-  type StayRange,
 } from "@booking/shared";
 import { request } from "@/lib/api";
 
@@ -37,7 +37,7 @@ export function fetchHotelReviews(slug: string, q: HotelReviewsQuery): Promise<H
   });
 }
 
-export function fetchAvailability(slug: string, range: StayRange): Promise<Availability> {
+export function fetchAvailability(slug: string, range: AvailabilityQuery): Promise<Availability> {
   return request(availabilitySchema, {
     method: "GET",
     url: `/api/hotels/${encodeURIComponent(slug)}/availability`,

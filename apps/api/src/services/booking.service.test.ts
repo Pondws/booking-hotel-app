@@ -246,6 +246,8 @@ describe("toBooking payment fields", () => {
     guestEmail: "g@test.local",
     guestPhone: null,
     totalAmount: new Prisma.Decimal("3000.00"),
+    discountAmount: new Prisma.Decimal(0),
+    discountLabel: null,
     currency: "THB",
     expiresAt: new Date(now.getTime() + 10 * MIN),
     cancelledAt: null,

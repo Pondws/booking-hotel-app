@@ -58,5 +58,13 @@ INSERT INTO payments (id, booking_id, amount, currency, status, provider, update
 SELECT pg_temp.expect_fail($q$INSERT INTO payments (id, booking_id, amount, currency, status, provider, updated_at) VALUES ('t_pay2', 't_b1', 3000, 'THB', 'SUCCEEDED', 'mock', now())$q$, '23505');
 INSERT INTO payments (id, booking_id, amount, currency, status, provider, updated_at) VALUES ('t_pay3', 't_b1', 3000, 'THB', 'FAILED', 'mock', now()), ('t_pay4', 't_b1', 3000, 'THB', 'REFUNDED', 'mock', now());
 
+-- promotions: percent 1..90, min nights >= 1, valid_until >= valid_from; booking discount >= 0
+SELECT pg_temp.expect_fail($q$INSERT INTO promotions (id, hotel_id, name, type, percent_off, updated_at) VALUES ('t_pr1', 't_hotel', 'P', 'LONG_STAY', 0, now())$q$, '23514');
+SELECT pg_temp.expect_fail($q$INSERT INTO promotions (id, hotel_id, name, type, percent_off, updated_at) VALUES ('t_pr2', 't_hotel', 'P', 'LONG_STAY', 91, now())$q$, '23514');
+SELECT pg_temp.expect_fail($q$INSERT INTO promotions (id, hotel_id, name, type, percent_off, min_nights, updated_at) VALUES ('t_pr3', 't_hotel', 'P', 'LONG_STAY', 10, 0, now())$q$, '23514');
+SELECT pg_temp.expect_fail($q$INSERT INTO promotions (id, hotel_id, name, type, percent_off, valid_from, valid_until, updated_at) VALUES ('t_pr4', 't_hotel', 'P', 'CODE', 10, '2027-02-01', '2027-01-31', now())$q$, '23514');
+INSERT INTO promotions (id, hotel_id, name, type, percent_off, valid_from, valid_until, updated_at) VALUES ('t_pr5', 't_hotel', 'P', 'CODE', 90, '2027-02-01', '2027-02-01', now());
+SELECT pg_temp.expect_fail($q$UPDATE bookings SET discount_amount = -1 WHERE id = 't_b1'$q$, '23514');
+
 DO $$ BEGIN RAISE NOTICE 'ALL CONSTRAINT CHECKS PASSED'; END $$;
 ROLLBACK;

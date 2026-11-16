@@ -171,9 +171,17 @@ test("availabilitySchema parses a minimal sample", () => {
         roomTypeId: "rt1",
         available: true,
         availableRooms: 2,
-        quote: { nights: 1, nightly: [{ date: "2027-01-10", price: 3200 }], total: 3200, currency: "THB" },
+        quote: {
+          nights: 1,
+          nightly: [{ date: "2027-01-10", price: 3200 }],
+          subtotal: 3200,
+          discount: null,
+          total: 3200,
+          currency: "THB",
+        },
       },
     ],
+    promoCode: null,
   });
   assert.equal(r.roomTypes[0]?.quote.total, 3200);
 });
@@ -259,6 +267,9 @@ test("bookingSchema parses a sample", () => {
     guestName: "Ann",
     guestEmail: "ann@test.local",
     guestPhone: null,
+    subtotalAmount: 9600,
+    discountAmount: 0,
+    discountLabel: null,
     totalAmount: 9600,
     currency: "THB",
     expiresAt: "2027-01-01T10:15:00.000Z",

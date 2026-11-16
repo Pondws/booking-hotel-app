@@ -49,6 +49,8 @@ describe("quoteStay / quoteStays", () => {
         { date: "2030-04-10", price: 4500 },
         { date: "2030-04-11", price: 4500 },
       ],
+      subtotal: 15400,
+      discount: null,
       total: 15400,
       currency: "THB",
     });
@@ -57,8 +59,8 @@ describe("quoteStay / quoteStays", () => {
   test("quoteStays returns a quote for every room type", async () => {
     const quotes = await quoteStays(
       [
-        { id: deluxe, basePrice: new Prisma.Decimal(3200) },
-        { id: suite, basePrice: new Prisma.Decimal("1999.50") },
+        { id: deluxe, basePrice: new Prisma.Decimal(3200), hotelId: fx.hotelId },
+        { id: suite, basePrice: new Prisma.Decimal("1999.50"), hotelId: fx.hotelId },
       ],
       "THB",
       "2030-04-16",

@@ -1,4 +1,4 @@
-import { hotelReviewsQuerySchema, hotelSearchQuerySchema, stayRangeSchema } from "@booking/shared";
+import { availabilityQuerySchema, hotelReviewsQuerySchema, hotelSearchQuerySchema } from "@booking/shared";
 import { Router } from "express";
 import { z } from "zod";
 import { getAvailability, getHotel, getHotelReviews, searchHotels } from "../controllers/hotel.controller";
@@ -12,7 +12,7 @@ hotelsRouter.get("/", validate({ query: hotelSearchQuerySchema }), searchHotels)
 hotelsRouter.get("/:slug", validate({ params: slugParams }), getHotel);
 hotelsRouter.get(
   "/:slug/availability",
-  validate({ params: slugParams, query: stayRangeSchema }),
+  validate({ params: slugParams, query: availabilityQuerySchema }),
   getAvailability,
 );
 hotelsRouter.get(

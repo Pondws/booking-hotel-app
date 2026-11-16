@@ -19,7 +19,7 @@ import { prisma } from "../lib/prisma";
 import { isExclusionViolation, isUniqueViolationOn, isWriteConflict } from "../lib/prisma-errors";
 import { blockingBookingWhere } from "./availability.service";
 import { releaseBookingPayment } from "./payment.service";
-import { quoteStay } from "./pricing.service";
+import { isPromoCodeValid, quoteStay } from "./pricing.service";
 
 /** Inserts per room before giving up on code collisions (each is a 1-in-~10⁹ event). */
 const MAX_CODE_ATTEMPTS = 5;
@@ -38,6 +38,8 @@ export const bookingSelect = {
   guestEmail: true,
   guestPhone: true,
   totalAmount: true,
+  discountAmount: true,
+  discountLabel: true,
   currency: true,
   expiresAt: true,
   cancelledAt: true,
@@ -94,6 +96,9 @@ export function toBooking(row: BookingRow, now: Date): Booking {
     guestName: row.guestName,
     guestEmail: row.guestEmail,
     guestPhone: row.guestPhone,
+    subtotalAmount: row.totalAmount.plus(row.discountAmount).toNumber(),
+    discountAmount: row.discountAmount.toNumber(),
+    discountLabel: row.discountLabel,
     totalAmount: row.totalAmount.toNumber(),
     currency: row.currency,
     expiresAt: row.expiresAt?.toISOString() ?? null,
@@ -142,7 +147,7 @@ export async function createBooking(
   // 1. Room type must be bookable and big enough.
   const roomType = await prisma.roomType.findFirst({
     where: { id: roomTypeId, isActive: true, hotel: { isActive: true } },
-    select: { id: true, capacity: true },
+    select: { id: true, capacity: true, hotelId: true },
   });
   if (!roomType) throw new AppError(404, "NOT_FOUND", "Room type not found");
   if (guests > roomType.capacity) {
@@ -166,8 +171,15 @@ export async function createBooking(
     throw new AppError(409, "CONFLICT", `You have ${MAX_ACTIVE_HOLDS} bookings waiting for payment`);
   }
 
-  // 4. Price.
-  const quote = await quoteStay(roomTypeId, checkIn, checkOut);
+  // 4. Price, with the best deal. A code that can't be used for this stay is a field error, never ignored.
+  const { promoCode } = input;
+  if (promoCode !== undefined && !(await isPromoCodeValid(roomType.hotelId, promoCode, checkIn, checkOut, now))) {
+    throw new AppError(400, "VALIDATION_FAILED", "Validation failed", {
+      formErrors: [],
+      fieldErrors: { promoCode: ["This code can't be used for this stay"] },
+    });
+  }
+  const quote = await quoteStay(roomTypeId, checkIn, checkOut, { promoCode, now });
 
   // 5. Try each free room in order; the DB constraint settles races.
   const candidates = await prisma.room.findMany({
@@ -185,6 +197,9 @@ export async function createBooking(
     checkOut: toDbDate(checkOut),
     status: "PENDING",
     totalAmount: new Prisma.Decimal(quote.total),
+    discountAmount: new Prisma.Decimal(quote.discount?.amount ?? 0),
+    discountLabel: quote.discount?.name ?? null,
+    promotionId: quote.discount?.promotionId ?? null,
     currency: quote.currency,
     expiresAt: new Date(now.getTime() + HOLD_MINUTES * 60_000),
   } satisfies Omit<Prisma.BookingUncheckedCreateInput, "code" | "roomId">;
