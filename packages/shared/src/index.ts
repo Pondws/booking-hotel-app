@@ -1250,3 +1250,17 @@ export const wishlistDetailSchema = z.object({
   createdAt: z.iso.datetime(),
 });
 export type WishlistDetail = z.infer<typeof wishlistDetailSchema>;
+
+// ---------- Destinations (public, `/api/destinations`) ----------
+
+/** One city with active hotels. fromPrice = lowest base price of an active room type there (no dates). */
+export const destinationSchema = z.object({
+  city: z.string(),
+  hotelCount: z.number().int().min(1),
+  fromPrice: z.number().nullable(),
+  currency: z.string(),
+  coverImage: imageSchema.nullable(),
+});
+export type Destination = z.infer<typeof destinationSchema>;
+/** Most hotels first, then city name. */
+export const destinationListSchema = z.array(destinationSchema);
