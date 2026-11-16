@@ -1,6 +1,7 @@
 import {
   Building2,
   CalendarCheck,
+  Inbox,
   LayoutDashboard,
   MessageSquare,
   Sparkles,
@@ -23,6 +24,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/hotels", label: "โรงแรม", icon: Building2 },
   { href: "/bookings", label: "การจอง", icon: CalendarCheck },
   { href: "/reviews", label: "รีวิว", icon: MessageSquare },
+  { href: "/support", label: "ข้อความจากลูกค้า", icon: Inbox },
   { href: "/staff", label: "พนักงาน", icon: Users, roles: ["ADMIN"] },
   { href: "/amenities", label: "สิ่งอำนวยความสะดวก", icon: Sparkles, roles: ["ADMIN"] },
 ];

@@ -13,6 +13,7 @@ import { useCountdown } from "../use-countdown";
 import { BookingStatusBadge } from "./booking-status-badge";
 import { CancelBookingDialog } from "./cancel-booking-dialog";
 import { HoldCountdown } from "./hold-countdown";
+import { SupportCard } from "@/features/support/components/support-card";
 import { ReviewCard } from "./review-card";
 
 const BACK = "/account/bookings";
@@ -197,6 +198,8 @@ function BookingView({ booking, refetch, onStillPending }: ViewProps) {
       </section>
 
       <ReviewCard booking={booking} />
+
+      <SupportCard code={booking.code} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link href={BACK} className="text-sm underline underline-offset-4">

@@ -101,6 +101,7 @@ const hotelSeed: HotelSeed[] = [
 
 async function main() {
   // Reverse dependency order because of the Restrict relations.
+  await prisma.supportRequest.deleteMany();
   await prisma.review.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.booking.deleteMany();

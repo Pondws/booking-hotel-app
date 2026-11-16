@@ -51,6 +51,8 @@ model User {
   sessions Session[]
   auditLogs AuditLog[]
   wishlists Wishlist[]
+  supportRequests  SupportRequest[] @relation("SupportRequester")
+  supportResolved  SupportRequest[] @relation("SupportResolver")
 
   @@map("users")
 }
@@ -117,6 +119,7 @@ model Hotel {
   auditLogs AuditLog[]
   wishlistItems WishlistItem[]
   promotions    Promotion[]
+  supportRequests SupportRequest[]
 
   @@index([city])
   @@map("hotels")
@@ -293,6 +296,7 @@ model Booking {
   promotion Promotion? @relation(fields: [promotionId], references: [id], onDelete: SetNull)
   payments  Payment[]
   review    Review?
+  supportRequests SupportRequest[]
 
   @@index([userId])
   @@index([promotionId])
@@ -462,4 +466,46 @@ model Promotion {
 
   @@index([hotelId, isActive])
   @@map("promotions")
+}
+
+enum SupportTopic {
+  CHANGE_BOOKING
+  CANCELLATION
+  PAYMENT
+  SPECIAL_REQUEST
+  OTHER
+}
+
+enum SupportStatus {
+  OPEN
+  RESOLVED
+}
+
+/// A customer's message to the team about one of their bookings (11.7). Staff answer it once, which resolves it.
+/// `userId` / `hotelId` are copied from the booking by the service, never taken from the request.
+model SupportRequest {
+  id           String        @id @default(cuid())
+  bookingId    String        @map("booking_id")
+  userId       String        @map("user_id")
+  hotelId      String        @map("hotel_id")
+  topic        SupportTopic
+  message      String        @db.VarChar(2000)
+  status       SupportStatus @default(OPEN)
+  reply        String?       @db.VarChar(2000)
+  resolvedAt   DateTime?     @map("resolved_at")
+  resolvedById String?       @map("resolved_by_id")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  booking    Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  user       User    @relation("SupportRequester", fields: [userId], references: [id], onDelete: Restrict)
+  hotel      Hotel   @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  resolvedBy User?   @relation("SupportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@index([userId])
+  @@index([resolvedById])
+  @@index([hotelId, status, createdAt])
+  @@index([status, createdAt])
+  @@map("support_requests")
 }

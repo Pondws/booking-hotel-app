@@ -199,6 +199,7 @@ export async function clearBookings(fx: CatalogFixture) {
   const where = { OR: [{ userId: fx.userId }, { room: { roomType: { hotelId: fx.hotelId } } }] };
   await prisma.payment.deleteMany({ where: { booking: where } });
   await prisma.review.deleteMany({ where: { booking: where } });
+  await prisma.supportRequest.deleteMany({ where: { booking: where } });
   return prisma.booking.deleteMany({ where });
 }
 
@@ -209,7 +210,8 @@ export async function cleanupCatalogFixtures(label: string): Promise<void> {
   const user = { email: { startsWith: userPrefix(label) } };
   // Before the hotels / users go: both relations are SetNull, so the rows would no longer match afterwards.
   await prisma.auditLog.deleteMany({ where: { OR: [{ hotel }, { actor: user }] } });
-  // Reviews first: FK Restrict on booking, user and hotel.
+  // Reviews and support requests first: FK Restrict on booking, user and hotel.
+  await prisma.supportRequest.deleteMany({ where: { OR: [{ hotel }, { user }, { booking: { room: { roomType } } }] } });
   await prisma.review.deleteMany({ where: { OR: [{ hotel }, { user }, { booking: { room: { roomType } } }] } });
   await prisma.payment.deleteMany({ where: { booking: { room: { roomType } } } });
   await prisma.booking.deleteMany({ where: { room: { roomType } } });

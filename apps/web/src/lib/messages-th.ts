@@ -20,6 +20,8 @@ const EXACT: Record<string, string> = {
   // API
   "This code can't be used for this stay": "ใช้โค้ดนี้กับการเข้าพักนี้ไม่ได้",
   "You don't have enough points": "แต้มของคุณไม่พอ",
+  "Write at least 10 characters": "เขียนอย่างน้อย 10 ตัวอักษร",
+  "You already have 3 open requests for this booking": "มีข้อความที่รอตอบกลับสำหรับการจองนี้ครบ 3 รายการแล้ว",
   "Your points were just used on another booking": "แต้มของคุณเพิ่งถูกใช้กับการจองอื่น",
   "Authentication required": "กรุณาเข้าสู่ระบบ",
   "Invalid email or password": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",

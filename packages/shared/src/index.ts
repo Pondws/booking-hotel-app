@@ -1482,3 +1482,72 @@ export const rewardsSummarySchema = z.object({
   history: z.array(rewardsHistoryItemSchema),
 });
 export type RewardsSummary = z.infer<typeof rewardsSummarySchema>;
+
+// ---------- Support requests (11.7) ----------
+
+export const SUPPORT_TOPICS = ["CHANGE_BOOKING", "CANCELLATION", "PAYMENT", "SPECIAL_REQUEST", "OTHER"] as const;
+export const supportTopicSchema = z.enum(SUPPORT_TOPICS);
+export type SupportTopic = z.infer<typeof supportTopicSchema>;
+
+export const supportStatusSchema = z.enum(["OPEN", "RESOLVED"]);
+export type SupportStatus = z.infer<typeof supportStatusSchema>;
+
+export const SUPPORT_MESSAGE_MAX = 2000;
+/** Unanswered requests one booking may have at once. */
+export const SUPPORT_OPEN_LIMIT = 3;
+
+const supportText = z
+  .string()
+  .trim()
+  .min(10, "Write at least 10 characters")
+  .max(SUPPORT_MESSAGE_MAX, `Keep it under ${SUPPORT_MESSAGE_MAX} characters`);
+
+/** `POST /api/bookings/:code/support-requests`. */
+export const createSupportRequestSchema = z.object({
+  topic: supportTopicSchema,
+  message: supportText,
+});
+export type CreateSupportRequestInput = z.input<typeof createSupportRequestSchema>;
+export type CreateSupportRequestData = z.output<typeof createSupportRequestSchema>;
+
+/** A request as the customer sees it on their booking. */
+export const supportRequestSchema = z.object({
+  id: z.string(),
+  topic: supportTopicSchema,
+  message: z.string(),
+  status: supportStatusSchema,
+  reply: z.string().nullable(),
+  resolvedAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+});
+export type SupportRequest = z.infer<typeof supportRequestSchema>;
+export const supportRequestListSchema = z.array(supportRequestSchema);
+
+export const ADMIN_SUPPORT_STATUS_FILTERS = ["OPEN", "RESOLVED", "all"] as const;
+export type AdminSupportStatusFilter = (typeof ADMIN_SUPPORT_STATUS_FILTERS)[number];
+
+/** Open ones first by default (oldest first, so nobody waits longest); resolved / all = newest first. */
+export const adminSupportListQuerySchema = z.object({
+  hotelId: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  status: z.enum(ADMIN_SUPPORT_STATUS_FILTERS).default("OPEN"),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type AdminSupportListQuery = z.output<typeof adminSupportListQuerySchema>;
+
+export const adminSupportRequestSchema = supportRequestSchema.extend({
+  booking: z.object({ code: z.string(), guestName: z.string(), guestEmail: z.string(), checkIn: isoDate, checkOut: isoDate }),
+  hotel: z.object({ id: z.string(), name: z.string() }),
+  /** Null while open, or when the staff account was removed. */
+  resolvedBy: z.object({ name: z.string() }).nullable(),
+});
+export type AdminSupportRequest = z.infer<typeof adminSupportRequestSchema>;
+export const adminSupportRequestListSchema = paginated(adminSupportRequestSchema);
+
+export const supportRequestIdParamsSchema = z.object({ requestId: z.string().min(1).max(64) });
+export type SupportRequestIdParams = z.output<typeof supportRequestIdParamsSchema>;
+
+/** `POST /api/admin/support-requests/:requestId/resolve` — the reply the customer sees; resolves the request. */
+export const resolveSupportRequestSchema = z.object({ reply: supportText });
+export type ResolveSupportRequestInput = z.input<typeof resolveSupportRequestSchema>;
+export type ResolveSupportRequestData = z.output<typeof resolveSupportRequestSchema>;

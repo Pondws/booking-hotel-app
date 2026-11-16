@@ -26,11 +26,13 @@ apps/
     src/
       app/               # routes (App Router): / (search), hotels/ (results), hotels/[slug]/ (detail), login/,
                          # register/, account/; layout.tsx (SiteHeader + SiteFooter);
-                         # help/ = <ComingSoon> placeholder (PLAN.md Phase 11 — replace when the feature ships);
                          # deals/ = features/deals (GET /api/deals); rewards/ = features/rewards (GET /api/rewards/me);
+                         # help/ = features/help (static FAQ in faq.ts, searched client-side; keep section ids —
+                         # the footer links to /help#cancellation and /help#payment); features/support = SupportCard
+                         # on the booking page;
                          # providers.tsx (QueryClient; no retry on 4xx; Query/MutationCache 401 → me = null)
       components/        # app-wide components shared by several features (pagination.tsx, site-header.tsx,
-                         # site-footer.tsx, nav-links.ts (MAIN_NAV / FOOTER_NAV), coming-soon.tsx)
+                         # site-footer.tsx, nav-links.ts (MAIN_NAV / FOOTER_NAV))
                          # UI copy is Thai (hardcoded, like web-admin): lib/messages-th.ts toThai() + thaiResolver,
                          # lib/zod-locale.ts; dates via features/hotels/format.ts (Thai months, Buddhist-era year)
       features/<name>/   # one folder per feature (e.g. auth/, hotels/, bookings/, payments/, health/):
@@ -47,6 +49,7 @@ apps/
                          # features/room-types/ (adminRoomTypeKeys), features/bookings/ (adminBookingKeys, list-params.ts; actions shown from the API's can* flags),
                          # features/dashboard/ (adminDashboardKeys, dashboard-params.ts; `/` home = dashboard, DailyChart = shadcn chart),
                          # features/reviews/ (adminReviewKeys, list-params.ts; hide/show via ReviewVisibilityDialog),
+                         # features/support/ (adminSupportKeys, list-params.ts; /support inbox, ReplyDialog resolves),
                          # features/rate-periods/ (adminRatePeriodKeys, RatesCard on
                          # the room type page); features/promotions/ (adminPromotionKeys, PromotionsCard on the hotel page); components/form-header.tsx + form-field.tsx and
                          # ImagesSection / AmenitiesSection (useFormContext) are shared by the hotel + room type forms;
@@ -82,6 +85,8 @@ apps/
                          # admin-dashboard.service.ts — today lists, occupancy + revenue per stayed night (CONFIRMED/COMPLETED),
                          # amenity.service.ts assertAmenityScope — the DB doesn't check amenity scope,
                          # wishlist.service.ts — every query scoped by userId (another user's list = 404),
+                         # support.service.ts — customer requests per own booking + admin inbox (resolve = one
+                         # conditional updateMany; STAFF scoped to their hotels),
                          # review.service.ts — createMyReview; recomputeHotelRating is the ONLY code that writes
                          # Hotel.ratingAvg/reviewCount (visible reviews only, same transaction as the review write),
                          # admin-review.service.ts — list + hide/show (conditional updateMany + recompute; audit row's
