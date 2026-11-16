@@ -16,6 +16,7 @@ export const ENTITY_LABELS: Record<AuditEntityType, string> = {
   AMENITY: "สิ่งอำนวยความสะดวก",
   STAFF: "พนักงาน",
   BOOKING: "การจอง",
+  REVIEW: "รีวิว",
 };
 
 /** Snapshot field names (from the API's audit snapshots) → Thai labels. Unknown fields show as is. */
@@ -44,6 +45,7 @@ const FIELD_LABELS: Record<string, string> = {
   room: "ห้อง",
   cancelReason: "เหตุผลการยกเลิก",
   paymentStatus: "การชำระเงิน",
+  isHidden: "การแสดงผล",
 };
 
 export const fieldLabel = (field: string) => FIELD_LABELS[field] ?? field;
@@ -60,7 +62,9 @@ export function formatValue(field: string, value: AuditValue): string {
   if (value === null || value === "" || (Array.isArray(value) && value.length === 0)) return EMPTY;
   if (Array.isArray(value)) return field === "images" ? `${value.length} รูป` : value.join(", ");
   if (typeof value === "boolean") {
-    return field === "isActive" ? (value ? "เปิดใช้งาน" : "ปิดใช้งาน") : value ? "ใช่" : "ไม่";
+    if (field === "isActive") return value ? "เปิดใช้งาน" : "ปิดใช้งาน";
+    if (field === "isHidden") return value ? "ซ่อน" : "แสดง";
+    return value ? "ใช่" : "ไม่";
   }
   if (typeof value === "number") return number.format(value);
   switch (field) {

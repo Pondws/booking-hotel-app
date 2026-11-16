@@ -41,6 +41,7 @@ apps/
                          # per phase); features/hotels/ (adminHotelKeys, list-params.ts), features/amenities/,
                          # features/room-types/ (adminRoomTypeKeys), features/bookings/ (adminBookingKeys, list-params.ts; actions shown from the API's can* flags),
                          # features/dashboard/ (adminDashboardKeys, dashboard-params.ts; `/` home = dashboard, DailyChart = shadcn chart),
+                         # features/reviews/ (adminReviewKeys, list-params.ts; hide/show via ReviewVisibilityDialog),
                          # features/rate-periods/ (adminRatePeriodKeys, RatesCard on
                          # the room type page); components/form-header.tsx + form-field.tsx and
                          # ImagesSection / AmenitiesSection (useFormContext) are shared by the hotel + room type forms;
@@ -57,7 +58,8 @@ apps/
         admin/           # index.ts = adminRouter, guarded once by loadSession('ADMIN') + requireRole('ADMIN','STAFF');
                          # sub-routers per resource (hotels.ts, amenities.ts, uploads.ts = raw-body image upload;
                          # room-types.ts mounted at hotels/:hotelId/room-types behind requireHotelAccess, mergeParams;
-                         # rate-periods.ts mounted inside it at :roomTypeId/rate-periods; dashboard.ts = GET /dashboard)
+                         # rate-periods.ts mounted inside it at :roomTypeId/rate-periods; dashboard.ts = GET /dashboard;
+                         # reviews.ts = GET / + PATCH /:reviewId { isHidden })
       controllers/       # parse req, call service, respond with ok()/noContent() — never import prisma
       services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts,
                          # pricing.service.ts quoteStay(s), availability.service.ts availableRoomCounts,
@@ -70,7 +72,9 @@ apps/
                          # admin-dashboard.service.ts — today lists, occupancy + revenue per stayed night (CONFIRMED/COMPLETED),
                          # amenity.service.ts assertAmenityScope — the DB doesn't check amenity scope,
                          # review.service.ts — createMyReview; recomputeHotelRating is the ONLY code that writes
-                         # Hotel.ratingAvg/reviewCount (visible reviews only, same transaction as the review write))
+                         # Hotel.ratingAvg/reviewCount (visible reviews only, same transaction as the review write),
+                         # admin-review.service.ts — list + hide/show (conditional updateMany + recompute; audit row's
+                         # parentId = hotelId so it shows in the hotel's history))
       lib/               # prisma.ts (single client, PrismaPg adapter, global omit of passwordHash), app-error.ts,
                          # http.ts (ok, noContent), prisma-errors.ts (isUniqueViolationOn), password.ts (scrypt),
                          # session-token.ts, cookies.ts (sid / admin_sid), cors-policy.ts, slug.ts,
