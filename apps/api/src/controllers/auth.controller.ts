@@ -1,10 +1,18 @@
-import type { ChangePasswordInput, LoginInput, RegisterInput, UpdateProfileData } from "@booking/shared";
+import type {
+  ChangePasswordInput,
+  ForgotPasswordData,
+  LoginInput,
+  RegisterInput,
+  ResetPasswordInput,
+  UpdateProfileData,
+} from "@booking/shared";
 import type { Request, RequestHandler, Response } from "express";
 import type { SessionAudience } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
 import { clearSessionCookie, SESSION_TTL_MS, setSessionCookie } from "../lib/cookies";
 import { noContent, ok } from "../lib/http";
 import * as authService from "../services/auth.service";
+import * as passwordResetService from "../services/password-reset.service";
 
 function sessionMeta(req: Request): authService.SessionMeta {
   const meta: authService.SessionMeta = {};
@@ -59,5 +67,16 @@ export async function updateProfile(req: Body<UpdateProfileData>, res: Response)
 export async function changePassword(req: Body<ChangePasswordInput>, res: Response) {
   const { user, sessionId } = currentAuth(req);
   await authService.changePassword(user.id, sessionId, req.body);
+  noContent(res);
+}
+
+// Always 204: the response must not reveal whether the email has an account.
+export async function forgotPassword(req: Body<ForgotPasswordData>, res: Response) {
+  await passwordResetService.requestPasswordReset(req.body);
+  noContent(res);
+}
+
+export async function resetPassword(req: Body<ResetPasswordInput>, res: Response) {
+  await passwordResetService.resetPassword(req.body);
   noContent(res);
 }

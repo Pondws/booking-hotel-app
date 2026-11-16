@@ -21,6 +21,7 @@ const EXACT: Record<string, string> = {
   "This code can't be used for this stay": "ใช้โค้ดนี้กับการเข้าพักนี้ไม่ได้",
   "You don't have enough points": "แต้มของคุณไม่พอ",
   "Write at least 10 characters": "เขียนอย่างน้อย 10 ตัวอักษร",
+  "This reset link is invalid or has expired": "ลิงก์ตั้งรหัสผ่านใหม่ไม่ถูกต้องหรือหมดอายุแล้ว ขอลิงก์ใหม่อีกครั้ง",
   "You already have 3 open requests for this booking": "มีข้อความที่รอตอบกลับสำหรับการจองนี้ครบ 3 รายการแล้ว",
   "Your points were just used on another booking": "แต้มของคุณเพิ่งถูกใช้กับการจองอื่น",
   "Authentication required": "กรุณาเข้าสู่ระบบ",

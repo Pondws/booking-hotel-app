@@ -1551,3 +1551,28 @@ export type SupportRequestIdParams = z.output<typeof supportRequestIdParamsSchem
 export const resolveSupportRequestSchema = z.object({ reply: supportText });
 export type ResolveSupportRequestInput = z.input<typeof resolveSupportRequestSchema>;
 export type ResolveSupportRequestData = z.output<typeof resolveSupportRequestSchema>;
+
+// ---------- Forgot password (11.8, customers) ----------
+
+export const PASSWORD_RESET_MINUTES = 30;
+
+/** `POST /api/auth/forgot-password` — always 204, whether or not the email has an account. */
+export const forgotPasswordSchema = z.object({ email: loginSchema.shape.email });
+export type ForgotPasswordInput = z.input<typeof forgotPasswordSchema>;
+export type ForgotPasswordData = z.output<typeof forgotPasswordSchema>;
+
+/** `POST /api/auth/reset-password` — the token from the emailed link + the new password. */
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20, "This reset link is invalid or has expired").max(200),
+  password: registerSchema.shape.password,
+});
+export type ResetPasswordInput = z.output<typeof resetPasswordSchema>;
+
+/** The reset form: the API body plus a client-only confirmation. */
+export const resetPasswordFormSchema = resetPasswordSchema
+  .extend({ confirmPassword: z.string().min(1, "Password is required").max(128) })
+  .refine((v) => v.confirmPassword === v.password, {
+    path: ["confirmPassword"],
+    message: "Passwords don't match",
+  });
+export type ResetPasswordFormInput = z.input<typeof resetPasswordFormSchema>;

@@ -359,7 +359,7 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-dashboard-design.md`
   - ADMIN ปิดบัญชีตัวเองไม่ได้ และบันทึกลง audit log
 - [x] ADMIN รีเซ็ตรหัสผ่าน staff (ตั้งรหัสชั่วคราว) แล้วลบ session ทั้งหมดของคนนั้น
 - [x] Rate limit ตอน login แบบต่อบัญชี: นับเฉพาะครั้งที่ผิดต่อ email (memory store — ทบทวนตอนมีหลาย instance ใน Phase 10)
-- [ ] → ย้ายไป Phase 10 (ยังไม่มีผู้ให้บริการอีเมล) ลืมรหัสผ่าน (ลูกค้า): token ใช้ครั้งเดียว มีอายุ ส่งลิงก์ทางอีเมล
+- [x] ลืมรหัสผ่าน (ลูกค้า): token ใช้ครั้งเดียว มีอายุ ส่งลิงก์ทางอีเมล — ทำใน 11.8 ด้วย `ConsoleMailer`; การส่งอีเมลจริงยังอยู่ Phase 10
       ⚠️ ต้องมีผู้ให้บริการส่งอีเมล (เรื่องที่ต้องตัดสินใจ #8) ถ้ายังไม่ได้ตัดสินใจ ให้ย้ายไปทำคู่กับอีเมลแจ้งเตือนใน Phase 10
 
 **เสร็จเมื่อ:**
@@ -458,7 +458,7 @@ Claude ตรวจและแก้เองทั้งหมด: เปิ�
 | 11.5 ✅ | ดีลพิเศษ: early bird, last minute, ส่วนลดพักหลายคืน, โค้ดส่วนลด | Booking.com / Agoda | `/deals` | ✅ branch `feat/phase-11-rest`: ตาราง `Promotion` (ต่อโรงแรม, % 1–90, เงื่อนไข minNights / minDaysAhead / maxDaysAhead / code / ช่วงวันจอง); `quoteStays` เลือกดีลที่ลดมากสุด 1 ดีล (ไม่ซ้อน) → `subtotal`/`discount`/`total`; booking เก็บ `discountAmount`/`discountLabel`; `GET /api/deals`, `?promoCode=` บน availability + `promoCode` ตอนจอง; admin จัดการที่การ์ด "โปรโมชัน" ในหน้าโรงแรม |
 | 11.6 ✅ | สมาชิกรางวัล: แต้มจากการเข้าพักที่ COMPLETED, ระดับสมาชิก, ใช้แต้มเป็นส่วนลด | Booking.com Genius / Expedia One Key | `/rewards` | ✅ branch `feat/phase-11-rest`: `Booking.pointsEarned` เขียนใน updateMany เดียวกับ COMPLETED ตอน check-out; `Booking.pointsRedeemed` (1 แต้ม = ฿1, ≥ 100, ≤ 50% ของราคาหลังดีล); ยอดคงเหลือคำนวณจาก booking ที่ยังกันห้อง/COMPLETED จึงคืนแต้มเองเมื่อยกเลิก/หมดเวลา (ไม่มีตาราง ledger); ระดับ MEMBER/SILVER 500/GOLD 2000 แต้มสะสม; `GET /api/rewards/me` |
 | 11.7 ✅ | ศูนย์ช่วยเหลือ: FAQ ค้นหาได้, ติดต่อทีมงานจากหน้าการจอง | ทั้งสามเว็บ | `/help` (มีหัวข้อนโยบายยกเลิก + การชำระเงินที่ถูกต้องแล้ว) | ✅ branch `feat/phase-11-rest`: FAQ แบบ static ค้นหาฝั่ง client (ตัวเลขจาก `@booking/shared`, anchor `#cancellation`/`#payment` เดิม); ตาราง `SupportRequest` — ลูกค้าส่งจากหน้าการจอง (`/api/bookings/:code/support-requests`, เปิดค้างได้ 3 ต่อการจอง), staff ตอบครั้งเดียว = ปิดเรื่อง (`/api/admin/support-requests`, เห็นเฉพาะโรงแรมตัวเอง); web-admin `/support`; ลบ `ComingSoon` แล้ว |
-| 11.8 | ความปลอดภัยของบัญชี: แก้โปรไฟล์, เปลี่ยนรหัสผ่าน, ลืมรหัสผ่าน | ทั้งสามเว็บ | `/account/security` | คืองานใน Phase 8 — ทำ Phase 8 แล้วใช้หน้านี้เป็น UI |
+| 11.8 ✅ | ความปลอดภัยของบัญชี: แก้โปรไฟล์, เปลี่ยนรหัสผ่าน, ลืมรหัสผ่าน | ทั้งสามเว็บ | `/account/security` | ✅ โปรไฟล์ + เปลี่ยนรหัสผ่านมาจาก Phase 8; ลืมรหัสผ่าน (branch `feat/phase-11-rest`): ตาราง `PasswordResetToken` (เก็บแค่ hash, ใช้ครั้งเดียว, 30 นาที, ขอใหม่ = ลบอันเก่า), `POST /api/auth/forgot-password` (ตอบ 204 เสมอ, เฉพาะ CUSTOMER ที่ active, rate limit ต่อ IP + ต่ออีเมล) และ `/reset-password` (ลบ session ทั้งหมด); `lib/mailer.ts` มีแค่ `ConsoleMailer` (production ไม่ log ลิงก์) — ผู้ให้บริการอีเมลจริงยังอยู่ Phase 10; หน้า `/forgot-password`, `/reset-password` + ลิงก์ในหน้า login |
 | 11.9 ✅ | Lightbox ดูรูปเต็มจอ (คีย์บอร์ด ← →) แทน "ดูรูปทั้งหมด" แบบกางลง | Airbnb | `HotelGallery` | ✅ branch `feat/gallery-lightbox`: `PhotoLightbox` (dialog จาก `packages/ui`), ← → / swipe / thumbnail, Esc ปิดแล้วคืน focus; ยังไม่ได้ตรวจในเบราว์เซอร์ |
 
 **เสร็จเมื่อ:** ไม่มีหน้า `ComingSoon` เหลือ และทุกฟีเจอร์มี test ฝั่ง API + loading/error/empty states ฝั่ง FE

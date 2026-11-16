@@ -52,3 +52,19 @@ export const accountLimiter: RequestHandler = createAccountLimiter({
   limit: env.AUTH_RATE_LIMIT_MAX,
   windowMs: env.AUTH_RATE_LIMIT_WINDOW_MS,
 });
+
+/**
+ * Forgot-password requests per normalized email, successful or not (they always succeed), so nobody can flood
+ * someone's inbox from many IPs. Separate counter from login. Memory store — resets on restart.
+ */
+export const resetRequestLimiter: RequestHandler = rateLimit({
+  limit: env.AUTH_RATE_LIMIT_MAX,
+  windowMs: env.AUTH_RATE_LIMIT_WINDOW_MS,
+  standardHeaders: false,
+  legacyHeaders: false,
+  skip: (req) => accountKey(req.body) === undefined,
+  keyGenerator: (req) => `reset:${accountKey(req.body) ?? ""}`,
+  handler: (_req, _res, next) => {
+    next(new AppError(429, "RATE_LIMITED", "Too many attempts, try again later"));
+  },
+});

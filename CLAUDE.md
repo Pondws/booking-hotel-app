@@ -25,7 +25,7 @@ apps/
   web/                   # customer site
     src/
       app/               # routes (App Router): / (search), hotels/ (results), hotels/[slug]/ (detail), login/,
-                         # register/, account/; layout.tsx (SiteHeader + SiteFooter);
+                         # register/, forgot-password/, reset-password/ (?token=), account/; layout.tsx (SiteHeader + SiteFooter);
                          # deals/ = features/deals (GET /api/deals); rewards/ = features/rewards (GET /api/rewards/me);
                          # help/ = features/help (static FAQ in faq.ts, searched client-side; keep section ids —
                          # the footer links to /help#cancellation and /help#payment); features/support = SupportCard
@@ -85,6 +85,8 @@ apps/
                          # admin-dashboard.service.ts — today lists, occupancy + revenue per stayed night (CONFIRMED/COMPLETED),
                          # amenity.service.ts assertAmenityScope — the DB doesn't check amenity scope,
                          # wishlist.service.ts — every query scoped by userId (another user's list = 404),
+                         # password-reset.service.ts — forgot/reset (hashed one-time token; always 204; customers
+                         # only; reset signs out every session),
                          # support.service.ts — customer requests per own booking + admin inbox (resolve = one
                          # conditional updateMany; STAFF scoped to their hotels),
                          # review.service.ts — createMyReview; recomputeHotelRating is the ONLY code that writes
@@ -94,6 +96,7 @@ apps/
       lib/               # prisma.ts (single client, PrismaPg adapter, global omit of passwordHash), app-error.ts,
                          # http.ts (ok, noContent), prisma-errors.ts (isUniqueViolationOn), password.ts (scrypt),
                          # session-token.ts, cookies.ts (sid / admin_sid), cors-policy.ts, slug.ts,
+                         # mailer.ts (getMailer(); ConsoleMailer only — no provider yet, PLAN.md Phase 10),
                          # dates.ts (@db.Date ↔ YYYY-MM-DD — only way to convert), stay-pricing.ts (priceNights, Decimal),
                          # money.ts (toMinorUnits, toPrice), night-split.ts (splitAcrossNights), image-order.ts (imageOrder), payments/ (PaymentProvider; StripeProvider, MockProvider; getPaymentProvider())
       middleware/        # validate.ts, error-handler.ts, not-found.ts, load-session.ts, require-auth.ts,

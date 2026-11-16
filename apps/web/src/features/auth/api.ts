@@ -1,9 +1,11 @@
 import {
   publicUserSchema,
   type ChangePasswordInput,
+  type ForgotPasswordInput,
   type LoginInput,
   type PublicUser,
   type RegisterInput,
+  type ResetPasswordInput,
   type UpdateProfileInput,
 } from "@booking/shared";
 import { ApiError, request, requestNoContent } from "@/lib/api";
@@ -31,6 +33,16 @@ export function logout() {
 
 export function updateProfile(input: UpdateProfileInput) {
   return request(publicUserSchema, { method: "PATCH", url: "/api/auth/me", data: input });
+}
+
+/** Always resolves (204) whether or not the email has an account. */
+export function forgotPassword(input: ForgotPasswordInput) {
+  return requestNoContent({ method: "POST", url: "/api/auth/forgot-password", data: input });
+}
+
+/** One-time token from the emailed link; signs out every device. */
+export function resetPassword(input: ResetPasswordInput) {
+  return requestNoContent({ method: "POST", url: "/api/auth/reset-password", data: input });
 }
 
 /** Signs out every other device; this one stays signed in. */
