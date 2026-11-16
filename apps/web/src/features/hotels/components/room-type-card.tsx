@@ -140,7 +140,21 @@ function Price({ roomType, currency, pricing }: Pick<Props, "roomType" | "curren
   const { quote } = availability;
   return (
     <div className="space-y-1">
+      {quote.discount && (
+        <p className="flex flex-wrap items-center gap-2">
+          <Badge>ลด {quote.discount.percentOff}%</Badge>
+          <span className="text-muted-foreground">{quote.discount.name}</span>
+        </p>
+      )}
       <p>
+        {quote.discount && (
+          <>
+            <s className="text-muted-foreground tabular-nums">
+              <span className="sr-only">ราคาก่อนลด </span>
+              {formatMoney(quote.subtotal, quote.currency)}
+            </s>{" "}
+          </>
+        )}
         <span className="text-lg font-semibold tabular-nums">
           {formatMoney(quote.total, quote.currency)}
         </span>

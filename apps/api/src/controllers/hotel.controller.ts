@@ -1,4 +1,4 @@
-import type { CreateHotelData, HotelReviewsQuery, HotelSearchQuery, StayRange } from "@booking/shared";
+import type { AvailabilityQuery, CreateHotelData, HotelReviewsQuery, HotelSearchQuery } from "@booking/shared";
 import type { Request, Response } from "express";
 import { ok } from "../lib/http";
 import * as hotelService from "../services/hotel.service";
@@ -21,7 +21,7 @@ export async function getHotel(_req: Request, res: Response<unknown, { params: S
 
 export async function getAvailability(
   _req: Request,
-  res: Response<unknown, { params: SlugParams; query: StayRange }>,
+  res: Response<unknown, { params: SlugParams; query: AvailabilityQuery }>,
 ) {
   ok(res, await hotelService.getAvailability(res.locals.params.slug, res.locals.query));
 }

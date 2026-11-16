@@ -25,12 +25,14 @@ apps/
   web/                   # customer site
     src/
       app/               # routes (App Router): / (search), hotels/ (results), hotels/[slug]/ (detail), login/,
-                         # register/, account/; layout.tsx (SiteHeader + SiteFooter);
-                         # wishlist/, deals/, destinations/, rewards/, help/, account/security/ = <ComingSoon>
-                         # placeholders (PLAN.md Phase 11 — replace when the feature ships);
+                         # register/, forgot-password/, reset-password/ (?token=), account/; layout.tsx (SiteHeader + SiteFooter);
+                         # deals/ = features/deals (GET /api/deals); rewards/ = features/rewards (GET /api/rewards/me);
+                         # help/ = features/help (static FAQ in faq.ts, searched client-side; keep section ids —
+                         # the footer links to /help#cancellation and /help#payment); features/support = SupportCard
+                         # on the booking page;
                          # providers.tsx (QueryClient; no retry on 4xx; Query/MutationCache 401 → me = null)
       components/        # app-wide components shared by several features (pagination.tsx, site-header.tsx,
-                         # site-footer.tsx, nav-links.ts (MAIN_NAV / FOOTER_NAV), coming-soon.tsx)
+                         # site-footer.tsx, nav-links.ts (MAIN_NAV / FOOTER_NAV))
                          # UI copy is Thai (hardcoded, like web-admin): lib/messages-th.ts toThai() + thaiResolver,
                          # lib/zod-locale.ts; dates via features/hotels/format.ts (Thai months, Buddhist-era year)
       features/<name>/   # one folder per feature (e.g. auth/, hotels/, bookings/, payments/, health/):
@@ -47,8 +49,9 @@ apps/
                          # features/room-types/ (adminRoomTypeKeys), features/bookings/ (adminBookingKeys, list-params.ts; actions shown from the API's can* flags),
                          # features/dashboard/ (adminDashboardKeys, dashboard-params.ts; `/` home = dashboard, DailyChart = shadcn chart),
                          # features/reviews/ (adminReviewKeys, list-params.ts; hide/show via ReviewVisibilityDialog),
+                         # features/support/ (adminSupportKeys, list-params.ts; /support inbox, ReplyDialog resolves),
                          # features/rate-periods/ (adminRatePeriodKeys, RatesCard on
-                         # the room type page); components/form-header.tsx + form-field.tsx and
+                         # the room type page); features/promotions/ (adminPromotionKeys, PromotionsCard on the hotel page); components/form-header.tsx + form-field.tsx and
                          # ImagesSection / AmenitiesSection (useFormContext) are shared by the hotel + room type forms;
                          # UI copy is Thai (hardcoded, no i18n lib): lib/messages-th.ts toThai() translates shared-schema
                          # + API messages, thaiResolver(zodResolver(...)) for forms; lib/zod-locale.ts = zod's th locale
@@ -64,10 +67,15 @@ apps/
                          # sub-routers per resource (hotels.ts, amenities.ts, uploads.ts = raw-body image upload;
                          # room-types.ts mounted at hotels/:hotelId/room-types behind requireHotelAccess, mergeParams;
                          # rate-periods.ts mounted inside it at :roomTypeId/rate-periods; dashboard.ts = GET /dashboard;
-                         # reviews.ts = GET / + PATCH /:reviewId { isHidden })
+                         # reviews.ts = GET / + PATCH /:reviewId { isHidden }; promotions.ts mounted at
+                         # hotels/:hotelId/promotions behind requireHotelAccess)
       controllers/       # parse req, call service, respond with ok()/noContent() — never import prisma
       services/          # business logic — the only layer that calls prisma (e.g. hotel.service.ts, auth.service.ts,
-                         # pricing.service.ts quoteStay(s), availability.service.ts availableRoomCounts,
+                         # pricing.service.ts quoteStay(s) — the ONLY place prices + deals are computed (best single
+                         # deal via lib/promotions.ts, never stacked), deal.service.ts (GET /api/deals),
+                         # admin-promotion.service.ts, rewards.service.ts (pointsBalance is derived from bookings —
+                         # never store a balance; pointsEarned is written with COMPLETED at check-out),
+                         # availability.service.ts availableRoomCounts,
                          # payment.service.ts — settlePayment is the ONLY code that moves a Payment out of PENDING,
                          # admin-hotel.service.ts — admin hotel list/detail/writes, all writes return AdminHotel,
                          # admin-room-type.service.ts — room types + rooms, all writes return AdminRoomType,
@@ -77,6 +85,10 @@ apps/
                          # admin-dashboard.service.ts — today lists, occupancy + revenue per stayed night (CONFIRMED/COMPLETED),
                          # amenity.service.ts assertAmenityScope — the DB doesn't check amenity scope,
                          # wishlist.service.ts — every query scoped by userId (another user's list = 404),
+                         # password-reset.service.ts — forgot/reset (hashed one-time token; always 204; customers
+                         # only; reset signs out every session),
+                         # support.service.ts — customer requests per own booking + admin inbox (resolve = one
+                         # conditional updateMany; STAFF scoped to their hotels),
                          # review.service.ts — createMyReview; recomputeHotelRating is the ONLY code that writes
                          # Hotel.ratingAvg/reviewCount (visible reviews only, same transaction as the review write),
                          # admin-review.service.ts — list + hide/show (conditional updateMany + recompute; audit row's
@@ -84,6 +96,7 @@ apps/
       lib/               # prisma.ts (single client, PrismaPg adapter, global omit of passwordHash), app-error.ts,
                          # http.ts (ok, noContent), prisma-errors.ts (isUniqueViolationOn), password.ts (scrypt),
                          # session-token.ts, cookies.ts (sid / admin_sid), cors-policy.ts, slug.ts,
+                         # mailer.ts (getMailer(); ConsoleMailer only — no provider yet, PLAN.md Phase 10),
                          # dates.ts (@db.Date ↔ YYYY-MM-DD — only way to convert), stay-pricing.ts (priceNights, Decimal),
                          # money.ts (toMinorUnits, toPrice), night-split.ts (splitAcrossNights), image-order.ts (imageOrder), payments/ (PaymentProvider; StripeProvider, MockProvider; getPaymentProvider())
       middleware/        # validate.ts, error-handler.ts, not-found.ts, load-session.ts, require-auth.ts,

@@ -2,6 +2,8 @@ import {
   BOOKING_TZ,
   HOLD_MINUTES,
   MAX_ACTIVE_HOLDS,
+  POINTS_MAX_SHARE,
+  POINTS_MIN_REDEEM,
   nightsBetween,
   todayIn,
   type Booking,
@@ -19,7 +21,8 @@ import { prisma } from "../lib/prisma";
 import { isExclusionViolation, isUniqueViolationOn, isWriteConflict } from "../lib/prisma-errors";
 import { blockingBookingWhere } from "./availability.service";
 import { releaseBookingPayment } from "./payment.service";
-import { quoteStay } from "./pricing.service";
+import { isPromoCodeValid, quoteStay } from "./pricing.service";
+import { pointsBalance } from "./rewards.service";
 
 /** Inserts per room before giving up on code collisions (each is a 1-in-~10⁹ event). */
 const MAX_CODE_ATTEMPTS = 5;
@@ -38,6 +41,10 @@ export const bookingSelect = {
   guestEmail: true,
   guestPhone: true,
   totalAmount: true,
+  discountAmount: true,
+  discountLabel: true,
+  pointsRedeemed: true,
+  pointsEarned: true,
   currency: true,
   expiresAt: true,
   cancelledAt: true,
@@ -94,6 +101,11 @@ export function toBooking(row: BookingRow, now: Date): Booking {
     guestName: row.guestName,
     guestEmail: row.guestEmail,
     guestPhone: row.guestPhone,
+    subtotalAmount: row.totalAmount.plus(row.discountAmount).plus(row.pointsRedeemed).toNumber(),
+    discountAmount: row.discountAmount.toNumber(),
+    discountLabel: row.discountLabel,
+    pointsRedeemed: row.pointsRedeemed,
+    pointsEarned: row.pointsEarned,
     totalAmount: row.totalAmount.toNumber(),
     currency: row.currency,
     expiresAt: row.expiresAt?.toISOString() ?? null,
@@ -142,7 +154,7 @@ export async function createBooking(
   // 1. Room type must be bookable and big enough.
   const roomType = await prisma.roomType.findFirst({
     where: { id: roomTypeId, isActive: true, hotel: { isActive: true } },
-    select: { id: true, capacity: true },
+    select: { id: true, capacity: true, hotelId: true },
   });
   if (!roomType) throw new AppError(404, "NOT_FOUND", "Room type not found");
   if (guests > roomType.capacity) {
@@ -166,8 +178,19 @@ export async function createBooking(
     throw new AppError(409, "CONFLICT", `You have ${MAX_ACTIVE_HOLDS} bookings waiting for payment`);
   }
 
-  // 4. Price.
-  const quote = await quoteStay(roomTypeId, checkIn, checkOut);
+  // 4. Price, with the best deal. A code that can't be used for this stay is a field error, never ignored.
+  const { promoCode } = input;
+  if (promoCode !== undefined && !(await isPromoCodeValid(roomType.hotelId, promoCode, checkIn, checkOut, now))) {
+    throw new AppError(400, "VALIDATION_FAILED", "Validation failed", {
+      formErrors: [],
+      fieldErrors: { promoCode: ["This code can't be used for this stay"] },
+    });
+  }
+  const quote = await quoteStay(roomTypeId, checkIn, checkOut, { promoCode, now });
+
+  // 4b. Reward points come off the price after deals (1 point = 1 unit of currency).
+  const points = input.pointsToRedeem ?? 0;
+  if (points > 0) await assertRedeemable(user.id, points, quote.total, now);
 
   // 5. Try each free room in order; the DB constraint settles races.
   const candidates = await prisma.room.findMany({
@@ -184,7 +207,11 @@ export async function createBooking(
     checkIn: toDbDate(checkIn),
     checkOut: toDbDate(checkOut),
     status: "PENDING",
-    totalAmount: new Prisma.Decimal(quote.total),
+    totalAmount: new Prisma.Decimal(quote.total).minus(points),
+    pointsRedeemed: points,
+    discountAmount: new Prisma.Decimal(quote.discount?.amount ?? 0),
+    discountLabel: quote.discount?.name ?? null,
+    promotionId: quote.discount?.promotionId ?? null,
     currency: quote.currency,
     expiresAt: new Date(now.getTime() + HOLD_MINUTES * 60_000),
   } satisfies Omit<Prisma.BookingUncheckedCreateInput, "code" | "roomId">;
@@ -196,6 +223,11 @@ export async function createBooking(
           data: { ...data, roomId: room.id, code: generateCode() },
           select: bookingSelect,
         });
+        // A concurrent hold may have spent the same points: re-check now that this one counts.
+        if (points > 0 && (await pointsBalance(user.id, now)) < 0) {
+          await prisma.booking.delete({ where: { code: row.code } });
+          throw new AppError(409, "CONFLICT", "Your points were just used on another booking");
+        }
         // 7. Map.
         return toBooking(row, now);
       } catch (err) {
@@ -211,6 +243,20 @@ export async function createBooking(
 
   // 6. Every candidate was taken.
   throw new AppError(409, "ROOM_UNAVAILABLE", "This room was just booked for these dates");
+}
+
+const pointsError = (message: string) =>
+  new AppError(400, "VALIDATION_FAILED", "Validation failed", {
+    formErrors: [],
+    fieldErrors: { pointsToRedeem: [message] },
+  });
+
+/** At least the minimum, at most the share of the price, and no more than the balance. */
+async function assertRedeemable(userId: string, points: number, total: number, now: Date) {
+  if (points < POINTS_MIN_REDEEM) throw pointsError(`Use at least ${POINTS_MIN_REDEEM} points`);
+  const cap = Math.floor(total * POINTS_MAX_SHARE);
+  if (points > cap) throw pointsError(`Use at most ${cap} points for this stay`);
+  if (points > (await pointsBalance(userId, now))) throw pointsError("You don't have enough points");
 }
 
 /** Flips this user's lapsed holds to EXPIRED so reads and cancels agree with the mapper. */

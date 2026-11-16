@@ -320,6 +320,18 @@ const guestsField = z.coerce
   .min(1, { error: GUESTS_MESSAGE })
   .max(20, { error: GUESTS_MESSAGE });
 
+/** A promo code as typed: trimmed + uppercased, letters and digits only. */
+export const PROMO_CODE_PATTERN = /^[A-Z0-9]{3,30}$/;
+export const promoCodeField = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(PROMO_CODE_PATTERN, "Use 3–30 letters or digits");
+const optionalPromoCode = z.preprocess(
+  (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+  promoCodeField.optional(),
+);
+
 function refineStay(ctx: z.RefinementCtx, checkIn: string, checkOut: string): void {
   if (checkIn < todayIn(BOOKING_TZ)) {
     ctx.addIssue({ code: "custom", path: ["checkIn"], message: "Check-in can't be in the past" });
@@ -677,13 +689,44 @@ export const hotelDetailSchema = z.object({
 });
 export type HotelDetail = z.infer<typeof hotelDetailSchema>;
 
+export const PROMOTION_TYPES = ["EARLY_BIRD", "LAST_MINUTE", "LONG_STAY", "CODE"] as const;
+export const promotionTypeSchema = z.enum(PROMOTION_TYPES);
+export type PromotionType = z.infer<typeof promotionTypeSchema>;
+
+/** The one deal applied to a quote (the best eligible one — deals never stack). */
+export const quoteDiscountSchema = z.object({
+  promotionId: z.string(),
+  name: z.string(),
+  type: promotionTypeSchema,
+  percentOff: z.number().int(),
+  /** Set when the deal came from a promo code. */
+  code: z.string().nullable(),
+  amount: z.number(),
+});
+export type QuoteDiscount = z.infer<typeof quoteDiscountSchema>;
+
 export const stayQuoteSchema = z.object({
   nights: z.number().int().min(1),
   nightly: z.array(z.object({ date: isoDate, price: z.number() })),
+  /** Sum of the nightly prices, before any deal. */
+  subtotal: z.number(),
+  discount: quoteDiscountSchema.nullable(),
+  /** What the guest pays: subtotal − discount. */
   total: z.number(),
   currency: z.string(),
 });
 export type StayQuote = z.infer<typeof stayQuoteSchema>;
+
+/** `GET /api/hotels/:slug/availability` — the stay plus an optional promo code to price with. */
+export const availabilityQuerySchema = z
+  .object({
+    checkIn: isoDate,
+    checkOut: isoDate,
+    guests: guestsField.default(1),
+    promoCode: optionalPromoCode,
+  })
+  .superRefine((v, ctx) => refineStay(ctx, v.checkIn, v.checkOut));
+export type AvailabilityQuery = z.output<typeof availabilityQuerySchema>;
 
 export const availabilitySchema = z.object({
   checkIn: isoDate,
@@ -698,6 +741,8 @@ export const availabilitySchema = z.object({
       quote: stayQuoteSchema,
     }),
   ),
+  /** The code asked for: valid = an active code deal of this hotel whose conditions this stay meets. */
+  promoCode: z.object({ code: z.string(), valid: z.boolean() }).nullable(),
 });
 export type Availability = z.infer<typeof availabilitySchema>;
 
@@ -716,6 +761,14 @@ export const createBookingSchema = z
     guestName: z.string().trim().min(1).max(120).optional(),
     guestEmail: emailField.optional(),
     guestPhone: z.string().trim().min(1).max(30).optional(),
+    promoCode: optionalPromoCode,
+    /** Reward points to spend (11.6); 0 / omitted = none. */
+    pointsToRedeem: z
+      .number({ error: "Enter a whole number of points" })
+      .int("Enter a whole number of points")
+      .min(0, "Enter a whole number of points")
+      .max(10_000_000, "Enter a whole number of points")
+      .optional(),
   })
   .superRefine((v, ctx) => refineStay(ctx, v.checkIn, v.checkOut));
 export type CreateBookingInput = z.input<typeof createBookingSchema>;
@@ -797,6 +850,15 @@ export const bookingSchema = z.object({
   guestName: z.string(),
   guestEmail: z.string(),
   guestPhone: z.string().nullable(),
+  /** Before the deal and points; totalAmount = subtotalAmount − discountAmount − pointsRedeemed. */
+  subtotalAmount: z.number(),
+  discountAmount: z.number(),
+  /** The deal's name when booked; null without a deal. */
+  discountLabel: z.string().nullable(),
+  /** Reward points spent (1 point = 1 unit of currency off). */
+  pointsRedeemed: z.number().int(),
+  /** Points earned at check-out; 0 until COMPLETED. */
+  pointsEarned: z.number().int(),
   totalAmount: z.number(),
   currency: z.string(),
   expiresAt: z.iso.datetime().nullable(),
@@ -845,6 +907,7 @@ export const ADMIN_BOOKING_STATUS_FILTERS = [
 ] as const;
 export type AdminBookingStatusFilter = (typeof ADMIN_BOOKING_STATUS_FILTERS)[number];
 
+const blankToNull = (v: unknown) => (v === undefined || (typeof v === "string" && v.trim() === "") ? null : v);
 const blankToUndefined = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
 
 export const adminBookingListQuerySchema = z
@@ -1161,6 +1224,7 @@ export const AUDIT_ENTITY_TYPES = [
   "STAFF",
   "BOOKING",
   "REVIEW",
+  "PROMOTION",
 ] as const;
 export const auditEntityTypeSchema = z.enum(AUDIT_ENTITY_TYPES);
 export type AuditEntityType = z.infer<typeof auditEntityTypeSchema>;
@@ -1264,3 +1328,251 @@ export const destinationSchema = z.object({
 export type Destination = z.infer<typeof destinationSchema>;
 /** Most hotels first, then city name. */
 export const destinationListSchema = z.array(destinationSchema);
+
+// ---------- Promotions / deals (11.5) ----------
+
+export const PROMOTION_MAX_PERCENT = 90;
+export const PROMOTION_MAX_DAYS_AHEAD = 365;
+
+const wholeNumber = (min: number, max: number) => {
+  const message = `Enter a whole number from ${min} to ${max}`;
+  return z.number({ error: message }).int(message).min(min, message).max(max, message);
+};
+
+/**
+ * `POST` / `PUT /api/admin/hotels/:hotelId/promotions[/:promotionId]`. Absent conditions are null.
+ * EARLY_BIRD needs minDaysAhead, LAST_MINUTE maxDaysAhead, LONG_STAY minNights ≥ 2, CODE a code; other types
+ * never keep a code. Validity is a booking-day window (inclusive) in BOOKING_TZ.
+ */
+export const promotionInputSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required").max(80, "At most 80 characters"),
+    type: promotionTypeSchema,
+    percentOff: wholeNumber(1, PROMOTION_MAX_PERCENT),
+    minNights: wholeNumber(1, MAX_NIGHTS).default(1),
+    minDaysAhead: wholeNumber(1, PROMOTION_MAX_DAYS_AHEAD).nullable().default(null),
+    maxDaysAhead: wholeNumber(0, PROMOTION_MAX_DAYS_AHEAD).nullable().default(null),
+    code: z.preprocess(blankToNull, promoCodeField.nullable()),
+    validFrom: z.preprocess(blankToNull, isoDate.nullable()),
+    validUntil: z.preprocess(blankToNull, isoDate.nullable()),
+    isActive: z.boolean().default(true),
+  })
+  .superRefine((v, ctx) => {
+    const need = (path: string, message: string) => ctx.addIssue({ code: "custom", path: [path], message });
+    if (v.type === "EARLY_BIRD" && v.minDaysAhead === null) need("minDaysAhead", "Early bird needs a minimum");
+    if (v.type === "LAST_MINUTE" && v.maxDaysAhead === null) need("maxDaysAhead", "Last minute needs a maximum");
+    if (v.type === "LONG_STAY" && v.minNights < 2) need("minNights", "A long stay is at least 2 nights");
+    if (v.type === "CODE" && v.code === null) need("code", "Enter a code");
+    if (v.minDaysAhead !== null && v.maxDaysAhead !== null && v.maxDaysAhead < v.minDaysAhead) {
+      need("maxDaysAhead", "Must be at least the minimum");
+    }
+    if (v.validFrom !== null && v.validUntil !== null && v.validUntil < v.validFrom) {
+      need("validUntil", "Must be on or after the start date");
+    }
+  })
+  .transform((v) => ({ ...v, code: v.type === "CODE" ? v.code : null }));
+export type PromotionInput = z.input<typeof promotionInputSchema>;
+export type PromotionData = z.output<typeof promotionInputSchema>;
+
+export const promotionParamsSchema = hotelIdParamsSchema.extend({ promotionId: z.string().min(1) });
+export type PromotionParams = z.output<typeof promotionParamsSchema>;
+
+export const adminPromotionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: promotionTypeSchema,
+  percentOff: z.number().int(),
+  minNights: z.number().int(),
+  minDaysAhead: z.number().int().nullable(),
+  maxDaysAhead: z.number().int().nullable(),
+  code: z.string().nullable(),
+  validFrom: isoDate.nullable(),
+  validUntil: isoDate.nullable(),
+  isActive: z.boolean(),
+  /** Bookings that took this deal. */
+  bookingCount: z.number().int().min(0),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+export type AdminPromotion = z.infer<typeof adminPromotionSchema>;
+export const adminPromotionListSchema = z.array(adminPromotionSchema);
+
+/**
+ * `GET /api/deals` — active deals bookable today, best discount first. fromPrice = the hotel's lowest base
+ * price per night; discountedFromPrice = that price after this deal (rate periods can change the real quote).
+ */
+export const dealSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: promotionTypeSchema,
+  percentOff: z.number().int(),
+  minNights: z.number().int(),
+  minDaysAhead: z.number().int().nullable(),
+  maxDaysAhead: z.number().int().nullable(),
+  code: z.string().nullable(),
+  validUntil: isoDate.nullable(),
+  hotel: z.object({
+    name: z.string(),
+    slug: z.string(),
+    city: z.string(),
+    ratingAvg: z.number(),
+    reviewCount: z.number().int(),
+    coverImage: imageSchema.nullable(),
+    currency: z.string(),
+    fromPrice: z.number(),
+    discountedFromPrice: z.number(),
+  }),
+});
+export type Deal = z.infer<typeof dealSchema>;
+export const dealListSchema = z.array(dealSchema);
+
+// ---------- Rewards (11.6, `/api/rewards/me`) ----------
+
+export const REWARD_TIERS = ["MEMBER", "SILVER", "GOLD"] as const;
+export const rewardTierSchema = z.enum(REWARD_TIERS);
+export type RewardTier = z.infer<typeof rewardTierSchema>;
+
+/**
+ * Tier = lifetime points earned (never goes down when points are spent). Points per 100 units paid,
+ * at the tier held when the stay is checked out.
+ */
+export const REWARD_TIER_RULES: Record<RewardTier, { minPoints: number; pointsPer100: number }> = {
+  MEMBER: { minPoints: 0, pointsPer100: 1 },
+  SILVER: { minPoints: 500, pointsPer100: 1.5 },
+  GOLD: { minPoints: 2000, pointsPer100: 2 },
+};
+
+/** Spend at least this many points at once… */
+export const POINTS_MIN_REDEEM = 100;
+/** …and cover at most this share of a booking's price (after deals) with points. 1 point = 1 unit of currency. */
+export const POINTS_MAX_SHARE = 0.5;
+
+export function rewardTierFor(lifetimePoints: number): RewardTier {
+  if (lifetimePoints >= REWARD_TIER_RULES.GOLD.minPoints) return "GOLD";
+  if (lifetimePoints >= REWARD_TIER_RULES.SILVER.minPoints) return "SILVER";
+  return "MEMBER";
+}
+
+/** Most points one booking of `total` (after deals) can take, given `balance`. 0 when below the minimum. */
+export function maxRedeemablePoints(balance: number, total: number): number {
+  const max = Math.min(balance, Math.floor(total * POINTS_MAX_SHARE));
+  return max >= POINTS_MIN_REDEEM ? max : 0;
+}
+
+export const rewardsHistoryItemSchema = z.object({
+  code: z.string(),
+  hotelName: z.string(),
+  checkIn: isoDate,
+  checkOut: isoDate,
+  status: bookingStatusSchema,
+  pointsEarned: z.number().int(),
+  pointsRedeemed: z.number().int(),
+});
+export type RewardsHistoryItem = z.infer<typeof rewardsHistoryItemSchema>;
+
+export const rewardsSummarySchema = z.object({
+  tier: rewardTierSchema,
+  /** Points earned on completed stays, ever. Decides the tier. */
+  lifetimePoints: z.number().int(),
+  /** Spendable now: earned − points on bookings that hold a room or are completed. */
+  balance: z.number().int(),
+  pointsPer100: z.number(),
+  nextTier: z.object({ tier: rewardTierSchema, minPoints: z.number().int(), pointsToGo: z.number().int() }).nullable(),
+  /** Bookings that earned or spent points, newest first (at most 20). */
+  history: z.array(rewardsHistoryItemSchema),
+});
+export type RewardsSummary = z.infer<typeof rewardsSummarySchema>;
+
+// ---------- Support requests (11.7) ----------
+
+export const SUPPORT_TOPICS = ["CHANGE_BOOKING", "CANCELLATION", "PAYMENT", "SPECIAL_REQUEST", "OTHER"] as const;
+export const supportTopicSchema = z.enum(SUPPORT_TOPICS);
+export type SupportTopic = z.infer<typeof supportTopicSchema>;
+
+export const supportStatusSchema = z.enum(["OPEN", "RESOLVED"]);
+export type SupportStatus = z.infer<typeof supportStatusSchema>;
+
+export const SUPPORT_MESSAGE_MAX = 2000;
+/** Unanswered requests one booking may have at once. */
+export const SUPPORT_OPEN_LIMIT = 3;
+
+const supportText = z
+  .string()
+  .trim()
+  .min(10, "Write at least 10 characters")
+  .max(SUPPORT_MESSAGE_MAX, `Keep it under ${SUPPORT_MESSAGE_MAX} characters`);
+
+/** `POST /api/bookings/:code/support-requests`. */
+export const createSupportRequestSchema = z.object({
+  topic: supportTopicSchema,
+  message: supportText,
+});
+export type CreateSupportRequestInput = z.input<typeof createSupportRequestSchema>;
+export type CreateSupportRequestData = z.output<typeof createSupportRequestSchema>;
+
+/** A request as the customer sees it on their booking. */
+export const supportRequestSchema = z.object({
+  id: z.string(),
+  topic: supportTopicSchema,
+  message: z.string(),
+  status: supportStatusSchema,
+  reply: z.string().nullable(),
+  resolvedAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+});
+export type SupportRequest = z.infer<typeof supportRequestSchema>;
+export const supportRequestListSchema = z.array(supportRequestSchema);
+
+export const ADMIN_SUPPORT_STATUS_FILTERS = ["OPEN", "RESOLVED", "all"] as const;
+export type AdminSupportStatusFilter = (typeof ADMIN_SUPPORT_STATUS_FILTERS)[number];
+
+/** Open ones first by default (oldest first, so nobody waits longest); resolved / all = newest first. */
+export const adminSupportListQuerySchema = z.object({
+  hotelId: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  status: z.enum(ADMIN_SUPPORT_STATUS_FILTERS).default("OPEN"),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type AdminSupportListQuery = z.output<typeof adminSupportListQuerySchema>;
+
+export const adminSupportRequestSchema = supportRequestSchema.extend({
+  booking: z.object({ code: z.string(), guestName: z.string(), guestEmail: z.string(), checkIn: isoDate, checkOut: isoDate }),
+  hotel: z.object({ id: z.string(), name: z.string() }),
+  /** Null while open, or when the staff account was removed. */
+  resolvedBy: z.object({ name: z.string() }).nullable(),
+});
+export type AdminSupportRequest = z.infer<typeof adminSupportRequestSchema>;
+export const adminSupportRequestListSchema = paginated(adminSupportRequestSchema);
+
+export const supportRequestIdParamsSchema = z.object({ requestId: z.string().min(1).max(64) });
+export type SupportRequestIdParams = z.output<typeof supportRequestIdParamsSchema>;
+
+/** `POST /api/admin/support-requests/:requestId/resolve` — the reply the customer sees; resolves the request. */
+export const resolveSupportRequestSchema = z.object({ reply: supportText });
+export type ResolveSupportRequestInput = z.input<typeof resolveSupportRequestSchema>;
+export type ResolveSupportRequestData = z.output<typeof resolveSupportRequestSchema>;
+
+// ---------- Forgot password (11.8, customers) ----------
+
+export const PASSWORD_RESET_MINUTES = 30;
+
+/** `POST /api/auth/forgot-password` — always 204, whether or not the email has an account. */
+export const forgotPasswordSchema = z.object({ email: loginSchema.shape.email });
+export type ForgotPasswordInput = z.input<typeof forgotPasswordSchema>;
+export type ForgotPasswordData = z.output<typeof forgotPasswordSchema>;
+
+/** `POST /api/auth/reset-password` — the token from the emailed link + the new password. */
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20, "This reset link is invalid or has expired").max(200),
+  password: registerSchema.shape.password,
+});
+export type ResetPasswordInput = z.output<typeof resetPasswordSchema>;
+
+/** The reset form: the API body plus a client-only confirmation. */
+export const resetPasswordFormSchema = resetPasswordSchema
+  .extend({ confirmPassword: z.string().min(1, "Password is required").max(128) })
+  .refine((v) => v.confirmPassword === v.password, {
+    path: ["confirmPassword"],
+    message: "Passwords don't match",
+  });
+export type ResetPasswordFormInput = z.input<typeof resetPasswordFormSchema>;

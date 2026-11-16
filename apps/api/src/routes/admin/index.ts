@@ -8,6 +8,7 @@ import { adminDashboardRouter } from "./dashboard";
 import { adminHotelsRouter } from "./hotels";
 import { adminReviewsRouter } from "./reviews";
 import { adminStaffRouter } from "./staff";
+import { adminSupportRouter } from "./support-requests";
 import { adminUploadsRouter } from "./uploads";
 
 export const adminRouter = Router();
@@ -20,4 +21,5 @@ adminRouter.use("/bookings", adminBookingsRouter);
 adminRouter.use("/dashboard", adminDashboardRouter);
 adminRouter.use("/reviews", adminReviewsRouter);
 adminRouter.use("/staff", adminStaffRouter);
+adminRouter.use("/support-requests", adminSupportRouter);
 adminRouter.use("/uploads", adminUploadsRouter);

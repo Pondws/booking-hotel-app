@@ -1,17 +1,19 @@
 "use client";
 
 import Image from "next/image";
-import type { HotelDetail, RoomType, StayRange } from "@booking/shared";
+import type { AvailabilityQuery, HotelDetail, RoomType } from "@booking/shared";
 import { Button } from "@booking/ui/components/button";
 import { Skeleton } from "@booking/ui/components/skeleton";
 import { formatDate, formatDateRange, formatMoney, guestsLabel } from "@/features/hotels/format";
 import { useAvailability } from "@/features/hotels/hooks";
 import type { RoomAvailability } from "@/features/hotels/components/room-type-card";
+import { PointsForm } from "./points-form";
+import { PromoCodeForm } from "./promo-code-form";
 
-type Props = { hotel: HotelDetail; roomType: RoomType; range: StayRange };
+type Props = { hotel: HotelDetail; roomType: RoomType; range: AvailabilityQuery; points: number };
 
 /** Live quote for the chosen room type; re-fetched when a hold fails. */
-export function BookingSummary({ hotel, roomType, range }: Props) {
+export function BookingSummary({ hotel, roomType, range, points }: Props) {
   const availability = useAvailability(hotel.slug, range);
   const cover = hotel.images[0] ?? roomType.images[0];
   const entry = availability.data?.roomTypes.find((r) => r.roomTypeId === roomType.id);
@@ -54,7 +56,14 @@ export function BookingSummary({ hotel, roomType, range }: Props) {
         isFetching={availability.isFetching}
         retry={() => void availability.refetch()}
         entry={entry}
+        points={points}
       />
+      <PromoCodeForm
+        current={range.promoCode}
+        status={availability.data?.promoCode}
+        appliedCode={availability.data ? (entry?.quote.discount?.code ?? null) : undefined}
+      />
+      <PointsForm current={points} total={entry?.available ? entry.quote.total : undefined} />
     </section>
   );
 }
@@ -65,9 +74,11 @@ type QuoteProps = {
   isFetching: boolean;
   retry: () => void;
   entry: RoomAvailability | undefined;
+  /** Reward points to take off the quote (the API re-checks the amount when holding). */
+  points: number;
 };
 
-function Quote({ isPending, isError, isFetching, retry, entry }: QuoteProps) {
+function Quote({ isPending, isError, isFetching, retry, entry, points }: QuoteProps) {
   if (isPending) {
     return (
       <div className="space-y-2" role="status" aria-busy="true" aria-label="กำลังโหลดราคา">
@@ -106,9 +117,31 @@ function Quote({ isPending, isError, isFetching, retry, entry }: QuoteProps) {
           </li>
         ))}
       </ul>
+      {(quote.discount || points > 0) && (
+        <dl className="space-y-1 border-t pt-3 text-sm tabular-nums">
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">ราคาห้องพัก</dt>
+            <dd>{formatMoney(quote.subtotal, quote.currency)}</dd>
+          </div>
+          {quote.discount && (
+          <div className="flex justify-between gap-4 text-primary">
+            <dt>
+              ส่วนลด {quote.discount.percentOff}% · {quote.discount.name}
+            </dt>
+            <dd>−{formatMoney(quote.discount.amount, quote.currency)}</dd>
+          </div>
+          )}
+          {points > 0 && (
+            <div className="flex justify-between gap-4 text-primary">
+              <dt>ใช้แต้ม {points.toLocaleString("th-TH")} แต้ม</dt>
+              <dd>−{formatMoney(points, quote.currency)}</dd>
+            </div>
+          )}
+        </dl>
+      )}
       <p className="flex justify-between gap-4 border-t pt-3 text-base font-semibold tabular-nums">
         <span>ราคารวม</span>
-        <span>{formatMoney(quote.total, quote.currency)}</span>
+        <span>{formatMoney(Math.max(0, quote.total - points), quote.currency)}</span>
       </p>
     </div>
   );

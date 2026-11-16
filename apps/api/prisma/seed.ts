@@ -101,6 +101,7 @@ const hotelSeed: HotelSeed[] = [
 
 async function main() {
   // Reverse dependency order because of the Restrict relations.
+  await prisma.supportRequest.deleteMany();
   await prisma.review.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.booking.deleteMany();
@@ -235,6 +236,19 @@ async function main() {
     },
   });
 
+  // Deals (11.5): one of each type. Promotions go with their hotel (FK cascade).
+  const chiangMaiId = hotelIds.get("Old Town Chiang Mai");
+  const andamanId = hotelIds.get("Andaman Beach Resort");
+  if (!chiangMaiId || !andamanId) throw new Error("Seed lookup failed");
+  await prisma.promotion.createMany({
+    data: [
+      { hotelId: riversideId, name: "จองล่วงหน้า 30 วัน", type: "EARLY_BIRD", percentOff: 15, minDaysAhead: 30 },
+      { hotelId: chiangMaiId, name: "พักยาว 4 คืนขึ้นไป", type: "LONG_STAY", percentOff: 20, minNights: 4 },
+      { hotelId: andamanId, name: "ดีลนาทีสุดท้าย", type: "LAST_MINUTE", percentOff: 10, maxDaysAhead: 3 },
+      { hotelId: andamanId, name: "โค้ดสมาชิกใหม่", type: "CODE", percentOff: 12, code: "WELCOME12" },
+    ],
+  });
+
   await prisma.$transaction(async (tx) => {
     const booking = await tx.booking.create({
       data: {
@@ -248,6 +262,7 @@ async function main() {
         checkOut: new Date("2026-10-03"),
         status: "COMPLETED",
         totalAmount: 6400,
+        pointsEarned: 64, // floor(6400 × 1 / 100) at MEMBER
         currency: "THB",
       },
     });
@@ -284,6 +299,7 @@ async function main() {
     rooms: await prisma.room.count(),
     amenities: await prisma.amenity.count(),
     ratePeriods: await prisma.ratePeriod.count(),
+    promotions: await prisma.promotion.count(),
     bookings: await prisma.booking.count(),
     payments: await prisma.payment.count(),
     reviews: await prisma.review.count(),

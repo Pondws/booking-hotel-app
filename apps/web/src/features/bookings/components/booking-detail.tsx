@@ -13,6 +13,7 @@ import { useCountdown } from "../use-countdown";
 import { BookingStatusBadge } from "./booking-status-badge";
 import { CancelBookingDialog } from "./cancel-booking-dialog";
 import { HoldCountdown } from "./hold-countdown";
+import { SupportCard } from "@/features/support/components/support-card";
 import { ReviewCard } from "./review-card";
 
 const BACK = "/account/bookings";
@@ -167,6 +168,29 @@ function BookingView({ booking, refetch, onStillPending }: ViewProps) {
             {booking.guestName} · {booking.guestEmail}
           </dd>
         </dl>
+        {(booking.discountAmount > 0 || booking.pointsRedeemed > 0) && (
+          <dl className="space-y-1 border-t pt-3 text-sm tabular-nums">
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">ราคาห้องพัก</dt>
+              <dd>{formatMoney(booking.subtotalAmount, booking.currency)}</dd>
+            </div>
+            {booking.discountAmount > 0 && (
+              <div className="flex justify-between gap-4 text-primary">
+                <dt>ส่วนลด{booking.discountLabel ? ` · ${booking.discountLabel}` : ""}</dt>
+                <dd>−{formatMoney(booking.discountAmount, booking.currency)}</dd>
+              </div>
+            )}
+            {booking.pointsRedeemed > 0 && (
+              <div className="flex justify-between gap-4 text-primary">
+                <dt>ใช้แต้ม {booking.pointsRedeemed.toLocaleString("th-TH")} แต้ม</dt>
+                <dd>−{formatMoney(booking.pointsRedeemed, booking.currency)}</dd>
+              </div>
+            )}
+          </dl>
+        )}
+        {booking.pointsEarned > 0 && (
+          <p className="text-sm text-primary">ได้รับ {booking.pointsEarned.toLocaleString("th-TH")} แต้มจากการเข้าพักนี้</p>
+        )}
         <p className="flex justify-between gap-4 border-t pt-3 text-base font-semibold tabular-nums">
           <span>ราคารวม</span>
           <span>{formatMoney(booking.totalAmount, booking.currency)}</span>
@@ -174,6 +198,8 @@ function BookingView({ booking, refetch, onStillPending }: ViewProps) {
       </section>
 
       <ReviewCard booking={booking} />
+
+      <SupportCard code={booking.code} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link href={BACK} className="text-sm underline underline-offset-4">

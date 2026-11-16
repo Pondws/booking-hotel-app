@@ -51,6 +51,9 @@ model User {
   sessions Session[]
   auditLogs AuditLog[]
   wishlists Wishlist[]
+  supportRequests  SupportRequest[] @relation("SupportRequester")
+  supportResolved  SupportRequest[] @relation("SupportResolver")
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -116,6 +119,8 @@ model Hotel {
   reviews   Review[]
   auditLogs AuditLog[]
   wishlistItems WishlistItem[]
+  promotions    Promotion[]
+  supportRequests SupportRequest[]
 
   @@index([city])
   @@map("hotels")
@@ -274,15 +279,28 @@ model Booking {
   checkedInAt  DateTime?    @map("checked_in_at")
   /// Set at check-out, together with status COMPLETED.
   checkedOutAt DateTime?    @map("checked_out_at")
+  /// Deal discount taken off at hold time (11.5). totalAmount is already net of it; subtotal = total + discount.
+  discountAmount Decimal    @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  /// The deal's name when booked (the promotion may be renamed or deleted since).
+  discountLabel  String?    @map("discount_label") @db.VarChar(80)
+  promotionId    String?    @map("promotion_id")
+  /// Reward points spent on this booking (1 point = 1 unit of currency), already taken off totalAmount (11.6).
+  /// They count against the balance only while the booking holds a room or is completed.
+  pointsRedeemed Int        @default(0) @map("points_redeemed")
+  /// Points earned, written in the same statement that sets COMPLETED (check-out); 0 before.
+  pointsEarned   Int        @default(0) @map("points_earned")
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Restrict)
-  room     Room      @relation(fields: [roomId], references: [id], onDelete: Restrict)
-  payments Payment[]
-  review   Review?
+  user      User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  room      Room       @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  promotion Promotion? @relation(fields: [promotionId], references: [id], onDelete: SetNull)
+  payments  Payment[]
+  review    Review?
+  supportRequests SupportRequest[]
 
   @@index([userId])
+  @@index([promotionId])
   @@index([roomId, checkIn])
   @@index([status])
   @@map("bookings")
@@ -347,6 +365,7 @@ enum AuditEntityType {
   STAFF
   BOOKING
   REVIEW
+  PROMOTION
 }
 
 /// One back-office write (create / update / delete). `changes` = [{ field, before, after }]: only the changed
@@ -409,4 +428,103 @@ model WishlistItem {
   @@index([wishlistId])
   @@index([hotelId])
   @@map("wishlist_items")
+}
+
+enum PromotionType {
+  EARLY_BIRD
+  LAST_MINUTE
+  LONG_STAY
+  CODE
+}
+
+/// A hotel's percentage deal. Conditions are generic (any type may combine them); `type` decides the label and
+/// which condition is required. Only the best eligible deal applies to a stay (no stacking).
+/// Raw-SQL constraints (not expressed in Prisma): promotions_percent_check (percent_off BETWEEN 1 AND 90),
+/// promotions_min_nights_check (min_nights >= 1) and promotions_valid_check (valid_until >= valid_from).
+model Promotion {
+  id           String        @id @default(cuid())
+  hotelId      String        @map("hotel_id")
+  name         String        @db.VarChar(80)
+  type         PromotionType
+  percentOff   Int           @map("percent_off")
+  /// Shortest stay it applies to (LONG_STAY's threshold; 1 = any stay).
+  minNights    Int           @default(1) @map("min_nights")
+  /// Check-in at least this many days after the booking day (EARLY_BIRD).
+  minDaysAhead Int?          @map("min_days_ahead")
+  /// Check-in at most this many days after the booking day (LAST_MINUTE).
+  maxDaysAhead Int?          @map("max_days_ahead")
+  /// CODE only — uppercase, unique across hotels. Null = applies automatically.
+  code         String?       @unique @db.VarChar(30)
+  /// Booking-day window in BOOKING_TZ, inclusive. Null = open-ended.
+  validFrom    DateTime?     @map("valid_from") @db.Date
+  validUntil   DateTime?     @map("valid_until") @db.Date
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  hotel    Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([hotelId, isActive])
+  @@map("promotions")
+}
+
+enum SupportTopic {
+  CHANGE_BOOKING
+  CANCELLATION
+  PAYMENT
+  SPECIAL_REQUEST
+  OTHER
+}
+
+enum SupportStatus {
+  OPEN
+  RESOLVED
+}
+
+/// A customer's message to the team about one of their bookings (11.7). Staff answer it once, which resolves it.
+/// `userId` / `hotelId` are copied from the booking by the service, never taken from the request.
+model SupportRequest {
+  id           String        @id @default(cuid())
+  bookingId    String        @map("booking_id")
+  userId       String        @map("user_id")
+  hotelId      String        @map("hotel_id")
+  topic        SupportTopic
+  message      String        @db.VarChar(2000)
+  status       SupportStatus @default(OPEN)
+  reply        String?       @db.VarChar(2000)
+  resolvedAt   DateTime?     @map("resolved_at")
+  resolvedById String?       @map("resolved_by_id")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  booking    Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  user       User    @relation("SupportRequester", fields: [userId], references: [id], onDelete: Restrict)
+  hotel      Hotel   @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  resolvedBy User?   @relation("SupportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@index([userId])
+  @@index([resolvedById])
+  @@index([hotelId, status, createdAt])
+  @@index([status, createdAt])
+  @@map("support_requests")
+}
+
+/// One-time "forgot password" link (11.8). Only the SHA-256 of the token is stored; the raw token goes out by email.
+/// A new request deletes the user's older tokens; a successful reset marks this one used and signs out every session.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }

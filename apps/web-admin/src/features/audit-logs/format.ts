@@ -5,6 +5,7 @@ import {
   type AuditValue,
 } from "@booking/shared";
 import { SCOPE_LABEL } from "@/features/amenities/components/scope-label";
+import { PROMOTION_TYPE_LABEL } from "@/features/promotions/components/promotion-type-label";
 import { PAYMENT_LABELS, STAGE_LABELS } from "@/features/bookings/components/booking-badges";
 import { formatDate } from "@/features/room-types/format";
 
@@ -17,6 +18,7 @@ export const ENTITY_LABELS: Record<AuditEntityType, string> = {
   STAFF: "พนักงาน",
   BOOKING: "การจอง",
   REVIEW: "รีวิว",
+  PROMOTION: "โปรโมชัน",
 };
 
 /** Snapshot field names (from the API's audit snapshots) → Thai labels. Unknown fields show as is. */
@@ -47,6 +49,13 @@ const FIELD_LABELS: Record<string, string> = {
   paymentStatus: "การชำระเงิน",
   isHidden: "การแสดงผล",
   password: "รหัสผ่าน",
+  type: "ประเภท",
+  percentOff: "ส่วนลด (%)",
+  minNights: "จำนวนคืนขั้นต่ำ",
+  minDaysAhead: "จองล่วงหน้าอย่างน้อย (วัน)",
+  maxDaysAhead: "เข้าพักภายใน (วัน)",
+  validFrom: "จองได้ตั้งแต่",
+  validUntil: "จองได้ถึง",
 };
 
 export const fieldLabel = (field: string) => FIELD_LABELS[field] ?? field;
@@ -77,8 +86,12 @@ export function formatValue(field: string, value: AuditValue): string {
       return value === "reset" ? "ตั้งใหม่แล้ว" : value;
     case "scope":
       return lookup(SCOPE_LABEL, value);
+    case "type":
+      return lookup(PROMOTION_TYPE_LABEL, value);
     case "startDate":
     case "endDate":
+    case "validFrom":
+    case "validUntil":
       return formatDate(value);
     default:
       return value;

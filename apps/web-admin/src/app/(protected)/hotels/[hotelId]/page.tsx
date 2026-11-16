@@ -12,6 +12,7 @@ import {
   HotelHeading,
   HotelStatusCard,
 } from "@/features/hotels/components/hotel-header";
+import { PromotionsCard } from "@/features/promotions/components/promotions-card";
 import { RoomTypeList } from "@/features/room-types/components/room-type-list";
 import { ApiError } from "@/lib/api";
 
@@ -41,6 +42,7 @@ export default function HotelPage() {
             tabs={<DetailTabsList />}
           >
             <RoomTypeList hotelId={hotel.id} currency={hotel.currency} />
+            <PromotionsCard hotelId={hotel.id} />
             <HotelStatusCard hotel={hotel} />
           </HotelForm>
           <HistoryPanel>

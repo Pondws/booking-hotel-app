@@ -54,7 +54,12 @@ export function LoginForm() {
         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">รหัสผ่าน</Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="password">รหัสผ่าน</Label>
+          <Link href="/forgot-password" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+            ลืมรหัสผ่าน?
+          </Link>
+        </div>
         <Input
           id="password"
           type="password"

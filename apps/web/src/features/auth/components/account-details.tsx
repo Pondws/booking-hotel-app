@@ -13,7 +13,7 @@ const TILES: Tile[] = [
   { href: "/account/bookings", icon: CalendarCheck, title: "การจองของฉัน", body: "ดู ชำระเงิน หรือยกเลิกการจอง และเขียนรีวิว" },
   { href: "/wishlist", icon: Heart, title: "รายการโปรด", body: "โรงแรมที่บันทึกไว้ แยกเป็นรายการตามทริป" },
   { href: "/account/security", icon: KeyRound, title: "โปรไฟล์และความปลอดภัย", body: "แก้ไขชื่อ เบอร์โทร และเปลี่ยนรหัสผ่าน" },
-  { href: "/rewards", icon: Crown, title: "สมาชิกรางวัล", body: "แต้มสะสมและสิทธิพิเศษ", soon: true },
+  { href: "/rewards", icon: Crown, title: "สมาชิกรางวัล", body: "แต้มสะสมและสิทธิพิเศษ" },
 ];
 
 export function AccountDetails() {
