@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 import request from "supertest";
 import {
+  amenityListSchema,
   availabilitySchema,
   BOOKING_TZ,
   hotelDetailSchema,
@@ -132,6 +133,48 @@ describe("GET /api/hotels", () => {
     assert.equal(p99.totalPages, 1);
   });
 
+  test("price range filters on the lowest nightly price (bounds inclusive)", async () => {
+    assert.deepEqual(ids((await search({ city, maxPrice: 500 })).items), [B.hotelId]);
+    assert.deepEqual(ids((await search({ city, minPrice: 501 })).items), [A.hotelId]);
+    assert.deepEqual(ids((await search({ city, minPrice: 500, maxPrice: 1000 })).items), [A.hotelId, B.hotelId]);
+    const none = await search({ city, minPrice: 2000 });
+    assert.deepEqual(none.items, []);
+    assert.equal(none.total, 0);
+    // With dates A's price is 1250 (rate period), so 1000 is no longer enough.
+    assert.deepEqual(ids((await search({ city, checkIn: IN, checkOut: OUT, maxPrice: 1000 })).items), []);
+    assert.deepEqual(ids((await search({ city, checkIn: IN, checkOut: OUT, maxPrice: 1250 })).items), [A.hotelId]);
+  });
+
+  test("min price above max price → 400 on maxPrice", async () => {
+    const res = await request(app).get("/api/hotels").query({ minPrice: 900, maxPrice: 100 });
+    assert.equal(res.status, 400);
+    assert.ok(Array.isArray(res.body.error.details.fieldErrors.maxPrice));
+  });
+
+  test("minRating and amenities (all required) filter in the DB", async () => {
+    assert.deepEqual(ids((await search({ city, minRating: 4.5 })).items), [A.hotelId]);
+    assert.deepEqual(ids((await search({ city, minRating: 4 })).items), [A.hotelId, B.hotelId]);
+    assert.deepEqual(ids((await search({ city, amenities: "wifi" })).items), [A.hotelId]);
+    assert.deepEqual(ids((await search({ city, amenities: " wifi,,wifi " })).items), [A.hotelId]);
+    // aircon is only on A's room type, not the hotel → no hotel has wifi AND aircon.
+    assert.deepEqual(ids((await search({ city, amenities: "wifi,aircon" })).items), []);
+    const bad = await request(app).get("/api/hotels").query({ amenities: "Wi Fi" });
+    assert.equal(bad.status, 400);
+  });
+
+  test("sort by price both ways, by rating, and paging after a price sort", async () => {
+    assert.deepEqual(ids((await search({ city, sort: "price_asc" })).items), [B.hotelId, A.hotelId]);
+    assert.deepEqual(ids((await search({ city, sort: "price_desc" })).items), [A.hotelId, B.hotelId]);
+    assert.deepEqual(ids((await search({ city, sort: "rating_desc" })).items), [A.hotelId, B.hotelId]);
+    const p2 = await search({ city, sort: "price_asc", pageSize: 1, page: 2 });
+    assert.deepEqual(ids(p2.items), [A.hotelId]);
+    assert.equal(p2.items[0].fromPrice, 1000);
+    assert.equal(p2.total, 2);
+    assert.equal(p2.totalPages, 2);
+    const bad = await request(app).get("/api/hotels").query({ sort: "cheapest" });
+    assert.equal(bad.status, 400);
+  });
+
   test("past check-in → 400 VALIDATION_FAILED", async () => {
     const res = await request(app)
       .get("/api/hotels")
@@ -229,4 +272,14 @@ describe("GET /api/hotels", () => {
       assert.equal(res.status, 404);
     });
   });
+});
+
+test("GET /api/amenities → public list of hotel-level amenities only", async () => {
+  const res = await request(app).get("/api/amenities");
+  assert.equal(res.status, 200);
+  const list = amenityListSchema.parse(res.body.data);
+  const codes = list.map((a) => a.code);
+  assert.ok(codes.includes("wifi"));
+  assert.ok(!codes.includes("aircon"), "room-level amenity left out");
+  assert.deepEqual(Object.keys(list[0] ?? {}).sort(), ["code", "name"]);
 });

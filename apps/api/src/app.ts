@@ -7,6 +7,7 @@ import { adminRouter } from "./routes/admin";
 import { authRouter } from "./routes/auth";
 import { bookingsRouter } from "./routes/bookings";
 import { healthRouter } from "./routes/health";
+import { amenitiesRouter } from "./routes/amenities";
 import { hotelsRouter } from "./routes/hotels";
 import { webhooksRouter } from "./routes/webhooks";
 
@@ -37,6 +38,7 @@ app.use(
 app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/hotels", hotelsRouter);
+app.use("/api/amenities", amenitiesRouter);
 app.use("/api/bookings", bookingsRouter);
 app.use("/api/admin", adminRouter);
 

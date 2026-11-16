@@ -84,8 +84,39 @@ async function fromPrices(
   return result;
 }
 
+const searchSelect = (roomTypeWhere: Prisma.RoomTypeWhereInput) =>
+  ({
+    id: true,
+    name: true,
+    slug: true,
+    city: true,
+    currency: true,
+    ratingAvg: true,
+    reviewCount: true,
+    images: { select: imageSelect, orderBy: [...imageOrder], take: 1 },
+    roomTypes: { where: roomTypeWhere, select: { id: true, basePrice: true } },
+  }) satisfies Prisma.HotelSelect;
+
+const RECOMMENDED_ORDER = [{ ratingAvg: "desc" }, { name: "asc" }, { id: "asc" }] as const satisfies
+  Prisma.HotelOrderByWithRelationInput[];
+const RATING_ORDER = [
+  { ratingAvg: "desc" },
+  { reviewCount: "desc" },
+  { name: "asc" },
+  { id: "asc" },
+] as const satisfies Prisma.HotelOrderByWithRelationInput[];
+
+/** null sorts last either way; ties keep the recommended order (stable sort). */
+function byPrice(dir: 1 | -1) {
+  return (a: number | null, b: number | null) => {
+    if (a === null || b === null) return a === b ? 0 : a === null ? 1 : -1;
+    return (a - b) * dir;
+  };
+}
+
 export async function searchHotels(query: HotelSearchQuery): Promise<Paginated<HotelSummary>> {
-  const { city, checkIn, checkOut, guests, page, pageSize } = query;
+  const { city, checkIn, checkOut, guests, minPrice, maxPrice, minRating, amenities, sort, page, pageSize } =
+    query;
 
   const roomTypeWhere: Prisma.RoomTypeWhereInput = {
     isActive: true,
@@ -104,30 +135,45 @@ export async function searchHotels(query: HotelSearchQuery): Promise<Paginated<H
     isActive: true,
     ...(city !== undefined && { city: { contains: city, mode: "insensitive" } }),
     ...(filtersRoomTypes && { roomTypes: { some: { ...roomTypeWhere, ...freeRooms } } }),
-  };
-
-  const [total, hotels] = await prisma.$transaction([
-    prisma.hotel.count({ where }),
-    prisma.hotel.findMany({
-      where,
-      orderBy: [{ ratingAvg: "desc" }, { name: "asc" }],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        city: true,
-        currency: true,
-        ratingAvg: true,
-        reviewCount: true,
-        images: { select: imageSelect, orderBy: [...imageOrder], take: 1 },
-        roomTypes: { where: roomTypeWhere, select: { id: true, basePrice: true } },
-      },
+    ...(minRating !== undefined && { ratingAvg: { gte: minRating } }),
+    // Every chosen amenity (AND)
+    ...(amenities !== undefined && {
+      AND: amenities.map((code) => ({ amenities: { some: { amenity: { code, scope: "HOTEL" as const } } } })),
     }),
-  ]);
+  };
+  const select = searchSelect(roomTypeWhere);
+  const orderBy = sort === "rating_desc" ? [...RATING_ORDER] : [...RECOMMENDED_ORDER];
 
-  const prices = await fromPrices(hotels, checkIn, checkOut);
+  // fromPrice is computed (rate periods, availability), not a column: filtering or sorting by it means
+  // pricing every matching hotel, then paging in memory. Otherwise the DB pages as before.
+  const byPriceNeeded = minPrice !== undefined || maxPrice !== undefined || sort === "price_asc" || sort === "price_desc";
+  let total: number;
+  let hotels: Prisma.HotelGetPayload<{ select: typeof select }>[];
+  let prices: Map<string, number | null>;
+  if (byPriceNeeded) {
+    const all = await prisma.hotel.findMany({ where, orderBy, select });
+    const allPrices = await fromPrices(all, checkIn, checkOut);
+    const priceOf = (id: string) => allPrices.get(id) ?? null;
+    let matching = all.filter((h) => {
+      if (minPrice === undefined && maxPrice === undefined) return true;
+      const p = priceOf(h.id);
+      return p !== null && (minPrice === undefined || p >= minPrice) && (maxPrice === undefined || p <= maxPrice);
+    });
+    if (sort === "price_asc" || sort === "price_desc") {
+      const cmp = byPrice(sort === "price_asc" ? 1 : -1);
+      matching = matching.toSorted((a, b) => cmp(priceOf(a.id), priceOf(b.id)));
+    }
+    total = matching.length;
+    hotels = matching.slice((page - 1) * pageSize, page * pageSize);
+    prices = allPrices;
+  } else {
+    [total, hotels] = await prisma.$transaction([
+      prisma.hotel.count({ where }),
+      prisma.hotel.findMany({ where, orderBy, skip: (page - 1) * pageSize, take: pageSize, select }),
+    ]);
+    prices = await fromPrices(hotels, checkIn, checkOut);
+  }
+
   return {
     items: hotels.map((h) => ({
       id: h.id,
