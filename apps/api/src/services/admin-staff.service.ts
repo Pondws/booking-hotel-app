@@ -22,6 +22,7 @@ const staffSelect = {
   name: true,
   email: true,
   phone: true,
+  isActive: true,
   createdAt: true,
   updatedAt: true,
   staffOf: {
@@ -39,6 +40,7 @@ function toAdminStaff(u: StaffRow): AdminStaff {
     email: u.email,
     phone: u.phone,
     hotels: u.staffOf.map((s) => s.hotel),
+    isActive: u.isActive,
     createdAt: u.createdAt.toISOString(),
     updatedAt: u.updatedAt.toISOString(),
   };
@@ -69,6 +71,7 @@ export async function listStaff(query: AdminStaffListQuery): Promise<Paginated<A
         name: true,
         email: true,
         phone: true,
+        isActive: true,
         createdAt: true,
         staffOf: { orderBy: [...hotelOrder], select: { hotel: { select: { id: true, name: true } } } },
       },
@@ -81,6 +84,7 @@ export async function listStaff(query: AdminStaffListQuery): Promise<Paginated<A
       email: u.email,
       phone: u.phone,
       hotels: u.staffOf.map((s) => s.hotel),
+      isActive: u.isActive,
       createdAt: u.createdAt.toISOString(),
     })),
     page,
@@ -158,4 +162,40 @@ export async function removeHotel(actor: PublicUser, userId: string, hotelId: st
   const { count } = await prisma.hotelStaff.deleteMany({ where: { userId, hotelId } });
   if (count === 0) throw new AppError(404, "NOT_FOUND", "This staff member doesn't work at this hotel");
   await auditStaff(actor, userId, before);
+}
+
+/**
+ * Deactivating revokes every session of the staff member in the same transaction, so they're out on their
+ * next request (`resolveSession` also refuses inactive users). An ADMIN can't deactivate themselves.
+ */
+export async function setStaffActive(actor: PublicUser, userId: string, isActive: boolean): Promise<AdminStaff> {
+  if (userId === actor.id) throw new AppError(409, "CONFLICT", "You can't deactivate your own account");
+  const before = await getStaff(userId);
+  const [{ count }] = await prisma.$transaction([
+    prisma.user.updateMany({ where: { id: userId, role: "STAFF" }, data: { isActive } }),
+    ...(isActive ? [] : [prisma.session.deleteMany({ where: { userId } })]),
+  ]);
+  if (count === 0) throw notFound();
+  return auditStaff(actor, userId, before);
+}
+
+/** Sets a temporary password chosen by the ADMIN and signs the staff member out everywhere. */
+export async function resetStaffPassword(actor: PublicUser, userId: string, password: string): Promise<void> {
+  const staff = await getStaff(userId);
+  const passwordHash = await hashPassword(password);
+  const [{ count }] = await prisma.$transaction([
+    prisma.user.updateMany({ where: { id: userId, role: "STAFF" }, data: { passwordHash } }),
+    prisma.session.deleteMany({ where: { userId } }),
+  ]);
+  if (count === 0) throw notFound();
+  // The snapshot has no password field, so record the reset itself (never the value).
+  await recordAudit({
+    actor,
+    entityType: "STAFF",
+    entityId: userId,
+    entityLabel: staff.name,
+    hotelId: null,
+    before: { password: null },
+    after: { password: "reset" },
+  });
 }

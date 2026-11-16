@@ -15,10 +15,12 @@ const EXACT: Record<string, string> = {
   "Check-out must be after check-in": "วันเช็คเอาท์ต้องอยู่หลังวันเช็คอิน",
   "Choose both check-in and check-out": "กรุณาเลือกทั้งวันเช็คอินและวันเช็คเอาท์",
   "Pick a rating": "กรุณาให้คะแนน",
+  "Passwords don't match": "รหัสผ่านไม่ตรงกัน",
   // API
   "Authentication required": "กรุณาเข้าสู่ระบบ",
   "Invalid email or password": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
   "Email already registered": "อีเมลนี้มีบัญชีอยู่แล้ว",
+  "Current password is incorrect": "รหัสผ่านปัจจุบันไม่ถูกต้อง",
   "Hotel not found": "ไม่พบโรงแรม",
   "Room type not found": "ไม่พบประเภทห้อง",
   "Booking not found": "ไม่พบการจอง",

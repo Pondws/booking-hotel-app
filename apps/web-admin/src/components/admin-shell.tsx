@@ -46,11 +46,11 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function SidebarFooter() {
+function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="space-y-3 border-t border-sidebar-border p-4">
       <ApiStatus />
-      <AdminUserBlock />
+      <AdminUserBlock onNavigate={onNavigate} />
     </div>
   );
 }
@@ -89,7 +89,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <nav aria-label="เมนูหลัก" className="px-2 pb-2">
               <NavLinks onNavigate={() => setMenuOpen(false)} />
             </nav>
-            <SidebarFooter />
+            <SidebarFooter onNavigate={() => setMenuOpen(false)} />
           </div>
         )}
       </div>

@@ -1,4 +1,10 @@
-import type { LoginInput, PublicUser, RegisterInput } from "@booking/shared";
+import type {
+  ChangePasswordInput,
+  LoginInput,
+  PublicUser,
+  RegisterInput,
+  UpdateProfileData,
+} from "@booking/shared";
 import type { Prisma, SessionAudience } from "../generated/prisma/client";
 import { AppError } from "../lib/app-error";
 import { SESSION_TTL_MS } from "../lib/cookies";
@@ -78,7 +84,8 @@ export async function login(
   });
   // Unknown emails still run one verify, against the dummy hash.
   const valid = await verifyPassword(input.password, found ? found.passwordHash : await DUMMY_HASH);
-  if (!found || !valid) {
+  // A deactivated account gets the same answer as a wrong password (checked after the verify, so same timing).
+  if (!found || !valid || !found.isActive) {
     throw new AppError(401, "UNAUTHORIZED", "Invalid email or password");
   }
   if (audience === "ADMIN" && found.role !== "ADMIN" && found.role !== "STAFF") {
@@ -96,6 +103,41 @@ export async function login(
   return { user, token };
 }
 
+export async function updateProfile(userId: string, data: UpdateProfileData): Promise<PublicUser> {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { name: data.name, phone: data.phone },
+    select: publicUserSelect,
+  });
+}
+
+/**
+ * Checks the current password, then sets the new hash and deletes every other session of the user
+ * (both audiences) in one transaction. The session making the request stays signed in.
+ */
+export async function changePassword(
+  userId: string,
+  sessionId: string,
+  input: ChangePasswordInput,
+): Promise<void> {
+  const found = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    omit: { passwordHash: false },
+  });
+  if (!(await verifyPassword(input.currentPassword, found.passwordHash))) {
+    const message = "Current password is incorrect";
+    throw new AppError(400, "VALIDATION_FAILED", message, {
+      formErrors: [],
+      fieldErrors: { currentPassword: [message] },
+    });
+  }
+  const passwordHash = await hashPassword(input.newPassword);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { passwordHash }, select: { id: true } }),
+    prisma.session.deleteMany({ where: { userId, id: { not: sessionId } } }),
+  ]);
+}
+
 export async function logout(sessionId: string): Promise<void> {
   await prisma.session.deleteMany({ where: { id: sessionId } });
 }
@@ -106,13 +148,20 @@ export async function resolveSession(
 ): Promise<{ user: PublicUser; sessionId: string } | null> {
   const session = await prisma.session.findUnique({
     where: { tokenHash: hashToken(token) },
-    select: { id: true, audience: true, expiresAt: true, user: { select: publicUserSelect } },
+    select: {
+      id: true,
+      audience: true,
+      expiresAt: true,
+      user: { select: { ...publicUserSelect, isActive: true } },
+    },
   });
   if (!session) return null;
-  if (session.expiresAt.getTime() <= Date.now()) {
+  // Deactivation deletes sessions too; this check also covers a session created in a race with it.
+  if (session.expiresAt.getTime() <= Date.now() || !session.user.isActive) {
     await prisma.session.deleteMany({ where: { id: session.id } });
     return null;
   }
   if (session.audience !== audience) return null;
-  return { user: session.user, sessionId: session.id };
+  const { isActive: _isActive, ...user } = session.user;
+  return { user, sessionId: session.id };
 }

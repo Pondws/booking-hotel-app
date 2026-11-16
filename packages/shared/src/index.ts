@@ -995,6 +995,8 @@ export const adminStaffSummarySchema = z.object({
   email: z.string(),
   phone: z.string().nullable(),
   hotels: z.array(z.object({ id: z.string(), name: z.string() })),
+  /** false = deactivated: can't sign in, sessions revoked. */
+  isActive: z.boolean(),
   createdAt: z.iso.datetime(),
 });
 export type AdminStaffSummary = z.infer<typeof adminStaffSummarySchema>;
@@ -1032,6 +1034,37 @@ export type CreateStaffData = z.output<typeof createStaffSchema>;
 export const updateStaffSchema = z.object({ name: staffNameField, phone: staffPhoneField });
 export type UpdateStaffInput = z.input<typeof updateStaffSchema>;
 export type UpdateStaffData = z.output<typeof updateStaffSchema>;
+
+/** `PATCH /api/admin/staff/:userId/status`. Deactivating revokes every session of that staff member. */
+export const setStaffActiveSchema = z.object({ isActive: z.boolean() });
+export type SetStaffActiveInput = z.output<typeof setStaffActiveSchema>;
+
+/** `POST /api/admin/staff/:userId/password` — ADMIN sets a temporary password; revokes every session. */
+export const resetStaffPasswordSchema = z.object({ password: registerSchema.shape.password });
+export type ResetStaffPasswordInput = z.output<typeof resetStaffPasswordSchema>;
+
+// ---------- Own account (web `/api/auth/me`, web-admin `/api/auth/admin/me`) ----------
+
+/** `PATCH /api/auth/me` + `/api/auth/admin/me`. Same fields as staff edit; email and role never change here. */
+export const updateProfileSchema = z.object({ name: staffNameField, phone: staffPhoneField });
+export type UpdateProfileInput = z.input<typeof updateProfileSchema>;
+export type UpdateProfileData = z.output<typeof updateProfileSchema>;
+
+/** `POST /api/auth/me/password` + `/api/auth/admin/me/password`. */
+export const changePasswordSchema = z.object({
+  currentPassword: loginSchema.shape.password,
+  newPassword: registerSchema.shape.password,
+});
+export type ChangePasswordInput = z.output<typeof changePasswordSchema>;
+
+/** The change-password form in web + web-admin: the API body plus a client-only confirmation. */
+export const changePasswordFormSchema = changePasswordSchema
+  .extend({ confirmPassword: z.string().min(1, "Password is required").max(128) })
+  .refine((v) => v.confirmPassword === v.newPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords don't match",
+  });
+export type ChangePasswordFormInput = z.input<typeof changePasswordFormSchema>;
 
 export const staffIdParamsSchema = z.object({ userId: z.string().min(1) });
 export type StaffIdParams = z.output<typeof staffIdParamsSchema>;

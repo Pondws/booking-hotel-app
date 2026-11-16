@@ -12,7 +12,7 @@ type Tile = { href: string; icon: LucideIcon; title: string; body: string; soon?
 const TILES: Tile[] = [
   { href: "/account/bookings", icon: CalendarCheck, title: "การจองของฉัน", body: "ดู ชำระเงิน หรือยกเลิกการจอง และเขียนรีวิว" },
   { href: "/wishlist", icon: Heart, title: "รายการโปรด", body: "โรงแรมที่บันทึกไว้", soon: true },
-  { href: "/account/security", icon: KeyRound, title: "ความปลอดภัย", body: "แก้ไขโปรไฟล์และเปลี่ยนรหัสผ่าน", soon: true },
+  { href: "/account/security", icon: KeyRound, title: "โปรไฟล์และความปลอดภัย", body: "แก้ไขชื่อ เบอร์โทร และเปลี่ยนรหัสผ่าน" },
   { href: "/rewards", icon: Crown, title: "สมาชิกรางวัล", body: "แต้มสะสมและสิทธิพิเศษ", soon: true },
 ];
 

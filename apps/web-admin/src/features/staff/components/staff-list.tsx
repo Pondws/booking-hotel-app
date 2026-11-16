@@ -12,6 +12,7 @@ import { SearchX } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
 import { useStaffList } from "../hooks";
+import { StaffStatusBadge } from "./staff-access-card";
 import { parseListParams, serializeListParams } from "../list-params";
 
 const MAX_HOTEL_BADGES = 3;
@@ -47,6 +48,7 @@ const COLUMNS: DataTableColumn<AdminStaffSummary>[] = [
         </div>
       ),
   },
+  { id: "status", header: "สถานะ", cell: (s) => <StaffStatusBadge isActive={s.isActive} /> },
 ];
 
 export function StaffList() {

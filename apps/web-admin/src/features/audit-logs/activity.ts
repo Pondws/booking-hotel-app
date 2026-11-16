@@ -5,6 +5,7 @@ import {
   Eye,
   EyeOff,
   ImageIcon,
+  KeyRound,
   LogIn,
   LogOut,
   Pencil,
@@ -52,6 +53,7 @@ export function activityOf(log: AdminAuditLog): Activity {
       ? { icon: EyeOff, label: "ซ่อนรีวิว", variant: "muted" }
       : { icon: Eye, label: "แสดงรีวิว", variant: "secondary" };
   }
+  if (only(log, "password")) return { icon: KeyRound, label: "ตั้งรหัสผ่านใหม่", variant: "default" };
   if (only(log, "hotels")) return { icon: Building2, label: "เปลี่ยนโรงแรมที่ดูแล", variant: "default" };
   if (only(log, "images")) return { icon: ImageIcon, label: "แก้ไขรูปภาพ", variant: "default" };
   return { icon: Pencil, label: "แก้ไข", variant: "default" };

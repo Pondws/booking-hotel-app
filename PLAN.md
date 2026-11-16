@@ -51,7 +51,7 @@ hook → UI พร้อม loading/error/empty states → lint, typecheck, test
 | 5 | Payments (Stripe, test mode) | ✅ เสร็จแล้ว (ยังไม่ได้ทดสอบ Stripe จริงในเบราว์เซอร์) |
 | 6 | Back-office (web-admin) | ✅ เสร็จแล้ว (6.1–6.7) |
 | 7 | Reviews | 🟡 กำลังทำ (7.1–7.4) |
-| 8 | บัญชีผู้ใช้ + ความปลอดภัยของ staff | ⬜ |
+| 8 | บัญชีผู้ใช้ + ความปลอดภัยของ staff | 🟡 8.1–8.5 ทำแล้ว (branch `feat/account-security`) รอ security-review + ตรวจในเบราว์เซอร์; ลืมรหัสผ่าน → Phase 10 |
 | 9 | ตรวจและแก้ UI ทั้งหมด | 🟡 9.0 (redesign web + ภาษาไทย) ทำแล้ว รอตรวจในเบราว์เซอร์ |
 | 10 | Hardening และ deployment | ⬜ |
 | 11 | ฟีเจอร์ลูกค้าเพิ่มเติม (ref: Booking.com, Airbnb, Expedia) | ⬜ มีหน้า placeholder แล้ว |
@@ -351,15 +351,15 @@ Spec: `docs/superpowers/specs/2026-11-15-admin-dashboard-design.md`
 - `tanstack-query-best-practices`: อัปเดต `me` หลังแก้โปรไฟล์
 - `security-review`: ตรวจก่อน merge (บังคับ)
 
-- [ ] แก้โปรไฟล์ของตัวเอง (ชื่อ, เบอร์โทร) ทั้ง web (`/account`) และ web-admin
-- [ ] เปลี่ยนรหัสผ่านของตัวเอง: ต้องใส่รหัสเดิม, rate limit แบบเดียวกับ login และลบ session อื่นทั้งหมด (เก็บ session ปัจจุบันไว้)
-- [ ] ปิด/เปิดบัญชี staff (เฉพาะ ADMIN):
+- [x] แก้โปรไฟล์ของตัวเอง (ชื่อ, เบอร์โทร): web `/account/security`, web-admin `/account` (`PATCH /api/auth/me`, `/api/auth/admin/me`)
+- [x] เปลี่ยนรหัสผ่านของตัวเอง: ต้องใส่รหัสเดิม, rate limit แบบเดียวกับ login และลบ session อื่นทั้งหมด (เก็บ session ปัจจุบันไว้)
+- [x] ปิด/เปิดบัญชี staff (เฉพาะ ADMIN):
   - เพิ่ม `User.isActive`; บัญชีที่ปิดอยู่ login ไม่ได้ (ตอบ error เหมือนรหัสผิด) และ `loadSession` ไม่รับ session เดิม
   - ปิดแล้วลบ session ทั้งหมดของคนนั้นทันที
   - ADMIN ปิดบัญชีตัวเองไม่ได้ และบันทึกลง audit log
-- [ ] ADMIN รีเซ็ตรหัสผ่าน staff (ตั้งรหัสชั่วคราว) แล้วลบ session ทั้งหมดของคนนั้น
-- [ ] Rate limit ตอน login แบบต่อบัญชี (ตอนนี้มีแค่ต่อ IP)
-- [ ] ลืมรหัสผ่าน (ลูกค้า): token ใช้ครั้งเดียว มีอายุ ส่งลิงก์ทางอีเมล
+- [x] ADMIN รีเซ็ตรหัสผ่าน staff (ตั้งรหัสชั่วคราว) แล้วลบ session ทั้งหมดของคนนั้น
+- [x] Rate limit ตอน login แบบต่อบัญชี: นับเฉพาะครั้งที่ผิดต่อ email (memory store — ทบทวนตอนมีหลาย instance ใน Phase 10)
+- [ ] → ย้ายไป Phase 10 (ยังไม่มีผู้ให้บริการอีเมล) ลืมรหัสผ่าน (ลูกค้า): token ใช้ครั้งเดียว มีอายุ ส่งลิงก์ทางอีเมล
       ⚠️ ต้องมีผู้ให้บริการส่งอีเมล (เรื่องที่ต้องตัดสินใจ #8) ถ้ายังไม่ได้ตัดสินใจ ให้ย้ายไปทำคู่กับอีเมลแจ้งเตือนใน Phase 10
 
 **เสร็จเมื่อ:**
@@ -421,6 +421,8 @@ Claude ตรวจและแก้เองทั้งหมด: เปิ�
   - `next-cache-components-adoption` → `next-cache-components-optimizer`
   - `next-partial-prefetching-adoption` → `next-partial-prefetching-optimizer`
 
+- [ ] ลืมรหัสผ่าน (ลูกค้า) ย้ายมาจาก Phase 8: token ใช้ครั้งเดียว มีอายุ ส่งลิงก์ทางอีเมล (ต้องเลือกผู้ให้บริการอีเมลก่อน — เรื่องที่ต้องตัดสินใจ #8)
+- [ ] Rate limit ต่อบัญชี (Phase 8) ใช้ memory store: ย้ายไป store ที่แชร์กันได้ถ้ามีหลาย instance
 - [ ] CI: lint, typecheck, test, build และ `prisma migrate deploy` + `db:check` บน Postgres ชั่วคราว
 - [ ] DB CHECKs:
   - `base_price`, `price`, `total_amount`, `amount` ต้อง ≥ 0
@@ -481,7 +483,7 @@ Claude ตรวจและแก้เองทั้งหมด: เปิ�
 - `Review.userId` / `hotelId` ซ้ำกับข้อมูลใน booking ดังนั้น service ต้องดึงค่าจาก booking เอง → Phase 7
 - DB ไม่ได้ตรวจ scope ของ amenity (HOTEL/ROOM) ดังนั้น service ต้องตรวจเอง → ตรวจแล้วทั้ง hotel (6.1) และ room types (6.2) ผ่าน `assertAmenityScope`
 - Expired sessions ถูกลบเมื่อมีคนใช้เท่านั้น — ต้องมี job ลบ → Phase 10
-- `User` ไม่มี `isActive` — staff ที่ลาออกแล้วยัง login ได้ → Phase 8
+- `User` ไม่มี `isActive` — staff ที่ลาออกแล้วยัง login ได้ → ✅ Phase 8 (`User.isActive`)
 
 ## ไอเดียที่ยังไม่จัดเข้า phase
 

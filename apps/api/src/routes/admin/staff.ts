@@ -3,6 +3,8 @@ import {
   adminStaffListQuerySchema,
   assignStaffHotelSchema,
   createStaffSchema,
+  resetStaffPasswordSchema,
+  setStaffActiveSchema,
   staffHotelParamsSchema,
   staffIdParamsSchema,
   updateStaffSchema,
@@ -13,6 +15,8 @@ import {
   getStaff,
   listStaff,
   removeStaffHotel,
+  resetStaffPassword,
+  setStaffActive,
   updateStaff,
 } from "../../controllers/admin-staff.controller";
 import { requireRole } from "../../middleware/require-role";
@@ -40,4 +44,14 @@ adminStaffRouter.delete(
   "/:userId/hotels/:hotelId",
   validate({ params: staffHotelParamsSchema }),
   removeStaffHotel,
+);
+adminStaffRouter.patch(
+  "/:userId/status",
+  validate({ params: staffIdParamsSchema, body: setStaffActiveSchema }),
+  setStaffActive,
+);
+adminStaffRouter.post(
+  "/:userId/password",
+  validate({ params: staffIdParamsSchema, body: resetStaffPasswordSchema }),
+  resetStaffPassword,
 );

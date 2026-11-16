@@ -46,6 +46,7 @@ const FIELD_LABELS: Record<string, string> = {
   cancelReason: "เหตุผลการยกเลิก",
   paymentStatus: "การชำระเงิน",
   isHidden: "การแสดงผล",
+  password: "รหัสผ่าน",
 };
 
 export const fieldLabel = (field: string) => FIELD_LABELS[field] ?? field;
@@ -72,6 +73,8 @@ export function formatValue(field: string, value: AuditValue): string {
       return lookup(STAGE_LABELS, value);
     case "paymentStatus":
       return lookup(PAYMENT_LABELS, value);
+    case "password":
+      return value === "reset" ? "ตั้งใหม่แล้ว" : value;
     case "scope":
       return lookup(SCOPE_LABEL, value);
     case "startDate":

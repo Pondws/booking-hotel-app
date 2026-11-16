@@ -341,3 +341,99 @@ test("JSON body over 100kb to POST /api/auth/login → 413 VALIDATION_FAILED env
     error: { code: "VALIDATION_FAILED", message: "Invalid request body" },
   });
 });
+
+// ---------- Own profile ----------
+
+test("PATCH /me updates name + phone, \"\" phone → null, ignores role/email", async () => {
+  const { email, token } = await registerUser();
+  assert.ok(token);
+  const set = await request(app)
+    .patch("/api/auth/me")
+    .set("Cookie", `sid=${token}`)
+    .send({ name: "  New Name ", phone: "0812345678", role: "ADMIN", email: "hijack@test.local" });
+  assert.equal(set.status, 200);
+  assert.equal(set.body.data.name, "New Name");
+  assert.equal(set.body.data.phone, "0812345678");
+  assert.equal(set.body.data.role, "CUSTOMER");
+  assert.equal(set.body.data.email, email);
+  assert.ok(!JSON.stringify(set.body).includes("passwordHash"));
+
+  const cleared = await request(app)
+    .patch("/api/auth/me")
+    .set("Cookie", `sid=${token}`)
+    .send({ name: "New Name", phone: "" });
+  assert.equal(cleared.status, 200);
+  assert.equal(cleared.body.data.phone, null);
+  const me = await request(app).get("/api/auth/me").set("Cookie", `sid=${token}`);
+  assert.equal(me.body.data.name, "New Name");
+  assert.equal(me.body.data.phone, null);
+});
+
+test("PATCH /me without cookie → 401; blank name → 400", async () => {
+  const anon = await request(app).patch("/api/auth/me").send({ name: "X", phone: null });
+  assert.equal(anon.status, 401);
+  const { token } = await registerUser();
+  const blank = await request(app)
+    .patch("/api/auth/me")
+    .set("Cookie", `sid=${token}`)
+    .send({ name: " ", phone: null });
+  assert.equal(blank.status, 400);
+  assert.ok(Array.isArray(blank.body.error.details.fieldErrors.name));
+});
+
+test("PATCH /admin/me with a web sid → 401", async () => {
+  const { token } = await registerUser();
+  const res = await request(app)
+    .patch("/api/auth/admin/me")
+    .set("Cookie", `sid=${token}`)
+    .send({ name: "X", phone: null });
+  assert.equal(res.status, 401);
+});
+
+// ---------- Change password ----------
+
+test("change password with wrong current → 400 currentPassword, nothing revoked", async () => {
+  const { email, token } = await registerUser();
+  assert.ok(token);
+  const other = await loginSeed("/api/auth/login", email);
+  const res = await request(app)
+    .post("/api/auth/me/password")
+    .set("Cookie", `sid=${token}`)
+    .send({ currentPassword: "WrongPassword!", newPassword: "NewPassword456!" });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error.code, "VALIDATION_FAILED");
+  assert.deepEqual(res.body.error.details.fieldErrors.currentPassword, ["Current password is incorrect"]);
+  const otherMe = await request(app).get("/api/auth/me").set("Cookie", `sid=${other.token}`);
+  assert.equal(otherMe.status, 200);
+  const relogin = await request(app).post("/api/auth/login").send({ email, password: PASSWORD });
+  assert.equal(relogin.status, 200);
+});
+
+test("change password → 204, keeps this session, revokes the others, new password works", async () => {
+  const { email, token } = await registerUser();
+  assert.ok(token);
+  const other = await loginSeed("/api/auth/login", email);
+  const res = await request(app)
+    .post("/api/auth/me/password")
+    .set("Cookie", `sid=${token}`)
+    .send({ currentPassword: PASSWORD, newPassword: "NewPassword456!" });
+  assert.equal(res.status, 204);
+  const me = await request(app).get("/api/auth/me").set("Cookie", `sid=${token}`);
+  assert.equal(me.status, 200);
+  const otherMe = await request(app).get("/api/auth/me").set("Cookie", `sid=${other.token}`);
+  assert.equal(otherMe.status, 401);
+  const oldLogin = await request(app).post("/api/auth/login").send({ email, password: PASSWORD });
+  assert.equal(oldLogin.status, 401);
+  const newLogin = await request(app).post("/api/auth/login").send({ email, password: "NewPassword456!" });
+  assert.equal(newLogin.status, 200);
+});
+
+test("change password: short new password → 400 newPassword", async () => {
+  const { token } = await registerUser();
+  const res = await request(app)
+    .post("/api/auth/me/password")
+    .set("Cookie", `sid=${token}`)
+    .send({ currentPassword: PASSWORD, newPassword: "short" });
+  assert.equal(res.status, 400);
+  assert.ok(Array.isArray(res.body.error.details.fieldErrors.newPassword));
+});
