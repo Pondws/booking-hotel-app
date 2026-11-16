@@ -35,3 +35,11 @@ export function removeStaffHotel(userId: string, hotelId: string) {
     url: `${staffUrl(userId)}/hotels/${encodeURIComponent(hotelId)}`,
   });
 }
+
+export function setStaffActive(userId: string, isActive: boolean) {
+  return request(adminStaffSchema, { method: "PATCH", url: `${staffUrl(userId)}/status`, data: { isActive } });
+}
+
+export function resetStaffPassword(userId: string, password: string) {
+  return requestNoContent({ method: "POST", url: `${staffUrl(userId)}/password`, data: { password } });
+}

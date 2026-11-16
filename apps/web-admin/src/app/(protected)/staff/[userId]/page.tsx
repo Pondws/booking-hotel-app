@@ -7,6 +7,7 @@ import { Skeleton } from "@booking/ui/components/skeleton";
 import { AdminOnly } from "@/components/admin-only";
 import { DetailTabs, DetailTabsList, DetailsPanel, HistoryPanel } from "@/components/detail-tabs";
 import { HistoryCard } from "@/components/history-card";
+import { StaffAccessCard, StaffStatusBadge } from "@/features/staff/components/staff-access-card";
 import { StaffHotelsCard } from "@/features/staff/components/staff-hotels-card";
 import { StaffProfileCard } from "@/features/staff/components/staff-profile-card";
 import { useStaff } from "@/features/staff/hooks";
@@ -61,7 +62,10 @@ function StaffMember() {
     <>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{staff.name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">{staff.name}</h1>
+            {!staff.isActive && <StaffStatusBadge isActive={false} />}
+          </div>
           <p className="text-sm text-muted-foreground">{staff.email}</p>
         </div>
         <Button asChild variant="outline">
@@ -74,6 +78,7 @@ function StaffMember() {
           {/* Remount when another staff member is opened so the form defaults follow */}
           <StaffProfileCard key={staff.id} staff={staff} />
           <StaffHotelsCard staff={staff} />
+          <StaffAccessCard staff={staff} />
         </DetailsPanel>
         <HistoryPanel>
           <HistoryCard filter={{ entityType: "STAFF", entityId: staff.id }} />

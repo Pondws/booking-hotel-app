@@ -10,6 +10,7 @@ import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
 import { Pagination } from "@/components/pagination";
 import { useStaffList } from "../hooks";
+import { StaffStatusBadge } from "./staff-access-card";
 import { parseListParams, serializeListParams } from "../list-params";
 
 const MAX_HOTEL_BADGES = 3;
@@ -45,6 +46,7 @@ const COLUMNS: DataTableColumn<AdminStaffSummary>[] = [
         </div>
       ),
   },
+  { id: "status", header: "สถานะ", cell: (s) => <StaffStatusBadge isActive={s.isActive} /> },
 ];
 
 export function StaffList() {

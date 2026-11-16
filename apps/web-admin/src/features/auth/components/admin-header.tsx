@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { Role } from "@booking/shared";
 import { Badge } from "@booking/ui/components/badge";
 import { Button } from "@booking/ui/components/button";
@@ -8,8 +9,8 @@ import { markExplicitLogout, resetExplicitLogout } from "../logout-intent";
 
 const ROLE_LABELS: Record<Role, string> = { ADMIN: "ผู้ดูแลระบบ", STAFF: "พนักงาน", CUSTOMER: "ลูกค้า" };
 
-/** Signed-in user's name, role and Log out — shown in the admin shell's sidebar footer. */
-export function AdminUserBlock() {
+/** Signed-in user's name (links to their account page), role and Log out — in the admin shell's sidebar footer. */
+export function AdminUserBlock({ onNavigate }: { onNavigate?: () => void }) {
   const { data: user } = useMe();
   const logout = useLogout();
 
@@ -17,7 +18,14 @@ export function AdminUserBlock() {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-sm font-medium">{user.name}</span>
+        <Link
+          href="/account"
+          onClick={onNavigate}
+          title="บัญชีของฉัน"
+          className="truncate rounded-sm text-sm font-medium hover:underline focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none"
+        >
+          {user.name}
+        </Link>
         <Badge variant="secondary">{ROLE_LABELS[user.role]}</Badge>
       </div>
       <Button

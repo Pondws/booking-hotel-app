@@ -14,6 +14,8 @@ import {
   fetchStaff,
   fetchStaffList,
   removeStaffHotel,
+  resetStaffPassword,
+  setStaffActive,
   updateStaff,
 } from "./api";
 
@@ -76,4 +78,18 @@ export function useRemoveStaffHotel(userId: string) {
         queryClient.invalidateQueries({ queryKey: adminStaffKeys.lists() }),
       ]),
   });
+}
+
+/** Deactivating signs the staff member out everywhere at once (the API revokes their sessions). */
+export function useSetStaffActive(userId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (isActive: boolean) => setStaffActive(userId, isActive),
+    onSuccess: (staff) => storeStaff(queryClient, staff),
+  });
+}
+
+/** Nothing cached changes (the password is never shown); history refreshes via the global MutationCache. */
+export function useResetStaffPassword(userId: string) {
+  return useMutation({ mutationFn: (password: string) => resetStaffPassword(userId, password) });
 }
