@@ -13,6 +13,7 @@ import { useAvailability, useHotel } from "../hooks";
 import { parseSearchParams, searchHref } from "../search-params";
 import { AmenityList } from "./amenity-list";
 import { RatingLine } from "./hotel-card";
+import { WishlistHeart } from "@/features/wishlists/components/wishlist-heart";
 import { HotelGallery } from "./hotel-gallery";
 import { ReviewsSection } from "./reviews-section";
 import { RoomTypeCard, RoomTypeCardSkeleton, type RoomPricing } from "./room-type-card";
@@ -63,7 +64,10 @@ export function HotelDetail({ slug }: { slug: string }) {
           <ArrowLeft aria-hidden className="size-4" />
           โรงแรมใน {hotel.city}
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{hotel.name}</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{hotel.name}</h1>
+          <WishlistHeart hotelId={hotel.id} hotelName={hotel.name} variant="inline" className="shrink-0" />
+        </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {hotel.reviewCount > 0 ? (
             <a href="#reviews" className="rounded-md underline-offset-4 hover:underline">
