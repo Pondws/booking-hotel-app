@@ -23,7 +23,7 @@ import {
 } from "@booking/ui/components/alert-dialog";
 import { Button } from "@booking/ui/components/button";
 import { Label } from "@booking/ui/components/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@booking/ui/components/select";
+import { SelectField } from "@booking/ui/components/select-field";
 import { Textarea } from "@booking/ui/components/textarea";
 import { formatMoney } from "@/features/room-types/format";
 import { applyServerFieldErrors, formErrorMessage } from "@/lib/form-errors";
@@ -233,19 +233,18 @@ function MoveRoomDialog({ booking }: { booking: AdminBooking }) {
         ) : options.every((r) => !r.available) ? (
           <p className="text-sm text-muted-foreground">ไม่มีห้องอื่นในประเภทนี้ที่ว่างตลอดช่วงเข้าพัก</p>
         ) : (
-          <Select value={roomId} onValueChange={setRoomId}>
-            <SelectTrigger id="move-room" className="w-full">
-              <SelectValue placeholder="เลือกห้อง" />
-            </SelectTrigger>
-            <SelectContent>
-              {options.map((r) => (
-                <SelectItem key={r.id} value={r.id} disabled={!r.available}>
-                  ห้อง {r.number}
-                  {!r.isActive ? " (ปิดใช้งาน)" : !r.available ? " (ไม่ว่าง)" : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SelectField
+            id="move-room"
+            className="w-full"
+            placeholder="เลือกห้อง"
+            options={options.map((r) => ({
+              value: r.id,
+              label: `ห้อง ${r.number}${!r.isActive ? " (ปิดใช้งาน)" : !r.available ? " (ไม่ว่าง)" : ""}`,
+              disabled: !r.available,
+            }))}
+            value={roomId}
+            onValueChange={setRoomId}
+          />
         )}
       </div>
     </ActionDialog>

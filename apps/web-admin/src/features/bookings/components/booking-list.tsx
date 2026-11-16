@@ -12,23 +12,19 @@ import { Button } from "@booking/ui/components/button";
 import { DataTable, DataTableSkeleton, type DataTableColumn } from "@booking/ui/components/data-table";
 import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@booking/ui/components/select";
+import { SelectField } from "@booking/ui/components/select-field";
 import { Pagination } from "@/components/pagination";
-import { useAdminHotels } from "@/features/hotels/hooks";
+import { HotelFilterSelect } from "@/features/hotels/components/hotel-filter-select";
 import { formatDateRange, formatMoney } from "@/features/room-types/format";
 import { useAdminBookings } from "../hooks";
 import { parseListParams, serializeListParams } from "../list-params";
 import { BookingStatusBadge, PaymentStatusBadge, STAGE_LABELS } from "./booking-badges";
 import { DateFilterField } from "./date-filter-field";
 
-const ALL_HOTELS = "all";
-
-/** Staff see their own hotels here; 50 covers every real chain we manage. */
-const HOTEL_OPTIONS_QUERY = { status: "all", page: 1, pageSize: 50 } as const;
-
-function isStatusFilter(value: string): value is AdminBookingStatusFilter {
-  return ADMIN_BOOKING_STATUS_FILTERS.some((s) => s === value);
-}
+const STATUS_OPTIONS = ADMIN_BOOKING_STATUS_FILTERS.map((s: AdminBookingStatusFilter) => ({
+  value: s,
+  label: s === "all" ? "ทุกสถานะ" : STAGE_LABELS[s],
+}));
 
 const COLUMNS: DataTableColumn<AdminBookingSummary>[] = [
   {
@@ -94,7 +90,6 @@ export function BookingList() {
   const searchParams = useSearchParams();
   const query = parseListParams(new URLSearchParams(searchParams.toString()));
   const { data, isPending, isError, isPlaceholderData, refetch } = useAdminBookings(query);
-  const hotels = useAdminHotels(HOTEL_OPTIONS_QUERY);
 
   const navigate = (next: Partial<AdminBookingListQuery>) =>
     router.push(`${pathname}${serializeListParams({ ...query, ...next, page: 1 })}`);
@@ -133,42 +128,21 @@ export function BookingList() {
         </form>
         <div className="space-y-2">
           <Label htmlFor="booking-hotel">โรงแรม</Label>
-          <Select
-            value={query.hotelId ?? ALL_HOTELS}
-            onValueChange={(value) => navigate({ hotelId: value === ALL_HOTELS ? undefined : value })}
-          >
-            <SelectTrigger id="booking-hotel" className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_HOTELS}>ทุกโรงแรม</SelectItem>
-              {hotels.data?.items.map((h) => (
-                <SelectItem key={h.id} value={h.id}>
-                  {h.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <HotelFilterSelect
+            id="booking-hotel"
+            value={query.hotelId}
+            onChange={(hotelId) => navigate({ hotelId })}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="booking-status">สถานะ</Label>
-          <Select
+          <SelectField
+            id="booking-status"
+            className="w-40"
+            options={STATUS_OPTIONS}
             value={query.status}
-            onValueChange={(value) => {
-              if (isStatusFilter(value)) navigate({ status: value });
-            }}
-          >
-            <SelectTrigger id="booking-status" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ADMIN_BOOKING_STATUS_FILTERS.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s === "all" ? "ทุกสถานะ" : STAGE_LABELS[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onValueChange={(status) => navigate({ status })}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="booking-dates">วันที่เข้าพัก</Label>

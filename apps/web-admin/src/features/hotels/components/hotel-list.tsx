@@ -12,13 +12,7 @@ import {
 } from "@booking/ui/components/data-table";
 import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@booking/ui/components/select";
+import { SelectField } from "@booking/ui/components/select-field";
 import { Pagination } from "@/components/pagination";
 import { useMe } from "@/features/auth/hooks";
 import { useAdminHotels } from "../hooks";
@@ -36,10 +30,6 @@ const dateFormat = new Intl.DateTimeFormat("th-TH", {
   year: "numeric",
   timeZone: "Asia/Bangkok",
 });
-
-function isStatus(value: string): value is AdminHotelListQuery["status"] {
-  return STATUS_OPTIONS.some((o) => o.value === value);
-}
 
 export function HotelStatusBadge({ isActive }: { isActive: boolean }) {
   return <Badge variant={isActive ? "secondary" : "outline"}>{isActive ? "เปิดใช้งาน" : "ปิดใช้งาน"}</Badge>;
@@ -101,23 +91,13 @@ export function HotelList() {
         </form>
         <div className="space-y-2">
           <Label htmlFor="hotel-status">สถานะ</Label>
-          <Select
+          <SelectField
+            id="hotel-status"
+            className="w-40"
+            options={STATUS_OPTIONS}
             value={query.status}
-            onValueChange={(value) => {
-              if (isStatus(value)) navigate({ status: value, page: 1 });
-            }}
-          >
-            <SelectTrigger id="hotel-status" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onValueChange={(status) => navigate({ status, page: 1 })}
+          />
         </div>
       </div>
 

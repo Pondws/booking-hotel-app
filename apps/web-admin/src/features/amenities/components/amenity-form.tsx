@@ -13,13 +13,7 @@ import {
 import { Button } from "@booking/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@booking/ui/components/card";
 import { Input } from "@booking/ui/components/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@booking/ui/components/select";
+import { SelectField } from "@booking/ui/components/select-field";
 import { Field } from "@/components/form-field";
 import { applyServerFieldErrors, formErrorMessage } from "@/lib/form-errors";
 import { thaiResolver } from "@/lib/messages-th";
@@ -27,6 +21,11 @@ import { useCreateAmenity, useUpdateAmenity } from "../hooks";
 import { SCOPE_LABEL } from "./scope-label";
 
 const FIELDS = ["code", "name", "scope"] as const;
+
+const SCOPE_OPTIONS = [
+  { value: "HOTEL", label: SCOPE_LABEL.HOTEL },
+  { value: "ROOM", label: SCOPE_LABEL.ROOM },
+] as const;
 
 const toValues = (a: AdminAmenity): CreateAmenityInput => ({ code: a.code, name: a.name, scope: a.scope });
 
@@ -102,15 +101,15 @@ export function AmenityForm({ amenity }: { amenity?: AdminAmenity }) {
                 control={control}
                 name="scope"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange} disabled={amenity !== undefined}>
-                    <SelectTrigger id="amenity-scope" className="w-full" aria-describedby="amenity-scope-hint">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="HOTEL">{SCOPE_LABEL.HOTEL}</SelectItem>
-                      <SelectItem value="ROOM">{SCOPE_LABEL.ROOM}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SelectField
+                    id="amenity-scope"
+                    className="w-full"
+                    aria-describedby="amenity-scope-hint"
+                    options={SCOPE_OPTIONS}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={amenity !== undefined}
+                  />
                 )}
               />
               {amenity && (

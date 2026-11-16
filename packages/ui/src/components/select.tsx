@@ -52,10 +52,14 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
-  position = "item-aligned",
-  align = "center",
+  alignItemWithTrigger = false,
+  position = alignItemWithTrigger ? "item-aligned" : "popper",
+  align = alignItemWithTrigger ? "center" : "start",
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Content>) {
+}: React.ComponentProps<typeof SelectPrimitive.Content> & {
+  /** true = selected item overlays the trigger (Radix "item-aligned"); false = list opens below the trigger ("popper"). */
+  alignItemWithTrigger?: boolean
+}) {
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content

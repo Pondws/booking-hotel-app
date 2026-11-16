@@ -7,13 +7,7 @@ import { Badge } from "@booking/ui/components/badge";
 import { Button } from "@booking/ui/components/button";
 import { DataTable, DataTableSkeleton, type DataTableColumn } from "@booking/ui/components/data-table";
 import { Label } from "@booking/ui/components/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@booking/ui/components/select";
+import { SelectField, type SelectOption } from "@booking/ui/components/select-field";
 import { formErrorMessage } from "@/lib/form-errors";
 import { useAmenities } from "../hooks";
 import { usageText } from "./delete-amenity-dialog";
@@ -21,15 +15,11 @@ import { SCOPE_LABEL } from "./scope-label";
 
 type ScopeFilter = AmenityScope | "all";
 
-const SCOPE_OPTIONS: { value: ScopeFilter; label: string }[] = [
+const SCOPE_OPTIONS: SelectOption<ScopeFilter>[] = [
   { value: "all", label: "ทั้งหมด" },
   { value: "HOTEL", label: SCOPE_LABEL.HOTEL },
   { value: "ROOM", label: SCOPE_LABEL.ROOM },
 ];
-
-function isScopeFilter(value: string): value is ScopeFilter {
-  return SCOPE_OPTIONS.some((o) => o.value === value);
-}
 
 const COLUMNS: DataTableColumn<AdminAmenity>[] = [
   {
@@ -78,23 +68,13 @@ export function AmenityCatalog() {
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="amenity-scope-filter">ใช้กับ</Label>
-        <Select
+        <SelectField
+          id="amenity-scope-filter"
+          className="w-40"
+          options={SCOPE_OPTIONS}
           value={scope}
-          onValueChange={(value) => {
-            if (isScopeFilter(value)) setScope(value);
-          }}
-        >
-          <SelectTrigger id="amenity-scope-filter" className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SCOPE_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onValueChange={setScope}
+        />
       </div>
 
       {isPending ? (
