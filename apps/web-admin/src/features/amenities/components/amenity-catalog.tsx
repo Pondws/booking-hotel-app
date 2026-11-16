@@ -8,7 +8,9 @@ import { Button } from "@booking/ui/components/button";
 import { DataTable, DataTableSkeleton, type DataTableColumn } from "@booking/ui/components/data-table";
 import { Label } from "@booking/ui/components/label";
 import { SelectField, type SelectOption } from "@booking/ui/components/select-field";
+import { Pagination } from "@/components/pagination";
 import { formErrorMessage } from "@/lib/form-errors";
+import { useClientPagination } from "@/lib/use-client-pagination";
 import { useAmenities } from "../hooks";
 import { usageText } from "./delete-amenity-dialog";
 import { SCOPE_LABEL } from "./scope-label";
@@ -63,9 +65,10 @@ export function AmenityCatalog() {
   const { data, isPending, isError, error, refetch, isFetching } = useAmenities(
     scope === "all" ? undefined : scope,
   );
+  const { pageRows, setPage, paginationProps } = useClientPagination(data);
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="space-y-2">
         <Label htmlFor="amenity-scope-filter">ใช้กับ</Label>
         <SelectField
@@ -73,7 +76,10 @@ export function AmenityCatalog() {
           className="w-40"
           options={SCOPE_OPTIONS}
           value={scope}
-          onValueChange={setScope}
+          onValueChange={(next) => {
+            setScope(next);
+            setPage(1);
+          }}
         />
       </div>
 
@@ -86,17 +92,23 @@ export function AmenityCatalog() {
             ลองอีกครั้ง
           </Button>
         </div>
-      ) : data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {scope === "all" ? "ยังไม่มีสิ่งอำนวยความสะดวกในระบบ" : `ยังไม่มีสิ่งอำนวยความสะดวกของ${SCOPE_LABEL[scope]}`}
-        </p>
       ) : (
         <DataTable
+          fill
           caption="สิ่งอำนวยความสะดวก"
           columns={COLUMNS}
-          rows={data}
+          rows={pageRows}
           getRowKey={(a) => a.id}
           busy={isFetching}
+          empty={
+            scope === "all" ? "ยังไม่มีสิ่งอำนวยความสะดวกในระบบ" : `ยังไม่มีสิ่งอำนวยความสะดวกของ${SCOPE_LABEL[scope]}`
+          }
+          pagination={
+            <Pagination
+              {...paginationProps}
+              label="หน้ารายการสิ่งอำนวยความสะดวก"
+            />
+          }
         />
       )}
     </div>

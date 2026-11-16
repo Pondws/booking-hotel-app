@@ -19,7 +19,9 @@ import { Button } from "@booking/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@booking/ui/components/card";
 import { DataTable, DataTableSkeleton, type DataTableColumn } from "@booking/ui/components/data-table";
 import { formatDateRange, formatMoney } from "@/features/room-types/format";
+import { Pagination } from "@/components/pagination";
 import { formErrorMessage } from "@/lib/form-errors";
+import { useClientPagination } from "@/lib/use-client-pagination";
 import { useDeleteRatePeriod, useRatePeriods } from "../hooks";
 import { RatePeriodForm } from "./rate-period-form";
 
@@ -34,6 +36,7 @@ export function RatesCard({ roomType }: { roomType: AdminRoomType }) {
     roomType.id,
   );
   const [editor, setEditor] = useState<Editor>(null);
+  const { pageRows, paginationProps } = useClientPagination(periods);
 
   return (
     <Card>
@@ -73,17 +76,20 @@ export function RatesCard({ roomType }: { roomType: AdminRoomType }) {
               ลองอีกครั้ง
             </Button>
           </div>
-        ) : periods.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            ยังไม่มีช่วงราคา ทุกคืนใช้ราคาพื้นฐาน
-          </p>
         ) : (
           <DataTable
             caption={`ช่วงราคาของ ${roomType.name}`}
             columns={columns(roomType, currency, (period) => setEditor({ mode: "edit", period }))}
-            rows={periods}
+            rows={pageRows}
             getRowKey={(p) => p.id}
             busy={isFetching}
+            empty="ยังไม่มีช่วงราคา ทุกคืนใช้ราคาพื้นฐาน"
+            pagination={
+              <Pagination
+                {...paginationProps}
+                label="หน้ารายการช่วงราคา"
+              />
+            }
           />
         )}
       </CardContent>

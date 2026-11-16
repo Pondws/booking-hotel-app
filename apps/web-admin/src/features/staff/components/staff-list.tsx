@@ -8,6 +8,8 @@ import { Button } from "@booking/ui/components/button";
 import { DataTable, DataTableSkeleton, type DataTableColumn } from "@booking/ui/components/data-table";
 import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
+import { SearchX } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
 import { useStaffList } from "../hooks";
 import { parseListParams, serializeListParams } from "../list-params";
@@ -58,7 +60,7 @@ export function StaffList() {
     router.push(`${pathname}${serializeListParams({ ...query, ...next })}`);
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <form
         key={query.q ?? ""}
         role="search"
@@ -87,34 +89,34 @@ export function StaffList() {
             ลองอีกครั้ง
           </Button>
         </div>
-      ) : data.items.length === 0 ? (
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            {query.q !== undefined ? "ไม่พบพนักงานที่ตรงกับคำค้นหา" : "ยังไม่มีพนักงาน"}
-          </p>
-          {query.q !== undefined && (
-            <Button asChild variant="link" className="px-0">
-              <Link href={pathname}>ล้างการค้นหา</Link>
-            </Button>
-          )}
-        </div>
       ) : (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {data.total} คน
-          </p>
+        <div className="flex min-h-0 flex-1 flex-col gap-4">
           <DataTable
+            fill
             caption="พนักงาน"
             columns={COLUMNS}
             rows={data.items}
             getRowKey={(s) => s.id}
             busy={isPlaceholderData}
-          />
-          <Pagination
-            page={data.page}
-            totalPages={data.totalPages}
-            hrefFor={(page) => `${pathname}${serializeListParams({ ...query, page })}`}
-            label="หน้ารายชื่อพนักงาน"
+            emptyIcon={query.q !== undefined ? <SearchX className="size-6" /> : undefined}
+            empty={
+              <EmptyState
+                message={query.q !== undefined ? "ไม่พบพนักงานที่ตรงกับคำค้นหา" : "ยังไม่มีพนักงาน"}
+                clearHref={query.q !== undefined ? pathname : undefined}
+                clearLabel="ล้างการค้นหา"
+              />
+            }
+            pagination={
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                total={data.total}
+                pageSize={data.pageSize}
+                onPageSizeChange={(pageSize) => navigate({ pageSize, page: 1 })}
+                hrefFor={(page) => `${pathname}${serializeListParams({ ...query, page })}`}
+                label="หน้ารายชื่อพนักงาน"
+              />
+            }
           />
         </div>
       )}

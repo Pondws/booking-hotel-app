@@ -2,24 +2,49 @@
 
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import type { AdminRoomTypeSummary } from "@booking/shared";
 import { Button } from "@booking/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@booking/ui/components/card";
-import { Skeleton } from "@booking/ui/components/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@booking/ui/components/table";
+import { DataTable, DataTableSkeleton, type DataTableColumn } from "@booking/ui/components/data-table";
+import { Pagination } from "@/components/pagination";
 import { HotelStatusBadge } from "@/features/hotels/components/hotel-list";
+import { useClientPagination } from "@/lib/use-client-pagination";
 import { formatMoney } from "../format";
 import { useRoomTypes } from "../hooks";
 
+function columns(hotelId: string, currency: string): DataTableColumn<AdminRoomTypeSummary>[] {
+  return [
+    {
+      id: "name",
+      header: "ชื่อ",
+      className: "font-medium",
+      cell: (rt) => (
+        <Link href={`/hotels/${hotelId}/room-types/${rt.id}`} className="hover:underline">
+          {rt.name}
+        </Link>
+      ),
+    },
+    { id: "capacity", header: "ผู้เข้าพัก", className: "text-right tabular-nums", cell: (rt) => rt.capacity },
+    {
+      id: "basePrice",
+      header: "ราคาพื้นฐาน / คืน",
+      className: "text-right tabular-nums",
+      cell: (rt) => formatMoney(rt.basePrice, currency),
+    },
+    {
+      id: "rooms",
+      header: "ห้องที่เปิดใช้งาน",
+      className: "text-right tabular-nums",
+      cell: (rt) => `${rt.activeRoomCount} / ${rt.roomCount}`,
+    },
+    { id: "status", header: "สถานะ", cell: (rt) => <HotelStatusBadge isActive={rt.isActive} /> },
+  ];
+}
+
 /** Room types of one hotel, shown under the hotel form. */
 export function RoomTypeList({ hotelId, currency }: { hotelId: string; currency: string }) {
-  const { data, isPending, isError, refetch } = useRoomTypes(hotelId);
+  const { data, isPending, isError, refetch, isFetching } = useRoomTypes(hotelId);
+  const { pageRows, paginationProps } = useClientPagination(data);
 
   return (
     <Card>
@@ -34,11 +59,7 @@ export function RoomTypeList({ hotelId, currency }: { hotelId: string; currency:
       </CardHeader>
       <CardContent>
         {isPending ? (
-          <div className="space-y-2" aria-hidden>
-            {Array.from({ length: 3 }, (_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
+          <DataTableSkeleton rows={3} />
         ) : isError ? (
           <div role="alert" className="space-y-2">
             <p className="text-sm">โหลดรายการประเภทห้องไม่สำเร็จ</p>
@@ -46,45 +67,21 @@ export function RoomTypeList({ hotelId, currency }: { hotelId: string; currency:
               ลองอีกครั้ง
             </Button>
           </div>
-        ) : data.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            ยังไม่มีประเภทห้อง เพิ่มอย่างน้อย 1 ประเภทเพื่อให้ลูกค้าจองโรงแรมนี้ได้
-          </p>
         ) : (
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ชื่อ</TableHead>
-                  <TableHead className="text-right">ผู้เข้าพัก</TableHead>
-                  <TableHead className="text-right">ราคาพื้นฐาน / คืน</TableHead>
-                  <TableHead className="text-right">ห้องที่เปิดใช้งาน</TableHead>
-                  <TableHead>สถานะ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.map((rt) => (
-                  <TableRow key={rt.id}>
-                    <TableCell className="font-medium">
-                      <Link href={`/hotels/${hotelId}/room-types/${rt.id}`} className="hover:underline">
-                        {rt.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{rt.capacity}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatMoney(rt.basePrice, currency)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {rt.activeRoomCount} / {rt.roomCount}
-                    </TableCell>
-                    <TableCell>
-                      <HotelStatusBadge isActive={rt.isActive} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTable
+            caption="ประเภทห้อง"
+            columns={columns(hotelId, currency)}
+            rows={pageRows}
+            getRowKey={(rt) => rt.id}
+            busy={isFetching}
+            empty="ยังไม่มีประเภทห้อง เพิ่มอย่างน้อย 1 ประเภทเพื่อให้ลูกค้าจองโรงแรมนี้ได้"
+            pagination={
+              <Pagination
+                {...paginationProps}
+                label="หน้ารายการประเภทห้อง"
+              />
+            }
+          />
         )}
       </CardContent>
     </Card>
