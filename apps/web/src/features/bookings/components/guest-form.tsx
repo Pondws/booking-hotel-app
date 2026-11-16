@@ -14,6 +14,7 @@ import { useMe } from "@/features/auth/hooks";
 import { toSearchParams } from "@/features/hotels/search-params";
 import { ApiError } from "@/lib/api";
 import { applyServerFieldErrors, formErrorMessage } from "@/lib/form-errors";
+import { thaiResolver, toThai } from "@/lib/messages-th";
 import { useCreateBooking } from "../hooks";
 
 type FormInput = z.input<typeof createBookingSchema>;
@@ -40,7 +41,7 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
     setError,
     formState: { errors },
   } = useForm<FormInput, unknown, FormOutput>({
-    resolver: zodResolver(createBookingSchema),
+    resolver: thaiResolver(zodResolver(createBookingSchema)),
     defaultValues: {
       roomTypeId: stay.roomTypeId,
       checkIn: stay.checkIn,
@@ -66,7 +67,7 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
         if (error instanceof ApiError && error.code === "ROOM_UNAVAILABLE") {
           setAlert({ kind: "unavailable" });
         } else if (error instanceof ApiError && error.code === "CONFLICT") {
-          setAlert({ kind: "conflict", message: error.message });
+          setAlert({ kind: "conflict", message: toThai(error.message) });
         } else if (
           !applyServerFieldErrors(error, setError, ["guestName", "guestEmail", "guestPhone"])
         ) {
@@ -78,13 +79,13 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
-      <h2 className="text-lg font-semibold">Guest details</h2>
+      <h2 className="text-lg font-semibold">ข้อมูลผู้เข้าพัก</h2>
       <input type="hidden" {...register("roomTypeId")} />
       <input type="hidden" {...register("checkIn")} />
       <input type="hidden" {...register("checkOut")} />
       <input type="hidden" {...register("guests")} />
       <div className="space-y-2">
-        <Label htmlFor="guestName">Full name</Label>
+        <Label htmlFor="guestName">ชื่อ-นามสกุล</Label>
         <Input
           id="guestName"
           autoComplete="name"
@@ -97,7 +98,7 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
         )}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="guestEmail">Email</Label>
+        <Label htmlFor="guestEmail">อีเมล</Label>
         <Input
           id="guestEmail"
           type="email"
@@ -111,7 +112,7 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
         )}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="guestPhone">Phone (optional)</Label>
+        <Label htmlFor="guestPhone">เบอร์โทรศัพท์ (ไม่บังคับ)</Label>
         <Input
           id="guestPhone"
           type="tel"
@@ -128,9 +129,9 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
       </div>
       {alert?.kind === "unavailable" && (
         <p role="alert" className="text-sm text-destructive">
-          Someone just booked the last room for these dates.{" "}
+          มีคนเพิ่งจองห้องสุดท้ายของวันที่นี้ไป{" "}
           <Link href={backHref} className="underline underline-offset-4">
-            Choose other dates or rooms
+            เลือกวันหรือห้องอื่น
           </Link>
         </p>
       )}
@@ -138,7 +139,7 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
         <p role="alert" className="text-sm text-destructive">
           {alert.message}{" "}
           <Link href="/account/bookings" className="underline underline-offset-4">
-            View my bookings
+            ดูการจองของฉัน
           </Link>
         </p>
       )}
@@ -148,7 +149,7 @@ export function GuestForm({ hotelSlug, stay, canHold }: Props) {
         </p>
       )}
       <Button type="submit" className="w-full" disabled={busy || !canHold}>
-        {busy ? "Holding…" : `Hold this room for ${HOLD_MINUTES} minutes`}
+        {busy ? "กำลังกันห้อง…" : `จองและกันห้องไว้ ${HOLD_MINUTES} นาที`}
       </Button>
     </form>
   );

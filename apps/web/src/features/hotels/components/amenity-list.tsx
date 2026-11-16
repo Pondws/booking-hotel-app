@@ -33,7 +33,7 @@ type Props = {
 export function AmenityList({ amenities, className }: Props) {
   if (amenities.length === 0) return null;
   return (
-    <ul className={cn("flex flex-wrap gap-x-4 gap-y-2 text-sm", className)}>
+    <ul className={cn("grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3", className)}>
       {amenities.map((amenity) => {
         const Icon = amenityIcon(amenity.code);
         return (

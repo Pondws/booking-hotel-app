@@ -11,6 +11,7 @@ import { Button } from "@booking/ui/components/button";
 import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
 import { applyServerFieldErrors, formErrorMessage } from "@/lib/form-errors";
+import { thaiResolver } from "@/lib/messages-th";
 import { useMe, useRegister } from "../hooks";
 
 type FormInput = z.input<typeof registerSchema>;
@@ -26,7 +27,7 @@ export function RegisterForm() {
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<FormInput, unknown, FormOutput>({ resolver: zodResolver(registerSchema) });
+  } = useForm<FormInput, unknown, FormOutput>({ resolver: thaiResolver(zodResolver(registerSchema)) });
 
   useEffect(() => {
     if (me) router.replace("/");
@@ -46,17 +47,17 @@ export function RegisterForm() {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">ชื่อ-นามสกุล</Label>
         <Input id="name" autoComplete="name" aria-invalid={!!errors.name} {...register("name")} />
         {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">อีเมล</Label>
         <Input id="email" type="email" autoComplete="email" aria-invalid={!!errors.email} {...register("email")} />
         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">รหัสผ่าน</Label>
         <Input
           id="password"
           type="password"
@@ -72,12 +73,12 @@ export function RegisterForm() {
         </p>
       )}
       <Button type="submit" className="w-full" disabled={registerUser.isPending}>
-        {registerUser.isPending ? "Creating account…" : "Create account"}
+        {registerUser.isPending ? "กำลังสร้างบัญชี…" : "สร้างบัญชี"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
-        Already registered?{" "}
+        มีบัญชีอยู่แล้ว?{" "}
         <Link href="/login" className="text-foreground underline underline-offset-4">
-          Log in
+          เข้าสู่ระบบ
         </Link>
       </p>
     </form>

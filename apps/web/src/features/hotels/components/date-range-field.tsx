@@ -5,6 +5,7 @@ import { BOOKING_TZ, MAX_NIGHTS, todayIn } from "@booking/shared";
 import { Button } from "@booking/ui/components/button";
 import { Calendar } from "@booking/ui/components/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@booking/ui/components/popover";
+import { th } from "@booking/ui/lib/calendar-locales";
 import { cn } from "@booking/ui/lib/utils";
 import { formatDateRange, formatDate } from "../format";
 
@@ -18,6 +19,9 @@ type Props = {
   describedBy?: string;
   className?: string;
 };
+
+// Thai month + Buddhist-era year in the calendar caption, e.g. "เมษายน 2570"
+const captionFormat = new Intl.DateTimeFormat("th-TH", { month: "long", year: "numeric" });
 
 // react-day-picker works with local-time Dates; wire dates are plain `YYYY-MM-DD` calendar days.
 function toLocalDate(iso: string): Date {
@@ -37,8 +41,8 @@ function addDays(date: Date, n: number): Date {
 
 function label({ checkIn, checkOut }: DateRangeValue): string {
   if (checkIn && checkOut) return formatDateRange(checkIn, checkOut);
-  if (checkIn) return `${formatDate(checkIn)} – check-out?`;
-  return "Add dates";
+  if (checkIn) return `${formatDate(checkIn)} – เลือกวันเช็คเอาท์`;
+  return "เลือกวันที่";
 }
 
 /** Check-in/check-out picker: past days (Bangkok time) and stays over MAX_NIGHTS can't be picked. */
@@ -83,6 +87,8 @@ function RangeCalendar({ value, onChange }: Pick<Props, "value" | "onChange">) {
   return (
     <Calendar
       mode="range"
+      locale={th}
+      formatters={{ formatCaption: (month) => captionFormat.format(month) }}
       numberOfMonths={2}
       defaultMonth={from ?? today}
       selected={{ from, to }}

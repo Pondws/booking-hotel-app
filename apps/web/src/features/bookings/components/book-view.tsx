@@ -22,16 +22,16 @@ export function BookView() {
 
 function ChooseDatesFirst({ slug }: { slug: string | null }) {
   return (
-    <div className="space-y-3 rounded-lg border p-6 text-center">
-      <h2 className="text-lg font-semibold">Choose your dates first</h2>
+    <div className="space-y-3 rounded-xl border p-6 text-center">
+      <h2 className="text-lg font-semibold">เลือกวันที่และห้องพักก่อน</h2>
       <p className="text-sm text-muted-foreground">
-        Pick a room and your stay dates, then come back here to book.
+        เลือกห้องพักและวันที่เข้าพักจากหน้าโรงแรม แล้วกดจองอีกครั้ง
       </p>
       <Link
         href={slug ? `/hotels/${encodeURIComponent(slug)}` : "/hotels"}
         className={buttonVariants({ variant: "outline" })}
       >
-        {slug ? "Back to the hotel" : "Find a hotel"}
+        {slug ? "กลับไปหน้าโรงแรม" : "ค้นหาที่พัก"}
       </Link>
     </div>
   );
@@ -48,10 +48,10 @@ function BookHotel({ slug, input }: { slug: string; input: CreateBookingData }) 
   if (isError) {
     if (error instanceof ApiError && error.status === 404) return <ChooseDatesFirst slug={null} />;
     return (
-      <div role="alert" className="space-y-3 rounded-lg border p-6 text-center">
-        <p className="text-sm">We couldn&apos;t load this hotel right now.</p>
+      <div role="alert" className="space-y-3 rounded-xl border p-6 text-center">
+        <p className="text-sm">โหลดข้อมูลโรงแรมไม่ได้ในขณะนี้</p>
         <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
-          {isFetching ? "Retrying…" : "Try again"}
+          {isFetching ? "กำลังลองใหม่…" : "ลองใหม่"}
         </Button>
       </div>
     );
@@ -79,7 +79,7 @@ export function BookViewSkeleton() {
       className="grid gap-8 md:grid-cols-[1fr_20rem]"
       role="status"
       aria-busy="true"
-      aria-label="Loading booking"
+      aria-label="กำลังโหลดการจอง"
     >
       <div className="space-y-4">
         <Skeleton className="h-6 w-1/3" />

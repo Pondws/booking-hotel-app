@@ -1,6 +1,7 @@
 import type { FieldPath, FieldValues, UseFormSetError } from "react-hook-form";
 import { z } from "zod";
 import { ApiError } from "@/lib/api";
+import { toThai } from "@/lib/messages-th";
 
 const detailsSchema = z.object({ fieldErrors: z.record(z.string(), z.array(z.string())) });
 
@@ -17,18 +18,18 @@ export function applyServerFieldErrors<T extends FieldValues>(
   for (const field of fields) {
     const message = parsed.data.fieldErrors[field]?.[0];
     if (message !== undefined) {
-      setError(field, { type: "server", message });
+      setError(field, { type: "server", message: toThai(message) });
       mapped = true;
     }
   }
   return mapped;
 }
 
-/** Human message for an API error that is not tied to a field. */
+/** Human (Thai) message for an API error that is not tied to a field. */
 export function formErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.status === 429 || error.code === "RATE_LIMITED") return "Too many attempts, try again later";
-    return error.message;
+    if (error.status === 429 || error.code === "RATE_LIMITED") return "พยายามหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง";
+    return toThai(error.message);
   }
-  return "Something went wrong. Please try again.";
+  return "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";
 }

@@ -11,6 +11,7 @@ import { Button } from "@booking/ui/components/button";
 import { Input } from "@booking/ui/components/input";
 import { Label } from "@booking/ui/components/label";
 import { applyServerFieldErrors, formErrorMessage } from "@/lib/form-errors";
+import { thaiResolver } from "@/lib/messages-th";
 import { useLogin, useMe } from "../hooks";
 
 type FormInput = z.input<typeof loginSchema>;
@@ -27,7 +28,7 @@ export function LoginForm() {
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<FormInput, unknown, FormOutput>({ resolver: zodResolver(loginSchema) });
+  } = useForm<FormInput, unknown, FormOutput>({ resolver: thaiResolver(zodResolver(loginSchema)) });
 
   // Signed in (already, or just now): leave the login page
   useEffect(() => {
@@ -48,12 +49,12 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">อีเมล</Label>
         <Input id="email" type="email" autoComplete="email" aria-invalid={!!errors.email} {...register("email")} />
         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">รหัสผ่าน</Label>
         <Input
           id="password"
           type="password"
@@ -69,12 +70,12 @@ export function LoginForm() {
         </p>
       )}
       <Button type="submit" className="w-full" disabled={login.isPending}>
-        {login.isPending ? "Logging in…" : "Log in"}
+        {login.isPending ? "กำลังเข้าสู่ระบบ…" : "เข้าสู่ระบบ"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
-        No account?{" "}
+        ยังไม่มีบัญชี?{" "}
         <Link href="/register" className="text-foreground underline underline-offset-4">
-          Register
+          สมัครสมาชิก
         </Link>
       </p>
     </form>

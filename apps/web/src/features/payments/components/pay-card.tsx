@@ -26,11 +26,11 @@ type Props = {
 export function PayCard({ booking, onStillPending }: Props) {
   if (stripePromise === null) {
     return (
-      <section aria-labelledby="pay-heading" className="space-y-2 rounded-lg border p-4">
+      <section aria-labelledby="pay-heading" className="space-y-2 rounded-xl border p-4">
         <h2 id="pay-heading" className="text-lg font-semibold">
-          Payment
+          การชำระเงิน
         </h2>
-        <p className="text-sm text-muted-foreground">Payments aren&apos;t configured</p>
+        <p className="text-sm text-muted-foreground">ยังไม่ได้ตั้งค่าระบบชำระเงิน</p>
       </section>
     );
   }
@@ -74,28 +74,28 @@ function PayCardWithStripe({ booking, onStillPending }: Props) {
   }, [notPayable, queryClient, code]);
 
   return (
-    <section aria-labelledby="pay-heading" className="space-y-4 rounded-lg border p-4">
+    <section aria-labelledby="pay-heading" className="space-y-4 rounded-xl border p-4">
       <h2 id="pay-heading" className="text-lg font-semibold">
-        Pay {formatMoney(booking.totalAmount, booking.currency)}
+        ชำระเงิน {formatMoney(booking.totalAmount, booking.currency)}
       </h2>
       {start.data ? (
         <Elements
           key={start.data.clientSecret}
           stripe={stripePromise}
-          options={{ clientSecret: start.data.clientSecret, appearance: themeAppearance() }}
+          options={{ clientSecret: start.data.clientSecret, appearance: themeAppearance(), locale: "th" }}
         >
           <PayForm booking={booking} onStillPending={onStillPending} />
         </Elements>
       ) : start.isError && !notPayable ? (
         <div role="alert" className="space-y-3">
-          <p className="text-sm">We couldn&apos;t start the payment right now.</p>
+          <p className="text-sm">เริ่มการชำระเงินไม่ได้ในขณะนี้</p>
           <Button variant="outline" onClick={() => void start.refetch()} disabled={start.isFetching}>
-            {start.isFetching ? "Retrying…" : "Try again"}
+            {start.isFetching ? "กำลังลองใหม่…" : "ลองใหม่"}
           </Button>
         </div>
       ) : (
-        <div className="space-y-3" role="status" aria-busy="true" aria-label="Loading payment form">
-          {returning && <p className="text-sm text-muted-foreground">Confirming payment…</p>}
+        <div className="space-y-3" role="status" aria-busy="true" aria-label="กำลังโหลดฟอร์มชำระเงิน">
+          {returning && <p className="text-sm text-muted-foreground">กำลังยืนยันการชำระเงิน…</p>}
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-1/3" />
@@ -142,7 +142,7 @@ function PayForm({ booking, onStillPending }: Props) {
     });
     if (result.error) {
       // Declined / invalid card: keep the form, show Stripe's message
-      setError(result.error.message ?? "Your payment could not be completed. Try another card.");
+      setError(result.error.message ?? "ชำระเงินไม่สำเร็จ ลองใช้บัตรใบอื่น");
       setPhase("idle");
       return;
     }
@@ -158,7 +158,7 @@ function PayForm({ booking, onStillPending }: Props) {
   if (phase === "confirming" || phase === "slow") {
     return (
       <p role="status" className="text-sm text-muted-foreground">
-        {phase === "confirming" ? "Confirming payment…" : "Still processing — refresh this page in a minute"}
+        {phase === "confirming" ? "กำลังยืนยันการชำระเงิน…" : "ยังดำเนินการอยู่ ลองรีเฟรชหน้านี้อีกครั้งในอีกสักครู่"}
       </p>
     );
   }
@@ -174,10 +174,10 @@ function PayForm({ booking, onStillPending }: Props) {
         </p>
       )}
       <Button type="submit" className="w-full" disabled={!stripe || !elements || !ready || submitting}>
-        {submitting ? "Paying…" : `Pay ${formatMoney(booking.totalAmount, booking.currency)}`}
+        {submitting ? "กำลังชำระเงิน…" : `ชำระเงิน ${formatMoney(booking.totalAmount, booking.currency)}`}
       </Button>
       <p className="text-xs text-muted-foreground">
-        Test mode — card 4242 4242 4242 4242, any future date, any CVC
+        โหมดทดสอบ — ใช้บัตร 4242 4242 4242 4242 วันหมดอายุในอนาคตและ CVC ใดก็ได้
       </p>
     </form>
   );
