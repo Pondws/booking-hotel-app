@@ -342,6 +342,7 @@ enum AuditEntityType {
   AMENITY
   STAFF
   BOOKING
+  REVIEW
 }
 
 /// One back-office write (create / update / delete). `changes` = [{ field, before, after }]: only the changed
@@ -356,7 +357,8 @@ model AuditLog {
   entityLabel String          @map("entity_label")
   /// Hotel the entity belongs to (null for amenities and staff) — STAFF see only their hotels' rows.
   hotelId     String?         @map("hotel_id")
-  /// The entity whose page shows this row too: the room type for ROOM / RATE_PERIOD rows. No FK, like entityId.
+  /// The entity whose page shows this row too: the room type for ROOM / RATE_PERIOD rows, the hotel for REVIEW
+  /// rows. No FK, like entityId.
   parentId    String?         @map("parent_id")
   changes     Json
   createdAt   DateTime        @default(now()) @map("created_at")
