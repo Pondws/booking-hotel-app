@@ -9,6 +9,7 @@ import { bookingsRouter } from "./routes/bookings";
 import { healthRouter } from "./routes/health";
 import { amenitiesRouter } from "./routes/amenities";
 import { hotelsRouter } from "./routes/hotels";
+import { wishlistsRouter } from "./routes/wishlists";
 import { webhooksRouter } from "./routes/webhooks";
 
 export const app = express();
@@ -40,6 +41,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/hotels", hotelsRouter);
 app.use("/api/amenities", amenitiesRouter);
 app.use("/api/bookings", bookingsRouter);
+app.use("/api/wishlists", wishlistsRouter);
 app.use("/api/admin", adminRouter);
 
 app.use(notFound);

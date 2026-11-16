@@ -1215,3 +1215,38 @@ export const healthSchema = z.object({
   timestamp: z.string(),
 });
 export type Health = z.infer<typeof healthSchema>;
+
+// ---------- Wishlists (customer, `/api/wishlists`) ----------
+
+export const WISHLIST_LIMIT = 20;
+export const WISHLIST_ITEM_LIMIT = 200;
+
+export const wishlistNameField = z.string().trim().min(1, "Name is required").max(50, "At most 50 characters");
+
+/** `POST /api/wishlists`, `PATCH /api/wishlists/:wishlistId`. */
+export const wishlistInputSchema = z.object({ name: wishlistNameField });
+export type WishlistInput = z.output<typeof wishlistInputSchema>;
+
+export const wishlistIdParamsSchema = z.object({ wishlistId: z.string().min(1).max(64) });
+export const wishlistItemParamsSchema = wishlistIdParamsSchema.extend({ hotelId: z.string().min(1).max(64) });
+export type WishlistItemParams = z.output<typeof wishlistItemParamsSchema>;
+
+/** One list in `GET /api/wishlists`. `hotelIds` (newest first) drives the hearts and the save dialog. */
+export const wishlistSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  hotelIds: z.array(z.string()),
+  coverImage: imageSchema.nullable(),
+  createdAt: z.iso.datetime(),
+});
+export type WishlistSummary = z.infer<typeof wishlistSummarySchema>;
+export const wishlistListSchema = z.array(wishlistSummarySchema);
+
+/** `GET /api/wishlists/:wishlistId` — active hotels only, newest saved first; fromPrice = lowest base price. */
+export const wishlistDetailSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  hotels: z.array(hotelSummarySchema),
+  createdAt: z.iso.datetime(),
+});
+export type WishlistDetail = z.infer<typeof wishlistDetailSchema>;

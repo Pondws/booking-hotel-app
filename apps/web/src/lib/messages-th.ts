@@ -25,6 +25,8 @@ const EXACT: Record<string, string> = {
   "Room type not found": "ไม่พบประเภทห้อง",
   "Booking not found": "ไม่พบการจอง",
   "Review not found": "ไม่พบรีวิว",
+  "Wishlist not found": "ไม่พบรายการโปรด",
+  "A list with this name already exists": "มีรายการชื่อนี้อยู่แล้ว",
   "Route not found": "ไม่พบปลายทางที่ร้องขอ",
   "Resource not found": "ไม่พบข้อมูล",
   "Resource already exists": "มีข้อมูลนี้อยู่แล้ว",
@@ -47,6 +49,8 @@ const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/^At most (\d+) characters$/, (m) => `ไม่เกิน ${m[1]} ตัวอักษร`],
   [/^Use at most (\d+) characters$/, (m) => `ไม่เกิน ${m[1]} ตัวอักษร`],
   [/^Stays are limited to (\d+) nights$/, (m) => `เข้าพักได้ไม่เกิน ${m[1]} คืน`],
+  [/^You can have at most (\d+) lists$/, (m) => `สร้างรายการโปรดได้สูงสุด ${m[1]} รายการ`],
+  [/^A list can hold at most (\d+) hotels$/, (m) => `หนึ่งรายการเก็บที่พักได้สูงสุด ${m[1]} แห่ง`],
   [/^You have (\d+) bookings waiting for payment$/, (m) => `คุณมีการจองที่รอชำระเงินอยู่ ${m[1]} รายการแล้ว`],
   [/^Request failed with status (\d+)$/, (m) => `คำขอล้มเหลว (สถานะ ${m[1]})`],
 ];

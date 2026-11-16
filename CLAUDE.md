@@ -76,6 +76,7 @@ apps/
                          # conditional updateMany; checked in = CONFIRMED + checkedInAt, there is no CHECKED_IN status),
                          # admin-dashboard.service.ts — today lists, occupancy + revenue per stayed night (CONFIRMED/COMPLETED),
                          # amenity.service.ts assertAmenityScope — the DB doesn't check amenity scope,
+                         # wishlist.service.ts — every query scoped by userId (another user's list = 404),
                          # review.service.ts — createMyReview; recomputeHotelRating is the ONLY code that writes
                          # Hotel.ratingAvg/reviewCount (visible reviews only, same transaction as the review write),
                          # admin-review.service.ts — list + hide/show (conditional updateMany + recompute; audit row's

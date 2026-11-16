@@ -6,6 +6,7 @@ import { MapPin } from "lucide-react";
 import type { HotelSearchQuery, HotelSummary } from "@booking/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@booking/ui/components/card";
 import { Skeleton } from "@booking/ui/components/skeleton";
+import { WishlistHeart } from "@/features/wishlists/components/wishlist-heart";
 import { formatMoney, ratingWord, reviewsLabel } from "../format";
 import { usePrefetchHotel } from "../hooks";
 import { toSearchParams } from "../search-params";
@@ -25,48 +26,52 @@ export function HotelCard({ hotel, stay, priority = false }: Props) {
   const warm = () => prefetch(hotel.slug);
 
   return (
-    <Link
-      href={href}
-      onMouseEnter={warm}
-      onFocus={warm}
-      className="group block h-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    >
-      <Card className="h-full gap-0 overflow-hidden rounded-xl py-0 transition-shadow group-hover:shadow-lg">
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          {hotel.coverImage && (
-            <Image
-              src={hotel.coverImage.url}
-              alt={hotel.coverImage.alt ?? hotel.name}
-              fill
-              priority={priority}
-              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          )}
-        </div>
-        <CardHeader className="gap-1.5 px-4 pt-4">
-          <CardTitle className="line-clamp-2 leading-snug">{hotel.name}</CardTitle>
-          <p className="flex items-center gap-1 text-sm text-muted-foreground">
-            <MapPin aria-hidden className="size-4 shrink-0" />
-            {hotel.city}
-          </p>
-          <RatingLine ratingAvg={hotel.ratingAvg} reviewCount={hotel.reviewCount} />
-        </CardHeader>
-        <CardContent className="mt-auto px-4 pt-3 pb-4 text-right text-sm">
-          {hotel.fromPrice === null ? (
-            <span className="text-muted-foreground">สอบถามราคา</span>
-          ) : (
-            <p>
-              <span className="text-muted-foreground">เริ่มต้น </span>
-              <span className="text-lg font-semibold tabular-nums">
-                {formatMoney(hotel.fromPrice, hotel.currency)}
-              </span>
-              <span className="text-muted-foreground"> / คืน</span>
+    // The heart is a sibling of the link (no button inside an <a>), laid over the photo
+    <div className="relative h-full">
+      <Link
+        href={href}
+        onMouseEnter={warm}
+        onFocus={warm}
+        className="group block h-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        <Card className="h-full gap-0 overflow-hidden rounded-xl py-0 transition-shadow group-hover:shadow-lg">
+          <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+            {hotel.coverImage && (
+              <Image
+                src={hotel.coverImage.url}
+                alt={hotel.coverImage.alt ?? hotel.name}
+                fill
+                priority={priority}
+                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+            )}
+          </div>
+          <CardHeader className="gap-1.5 px-4 pt-4">
+            <CardTitle className="line-clamp-2 leading-snug">{hotel.name}</CardTitle>
+            <p className="flex items-center gap-1 text-sm text-muted-foreground">
+              <MapPin aria-hidden className="size-4 shrink-0" />
+              {hotel.city}
             </p>
-          )}
-        </CardContent>
-      </Card>
-    </Link>
+            <RatingLine ratingAvg={hotel.ratingAvg} reviewCount={hotel.reviewCount} />
+          </CardHeader>
+          <CardContent className="mt-auto px-4 pt-3 pb-4 text-right text-sm">
+            {hotel.fromPrice === null ? (
+              <span className="text-muted-foreground">สอบถามราคา</span>
+            ) : (
+              <p>
+                <span className="text-muted-foreground">เริ่มต้น </span>
+                <span className="text-lg font-semibold tabular-nums">
+                  {formatMoney(hotel.fromPrice, hotel.currency)}
+                </span>
+                <span className="text-muted-foreground"> / คืน</span>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </Link>
+      <WishlistHeart hotelId={hotel.id} hotelName={hotel.name} className="absolute top-3 right-3" />
+    </div>
   );
 }
 

@@ -50,6 +50,7 @@ model User {
   reviews  Review[]
   sessions Session[]
   auditLogs AuditLog[]
+  wishlists Wishlist[]
 
   @@map("users")
 }
@@ -114,6 +115,7 @@ model Hotel {
   roomTypes RoomType[]
   reviews   Review[]
   auditLogs AuditLog[]
+  wishlistItems WishlistItem[]
 
   @@index([city])
   @@map("hotels")
@@ -375,4 +377,36 @@ model AuditLog {
   @@index([parentId, createdAt])
   @@index([actorId])
   @@map("audit_logs")
+}
+
+/// A customer's named list of saved hotels (Airbnb-style, several per user).
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  name      String   @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items WishlistItem[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("wishlists")
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  wishlistId String   @map("wishlist_id")
+  hotelId    String   @map("hotel_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  wishlist Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  hotel    Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([wishlistId, hotelId])
+  @@index([wishlistId])
+  @@index([hotelId])
+  @@map("wishlist_items")
 }
