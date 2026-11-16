@@ -453,7 +453,7 @@ Claude ตรวจและแก้เองทั้งหมด: เปิ�
 | --- | --- | --- | --- | --- |
 | 11.1 ✅ | ตัวกรอง + เรียงลำดับผลค้นหา (ช่วงราคา, คะแนนรีวิว, สิ่งอำนวยความสะดวก, เรียงตามราคา/คะแนน) | Booking.com | `FilterPanel` ใน `/hotels` | ✅ branch `feat/search-filters`: `minPrice`/`maxPrice`/`minRating`/`amenities`/`sort` ใน URL; กรอง/เรียงตามราคาคำนวณทุกโรงแรมที่ตรงแล้วแบ่งหน้าใน memory; `GET /api/amenities` (public); ยังไม่ได้ตรวจในเบราว์เซอร์ |
 | 11.2 ✅ | รายการโปรด (wishlist) หลายลิสต์ + ปุ่มหัวใจบนการ์ดและหน้าโรงแรม | Airbnb | `/wishlist` | ✅ branch `feat/wishlist`: ตาราง `Wishlist`/`WishlistItem`, `/api/wishlists` (สูงสุด 20 ลิสต์ × 200 โรงแรม), หัวใจอยู่นอก `<Link>` เปิด dialog เลือกลิสต์; ยังไม่ได้ตรวจในเบราว์เซอร์ |
-| 11.3 | หน้าจุดหมายปลายทาง: รวมเมือง + จำนวนโรงแรม + ราคาเริ่มต้น, ไอเดียทริปตามธีม | Expedia / Booking.com | `/destinations` | ต้องมี endpoint สรุปรายเมือง (ตอนนี้หน้าแรกสรุปจากหน้าแรกของผลค้นหา) |
+| 11.3 ✅ | หน้าจุดหมายปลายทาง: รวมเมือง + จำนวนโรงแรม + ราคาเริ่มต้น, ไอเดียทริปตามธีม | Expedia / Booking.com | `/destinations` | ✅ branch `feat/destinations`: `GET /api/destinations` (หน้าแรกใช้ด้วย แทนการสรุปจากหน้าแรกของผลค้นหา); ธีม = ทางลัดไปตัวกรอง 11.1; ยังไม่ได้ตรวจในเบราว์เซอร์ |
 | 11.4 | ค้นหาบนแผนที่ (map view) | Airbnb / Booking.com | (อยู่ใน 11.3 และ `FilterPanel`) | ต้องเพิ่ม lat/lng ใน `Hotel` + ไลบรารีแผนที่ ⚠️ dependency ใหม่ ต้องถามก่อน |
 | 11.5 | ดีลพิเศษ: early bird, last minute, ส่วนลดพักหลายคืน, โค้ดส่วนลด | Booking.com / Agoda | `/deals` | ต่อยอดจาก rate periods; ราคาต้องมาจาก `pricing.service` เท่านั้น แสดงก่อน/หลังส่วนลด |
 | 11.6 | สมาชิกรางวัล: แต้มจากการเข้าพักที่ COMPLETED, ระดับสมาชิก, ใช้แต้มเป็นส่วนลด | Booking.com Genius / Expedia One Key | `/rewards` | แต้มต้องเขียนใน transaction เดียวกับการเปลี่ยนสถานะ booking |

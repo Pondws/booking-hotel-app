@@ -4,7 +4,7 @@ import { ArrowRight, BadgeCheck, BadgePercent, CalendarX2, ShieldCheck, Tag } fr
 import { HOLD_MINUTES, hotelSearchQuerySchema } from "@booking/shared";
 import { buttonVariants } from "@booking/ui/components/button";
 import { HotelResults, HotelResultsSkeleton } from "@/features/hotels/components/hotel-results";
-import { PopularDestinations } from "@/features/hotels/components/popular-destinations";
+import { DestinationGrid } from "@/features/destinations/components/destination-grid";
 import { SearchBar } from "@/features/hotels/components/search-bar";
 
 const FIRST_PAGE = hotelSearchQuerySchema.parse({});
@@ -54,8 +54,13 @@ export default function Home() {
 
       <div className="mx-auto w-full max-w-6xl space-y-14 px-4 py-12">
         <section aria-labelledby="destinations-heading" className="space-y-4">
-          <SectionHeading id="destinations-heading" title="จุดหมายยอดนิยม" subtitle="เมืองที่มีโรงแรมให้เลือกมากที่สุด" />
-          <PopularDestinations />
+          <SectionHeading
+            id="destinations-heading"
+            title="จุดหมายยอดนิยม"
+            subtitle="เมืองที่มีโรงแรมให้เลือกมากที่สุด"
+            action={{ href: "/destinations", label: "ดูทั้งหมด" }}
+          />
+          <DestinationGrid limit={4} />
         </section>
 
         <section aria-labelledby="hotels-heading" className="space-y-4">
