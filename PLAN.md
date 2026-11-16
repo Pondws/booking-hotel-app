@@ -459,7 +459,7 @@ Claude ตรวจและแก้เองทั้งหมด: เปิ�
 | 11.6 | สมาชิกรางวัล: แต้มจากการเข้าพักที่ COMPLETED, ระดับสมาชิก, ใช้แต้มเป็นส่วนลด | Booking.com Genius / Expedia One Key | `/rewards` | แต้มต้องเขียนใน transaction เดียวกับการเปลี่ยนสถานะ booking |
 | 11.7 | ศูนย์ช่วยเหลือ: FAQ ค้นหาได้, ติดต่อทีมงานจากหน้าการจอง | ทั้งสามเว็บ | `/help` (มีหัวข้อนโยบายยกเลิก + การชำระเงินที่ถูกต้องแล้ว) | |
 | 11.8 | ความปลอดภัยของบัญชี: แก้โปรไฟล์, เปลี่ยนรหัสผ่าน, ลืมรหัสผ่าน | ทั้งสามเว็บ | `/account/security` | คืองานใน Phase 8 — ทำ Phase 8 แล้วใช้หน้านี้เป็น UI |
-| 11.9 | Lightbox ดูรูปเต็มจอ (คีย์บอร์ด ← →) แทน "ดูรูปทั้งหมด" แบบกางลง | Airbnb | `HotelGallery` | ใช้ dialog จาก `packages/ui` (`npm run ui:add -- dialog`) |
+| 11.9 ✅ | Lightbox ดูรูปเต็มจอ (คีย์บอร์ด ← →) แทน "ดูรูปทั้งหมด" แบบกางลง | Airbnb | `HotelGallery` | ✅ branch `feat/gallery-lightbox`: `PhotoLightbox` (dialog จาก `packages/ui`), ← → / swipe / thumbnail, Esc ปิดแล้วคืน focus; ยังไม่ได้ตรวจในเบราว์เซอร์ |
 
 **เสร็จเมื่อ:** ไม่มีหน้า `ComingSoon` เหลือ และทุกฟีเจอร์มี test ฝั่ง API + loading/error/empty states ฝั่ง FE
 
